@@ -1,0 +1,42 @@
+# Blue Ridge LNG Terminal - Phase 2: Project Manager Co-Pilot
+#
+# Root Declarative Automation Bundle (DAB). One `databricks bundle deploy -t demo`
+# is meant to lay down every Databricks resource in this repo (see docs/BUILD.md).
+#
+# Always pass the CLI profile explicitly:
+#   databricks bundle validate --profile DEFAULT
+#   databricks bundle deploy -t demo --profile DEFAULT
+
+bundle:
+  name: bluerridge_pm_copilot
+
+# Resource definitions live in resources/. Each task that adds a resource file also
+# adds its path here (explicit list, not a glob, so a missing file fails loudly):
+#   - resources/pipeline-project.yml      # SDP: project data ingestion
+#   - resources/pipeline-drawings.yml     # SDP: drawing PDF ingestion
+#   - resources/vector-search.yml         # Vector Search endpoint + index
+#   - resources/job-risk-forecast.yml     # ai_forecast schedule-slip job
+#   - resources/genie-space.yml           # Genie Space
+#   - resources/lakebase.yml              # Lakebase instance + synced tables
+#   - resources/app.yml                   # Databricks App
+include: []
+
+variables:
+  catalog:
+    description: Unity Catalog catalog that holds every schema in this project. Pre-existing; the workspace blocks CREATE CATALOG.
+    default: mfg_mc_se_sa
+  schema_prefix:
+    description: Prefix for this project's schemas, e.g. <prefix>_landing, <prefix>_gold_pm.
+    default: bluerridge
+  warehouse_id:
+    description: Serverless SQL warehouse "hobbs" used for SQL tasks, the Genie Space and the app's SQL connector.
+    default: 527214d7319cb124
+
+targets:
+  demo:
+    default: true
+    # No `mode:` on purpose. development mode prefixes resource names with
+    # "[dev <user>]", which would break the stable names the app, Genie Space
+    # and Lakebase instance are referenced by.
+    workspace:
+      host: https://fevm-mfg-mc-se-sa.cloud.databricks.com

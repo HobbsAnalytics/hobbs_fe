@@ -1,0 +1,38 @@
+# Local-development metadata and tool config only.
+#
+# This repository is a Databricks Asset Bundle of notebooks, SDP pipeline modules and an
+# app. It is NOT a pip-installable package, so `packages` below is deliberately empty
+# (setuptools' flat-layout auto-discovery would otherwise reject the numbered folders).
+# Dependencies of deployed code live next to that code, e.g. 09_app/backend/requirements.txt.
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bluerridge-pm-copilot"
+version = "0.1.0"
+description = "Blue Ridge LNG Terminal Phase 2 - Project Manager Co-Pilot: an end-to-end Databricks demo packaged as one bundle"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.optional-dependencies]
+# Local unit tests and the synthetic-data / drawing generators (01_synthetic_data).
+dev = [
+    "pytest>=8",
+    "faker",
+    "numpy",
+    "reportlab",
+]
+
+[tool.setuptools]
+packages = []
+
+[tool.pytest.ini_options]
+# Tests live beside the component they cover (01_synthetic_data/tests, 09_app/backend/tests, ...).
+# 01_synthetic_data on the path lets tests load 02_generate_drawings.py via importlib (a module
+# name starting with a digit cannot appear in an `import` statement). 09_app on the path lets
+# backend tests `from backend.main import app`, matching `cd 09_app && uvicorn backend.main:app`.
+pythonpath = ["01_synthetic_data", "09_app"]
+addopts = "-ra"

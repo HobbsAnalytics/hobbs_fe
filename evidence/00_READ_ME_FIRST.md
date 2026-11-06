@@ -1,0 +1,135 @@
+# Evidence tour: start here
+
+This repository is graded by reading it, not by running it. Each FE Bar component below links to the committed files that prove it ran.
+
+How to read it:
+
+1. Find the box in the table below and open its headline artifact.
+2. To see how the data was produced, open the executed notebook (listed at the bottom). Outputs are embedded in the `.ipynb`, which GitHub renders. Each executed notebook records the Databricks job run id and run URL in its metadata and has an HTML export in [`notebook_html_exports/`](notebook_html_exports/).
+3. Everything is synthetic. Workspace `https://fevm-mfg-mc-se-sa.cloud.databricks.com`, catalog `mfg_mc_se_sa`, schemas `bluerridge_*`.
+
+Status key: **☑ done** means the file is committed and the link resolves. **☐ pending** means the path is planned and the file has not been produced yet.
+
+## At a glance
+
+| # | FE Bar box | Headline proof | Status |
+|---|---|---|---|
+| 1 | Lakeflow ingestion | [`02_pipelines/outputs/pipeline_project_run_summary.md`](../02_pipelines/outputs/pipeline_project_run_summary.md) | ☐ pending |
+| 2 | Unity Catalog governance | [`evidence/grant_listing.md`](grant_listing.md) | ☐ pending |
+| 3 | Lakebase | [`08_lakebase/outputs/synced_tables_listing.md`](../08_lakebase/outputs/synced_tables_listing.md) | ☐ pending |
+| 4 | GenAI: document intelligence | [`evidence/sample_compliance_outputs/compliance_eval_summary.md`](sample_compliance_outputs/compliance_eval_summary.md) | ☐ pending |
+| 5 | ML: schedule-risk forecast | [`evidence/risk_model_metrics.json`](risk_model_metrics.json) | ☐ pending |
+| 6 | Genie Agent | [`evidence/genie_qa_transcript.md`](genie_qa_transcript.md) | ☐ pending |
+| 7 | Databricks App | [`evidence/app_demo.mp4`](app_demo.mp4) and [`evidence/app_screenshots/`](app_screenshots/) | ☐ pending |
+| 8 | One-command deploy | [`evidence/deploy_transcript.txt`](deploy_transcript.txt) | ☐ pending |
+
+## Foundation: Unity Catalog layout
+
+Not an FE Bar box, but everything below writes into these objects.
+
+| Status | Artifact | What it proves |
+|---|---|---|
+| ☑ done | [`00_setup/outputs/schemas_listing.md`](../00_setup/outputs/schemas_listing.md) | The seven `bluerridge_*` schemas and the Volumes `drawings` and `project` exist in `mfg_mc_se_sa` (live listing written by the setup notebook) |
+
+## Synthetic data (feeds boxes 1 and 4)
+
+| Status | Artifact | What it proves |
+|---|---|---|
+| ☐ pending | [`01_synthetic_data/outputs/row_counts.json`](../01_synthetic_data/outputs/row_counts.json) | Row counts of the six synthetic project datasets |
+| ☐ pending | [`01_synthetic_data/outputs/sample_*.csv`](../01_synthetic_data/outputs/) | Five-row samples of each project dataset |
+| ☐ pending | [`01_synthetic_data/outputs/drawing_manifest.json`](../01_synthetic_data/outputs/drawing_manifest.json) | The generated drawing PDFs: id, discipline, revision, type, Volume path, whether a flaw was planted |
+| ☐ pending | [`01_synthetic_data/outputs/ground_truth_findings.jsonl`](../01_synthetic_data/outputs/ground_truth_findings.jsonl) | Every planted flaw with its page, bounding box and code citation, which the compliance judge is scored against |
+
+## 1. Lakeflow ingestion (Auto Loader + Spark Declarative Pipelines)
+
+| Status | Artifact | What it proves |
+|---|---|---|
+| ☐ pending | [`02_pipelines/outputs/pipeline_project_run_summary.md`](../02_pipelines/outputs/pipeline_project_run_summary.md) | Project pipeline run: id, duration, row counts for all twelve bronze and silver tables, data-quality results |
+| ☐ pending | [`02_pipelines/outputs/pipeline_drawings_run_summary.md`](../02_pipelines/outputs/pipeline_drawings_run_summary.md) | Drawings pipeline run summary, including the quarantined malformed file |
+| ☐ pending | [`02_pipelines/outputs/pipeline_project_schema.json`](../02_pipelines/outputs/pipeline_project_schema.json) | Table schemas the project pipeline produced |
+| ☐ pending | [`evidence/pipeline_run_logs/pipeline_project_run.json`](pipeline_run_logs/pipeline_project_run.json) | Raw pipeline update record for the project run |
+| ☐ pending | [`evidence/pipeline_run_logs/pipeline_drawings_run.json`](pipeline_run_logs/pipeline_drawings_run.json) | Raw pipeline update record for the drawings run |
+| ☐ pending | [`02_pipelines/tests/test_malformed_drawing.py`](../02_pipelines/tests/test_malformed_drawing.py) | A non-PDF dropped into the drawings Volume is rescued and quarantined instead of crashing the run |
+
+## 2. Unity Catalog governance
+
+| Status | Artifact | What it proves |
+|---|---|---|
+| ☑ done | [`00_setup/outputs/schemas_listing.md`](../00_setup/outputs/schemas_listing.md) | The governed schemas and Volumes exist, owned by the builder |
+| ☐ pending | [`evidence/grant_listing.md`](grant_listing.md) | `SHOW GRANTS` for every `bluerridge_*` schema, plus the tags applied |
+| ☐ pending | [`06_governance/`](../06_governance/) (`tags.sql`, `grants.sql`, `row_filters.sql`) | The exact statements that were applied |
+
+## 3. Lakebase
+
+| Status | Artifact | What it proves |
+|---|---|---|
+| ☐ pending | [`08_lakebase/outputs/synced_tables_listing.md`](../08_lakebase/outputs/synced_tables_listing.md) | Instance `bluerridge-pm`, its three synced tables in state AVAILABLE, a row count read back over Postgres for each, and the read-write DNS |
+
+## 4. GenAI: document intelligence
+
+| Status | Artifact | What it proves |
+|---|---|---|
+| ☐ pending | [`03_doc_intelligence/outputs/sample_parsed.md`](../03_doc_intelligence/outputs/sample_parsed.md) | One drawing exactly as `ai_parse_document` returns it |
+| ☐ pending | [`03_doc_intelligence/outputs/sample_extracted.jsonl`](../03_doc_intelligence/outputs/sample_extracted.jsonl) | Ten rows of `ai_extract` and `ai_classify` output |
+| ☐ pending | [`03_doc_intelligence/outputs/sample_findings.jsonl`](../03_doc_intelligence/outputs/sample_findings.jsonl) | Twenty compliance-judge findings covering pass, fail and review |
+| ☐ pending | [`evidence/sample_compliance_outputs/compliance_eval_summary.md`](sample_compliance_outputs/compliance_eval_summary.md) | Per-flaw-type precision, recall and F1 against the planted ground truth, with wins and losses |
+| ☐ pending | [`04_vector_search/outputs/corpus_sample.md`](../04_vector_search/outputs/corpus_sample.md) | The code-excerpt corpus behind the Vector Search index |
+| ☐ pending | [`04_vector_search/outputs/sample_query.md`](../04_vector_search/outputs/sample_query.md) | A live index query for "flange rating" returning `ASME B16.5 §4.2` |
+| ☐ pending | [`05_gold/outputs/daily_brief_today.md`](../05_gold/outputs/daily_brief_today.md) | The `ai_query` narrator's daily brief |
+
+## 5. ML: schedule-risk forecast
+
+| Status | Artifact | What it proves |
+|---|---|---|
+| ☐ pending | [`evidence/risk_model_metrics.json`](risk_model_metrics.json) | Mean absolute error and bias of the `ai_forecast` schedule-slip model |
+| ☐ pending | [`05_gold/outputs/kpi_today.md`](../05_gold/outputs/kpi_today.md) | The gold KPI row the app's KPI strip reads |
+
+## 6. Genie Agent
+
+| Status | Artifact | What it proves |
+|---|---|---|
+| ☐ pending | [`evidence/genie_qa_transcript.md`](genie_qa_transcript.md) | Ten questions asked through the Genie Conversation API: question, generated SQL, first five result rows |
+| ☐ pending | [`07_genie_agent/sample_questions.md`](../07_genie_agent/sample_questions.md) | The curated ten questions with their expected SQL |
+| ☐ pending | [`07_genie_agent/outputs/space_id.txt`](../07_genie_agent/outputs/space_id.txt) | The deployed Genie Space's ID |
+
+## 7. Databricks App
+
+| Status | Artifact | What it proves |
+|---|---|---|
+| ☐ pending | [`evidence/app_screenshots/`](app_screenshots/) | `01_copilot_home.png`, `02_assistant_response_with_sources.png`, `03_compliance_page.png`, `04_pdf_viewer_highlighted.png`, `05_right_rail.png` from the deployed app |
+| ☐ pending | [`evidence/app_demo.mp4`](app_demo.mp4) | A 60 to 90 second run-through: open, read the brief, ask a question, click a drawing citation, see the highlighted PDF |
+| ☐ pending | [`09_app/backend/AUTH_NOTES.md`](../09_app/backend/AUTH_NOTES.md) | The on-behalf-of auth research memo that preceded the auth code |
+| ☐ pending | [`evidence/mockups/`](mockups/) | The design mockups the UI was built against |
+
+## 8. One-command deploy
+
+| Status | Artifact | What it proves |
+|---|---|---|
+| ☑ done | [`databricks.yml`](../databricks.yml) | The bundle definition, which passes `databricks bundle validate --profile DEFAULT` |
+| ☑ done | [`docs/BUILD.md`](../docs/BUILD.md) | The deploy sequence and the recipe for executing notebooks |
+| ☐ pending | [`evidence/deploy_transcript.txt`](deploy_transcript.txt) | `databricks bundle deploy -t demo` run end to end |
+
+## Executed notebooks
+
+Each has its outputs embedded in the `.ipynb` and an HTML export of the same run.
+
+| Status | Notebook | HTML export | Box |
+|---|---|---|---|
+| ☑ done | [`00_setup/00_create_schemas_and_volumes.ipynb`](../00_setup/00_create_schemas_and_volumes.ipynb) | [html](notebook_html_exports/00_create_schemas_and_volumes.html) | Foundation |
+| ☐ pending | [`01_synthetic_data/01_generate_project_data.ipynb`](../01_synthetic_data/01_generate_project_data.ipynb) | [html](notebook_html_exports/01_generate_project_data.html) | 1, 4 |
+| ☐ pending | [`01_synthetic_data/02_generate_drawings.ipynb`](../01_synthetic_data/02_generate_drawings.ipynb) | [html](notebook_html_exports/02_generate_drawings.html) | 1, 4 |
+| ☐ pending | [`03_doc_intelligence/01_parse_drawings.ipynb`](../03_doc_intelligence/01_parse_drawings.ipynb) | [html](notebook_html_exports/01_parse_drawings.html) | 4 |
+| ☐ pending | [`03_doc_intelligence/02_extract_classify.ipynb`](../03_doc_intelligence/02_extract_classify.ipynb) | [html](notebook_html_exports/02_extract_classify.html) | 4 |
+| ☐ pending | [`03_doc_intelligence/03_compliance_check.ipynb`](../03_doc_intelligence/03_compliance_check.ipynb) | [html](notebook_html_exports/03_compliance_check.html) | 4 |
+| ☐ pending | [`03_doc_intelligence/04_ground_truth_scoring.ipynb`](../03_doc_intelligence/04_ground_truth_scoring.ipynb) | [html](notebook_html_exports/04_ground_truth_scoring.html) | 4 |
+| ☐ pending | [`04_vector_search/01_load_code_excerpts.ipynb`](../04_vector_search/01_load_code_excerpts.ipynb) | [html](notebook_html_exports/01_load_code_excerpts.html) | 4 |
+| ☐ pending | [`04_vector_search/02_create_endpoint_and_index.ipynb`](../04_vector_search/02_create_endpoint_and_index.ipynb) | [html](notebook_html_exports/02_create_endpoint_and_index.html) | 4 |
+| ☐ pending | [`05_gold/01_kpi_daily.ipynb`](../05_gold/01_kpi_daily.ipynb) | [html](notebook_html_exports/01_kpi_daily.html) | 5 |
+| ☐ pending | [`05_gold/02_risk_forecast.ipynb`](../05_gold/02_risk_forecast.ipynb) | [html](notebook_html_exports/02_risk_forecast.html) | 5 |
+| ☐ pending | [`05_gold/03_daily_brief.ipynb`](../05_gold/03_daily_brief.ipynb) | [html](notebook_html_exports/03_daily_brief.html) | 4 |
+| ☐ pending | [`06_governance/apply.ipynb`](../06_governance/apply.ipynb) | [html](notebook_html_exports/apply.html) | 2 |
+| ☐ pending | [`07_genie_agent/01_create_space.ipynb`](../07_genie_agent/01_create_space.ipynb) | [html](notebook_html_exports/01_create_space.html) | 6 |
+| ☐ pending | [`07_genie_agent/02_run_sample_qa.ipynb`](../07_genie_agent/02_run_sample_qa.ipynb) | [html](notebook_html_exports/02_run_sample_qa.html) | 6 |
+| ☐ pending | [`08_lakebase/01_create_instance.ipynb`](../08_lakebase/01_create_instance.ipynb) | [html](notebook_html_exports/01_create_instance.html) | 3 |
+
+How a notebook is executed and captured is described in [`docs/BUILD.md`](../docs/BUILD.md#running-a-notebook-so-its-outputs-are-real).
