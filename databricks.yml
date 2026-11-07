@@ -21,7 +21,7 @@ bundle:
 #   - resources/lakebase.yml              # Lakebase instance + synced tables
 #   - resources/app.yml                   # Databricks App
 include:
-  - resources/job-synthetic-data.yml      # one-time synthetic project data generator (serverless notebook job)
+  - resources/job-synthetic-data.yml      # one-time synthetic data: project CSVs + drawing PDFs (two parallel serverless notebook tasks)
 
 variables:
   catalog:

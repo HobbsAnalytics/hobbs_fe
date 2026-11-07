@@ -31,7 +31,7 @@ Each stage reads what the earlier stages wrote.
 | # | Stage | Where | Result |
 |---|---|---|---|
 | 0 | Unity Catalog objects | `00_setup/00_create_schemas_and_volumes.ipynb` | Seven `bluerridge_*` schemas; Volumes `bluerridge_landing.drawings` and `bluerridge_landing.project` |
-| 1 | Synthetic data | `01_synthetic_data/`, `resources/job-synthetic-data.yml` | Project CSVs and drawing PDFs in the two Volumes, plus the planted-flaw ground truth |
+| 1 | Synthetic data | `01_synthetic_data/`, `resources/job-synthetic-data.yml` | Project CSVs and drawing PDFs in the two Volumes, plus the planted-flaw ground truth. One job, two parallel tasks: `databricks bundle run job_synthetic_data -t demo --profile DEFAULT` |
 | 2 | Lakeflow ingestion | `02_pipelines/`, `resources/pipeline-*.yml` | Bronze and silver tables from Auto Loader + Spark Declarative Pipelines |
 | 3 | Document intelligence | `03_doc_intelligence/` | `drawings_parsed`, `drawings_extracted`, `compliance_findings`, `compliance_eval` |
 | 4 | Vector Search | `04_vector_search/`, `resources/vector-search.yml` | `code_excerpts` table, endpoint `bluerridge_vs`, index `code_excerpts_vs` |
@@ -85,6 +85,7 @@ Things the recipe depends on:
 - **The notebook must not change between steps 1 and 4.** The tool compares every code cell's source with the run's and stops on a mismatch (markdown cells are only checked to be markdown, so an edit to prose goes unnoticed); after any edit, re-import and re-run.
 - **Supported outputs** are stdout (`print`) and `display(df)` tables. Any other output type (images, HTML, errors) makes the tool stop rather than drop it silently.
 - **`outputs/` is relative.** A notebook run uses its own folder as the working directory, so `outputs/...` lands next to the workspace notebook. The scratch folder has no `outputs/` directory, so notebooks create it themselves.
+- **A notebook that imports a module from its own folder** (`02_generate_drawings.ipynb` imports `02_generate_drawings.py`) needs that file next to it in step 1: `databricks workspace import $SCRATCH/$NB.py --file $NB.py --format AUTO --overwrite --profile DEFAULT`. A `.py` without the `# Databricks notebook source` header lands as a workspace file (`workspace list` shows `FILE`), and the notebook puts its working directory on `sys.path`. A bundle deploy uploads the module the same way.
 
 ## Gotchas found while building
 

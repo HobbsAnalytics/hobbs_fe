@@ -35,10 +35,11 @@ Not an FE Bar box, but everything below writes into these objects.
 
 | Status | Artifact | What it proves |
 |---|---|---|
-| ☐ pending | [`01_synthetic_data/outputs/row_counts.json`](../01_synthetic_data/outputs/row_counts.json) | Row counts of the six synthetic project datasets |
-| ☐ pending | [`01_synthetic_data/outputs/sample_*.csv`](../01_synthetic_data/outputs/) | Five-row samples of each project dataset |
-| ☐ pending | [`01_synthetic_data/outputs/drawing_manifest.json`](../01_synthetic_data/outputs/drawing_manifest.json) | The generated drawing PDFs: id, discipline, revision, type, Volume path, whether a flaw was planted |
-| ☐ pending | [`01_synthetic_data/outputs/ground_truth_findings.jsonl`](../01_synthetic_data/outputs/ground_truth_findings.jsonl) | Every planted flaw with its page, bounding box and code citation, which the compliance judge is scored against |
+| ☑ done | [`01_synthetic_data/outputs/row_counts.json`](../01_synthetic_data/outputs/row_counts.json) | Row counts of the six synthetic project datasets |
+| ☑ done | [`01_synthetic_data/outputs/sample_*.csv`](../01_synthetic_data/outputs/) | Five-row samples of each project dataset |
+| ☑ done | [`01_synthetic_data/outputs/drawing_manifest.json`](../01_synthetic_data/outputs/drawing_manifest.json) | The 1,200 generated drawing PDFs: id, discipline, revision, type (ISO, PID, GA, SPEC, OTHER), Volume path, whether a flaw was planted (240 are flawed) |
+| ☑ done | [`01_synthetic_data/outputs/ground_truth_findings.jsonl`](../01_synthetic_data/outputs/ground_truth_findings.jsonl) | The 274 planted flaws, one line each, with page, bounding box and code citation: what the compliance judge is scored against |
+| ☑ done | [`01_synthetic_data/outputs/spot_check/`](../01_synthetic_data/outputs/spot_check/) | Three drawings copied back from the Volume with their ground-truth boxes outlined in red (a three-flaw P&ID, a flaw on a second sheet, an under-width exit), showing the boxes sit on the planted elements |
 
 ## 1. Lakeflow ingestion (Auto Loader + Spark Declarative Pipelines)
 
@@ -116,8 +117,8 @@ Each has its outputs embedded in the `.ipynb` and an HTML export of the same run
 | Status | Notebook | HTML export | Box |
 |---|---|---|---|
 | ☑ done | [`00_setup/00_create_schemas_and_volumes.ipynb`](../00_setup/00_create_schemas_and_volumes.ipynb) | [html](notebook_html_exports/00_create_schemas_and_volumes.html) | Foundation |
-| ☐ pending | [`01_synthetic_data/01_generate_project_data.ipynb`](../01_synthetic_data/01_generate_project_data.ipynb) | [html](notebook_html_exports/01_generate_project_data.html) | 1, 4 |
-| ☐ pending | [`01_synthetic_data/02_generate_drawings.ipynb`](../01_synthetic_data/02_generate_drawings.ipynb) | [html](notebook_html_exports/02_generate_drawings.html) | 1, 4 |
+| ☑ done | [`01_synthetic_data/01_generate_project_data.ipynb`](../01_synthetic_data/01_generate_project_data.ipynb) | [html](notebook_html_exports/01_generate_project_data.html) | 1, 4 |
+| ☑ done | [`01_synthetic_data/02_generate_drawings.ipynb`](../01_synthetic_data/02_generate_drawings.ipynb) | [html](notebook_html_exports/02_generate_drawings.html) | 1, 4 |
 | ☐ pending | [`03_doc_intelligence/01_parse_drawings.ipynb`](../03_doc_intelligence/01_parse_drawings.ipynb) | [html](notebook_html_exports/01_parse_drawings.html) | 4 |
 | ☐ pending | [`03_doc_intelligence/02_extract_classify.ipynb`](../03_doc_intelligence/02_extract_classify.ipynb) | [html](notebook_html_exports/02_extract_classify.html) | 4 |
 | ☐ pending | [`03_doc_intelligence/03_compliance_check.ipynb`](../03_doc_intelligence/03_compliance_check.ipynb) | [html](notebook_html_exports/03_compliance_check.html) | 4 |

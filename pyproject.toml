@@ -19,11 +19,13 @@ dependencies = []
 
 [project.optional-dependencies]
 # Local unit tests and the synthetic-data / drawing generators (01_synthetic_data).
+# pypdf reads the generated PDFs back so the tests can check each ground-truth bbox against the page.
 dev = [
     "pytest>=8",
     "faker",
     "numpy",
     "reportlab",
+    "pypdf",
 ]
 
 [tool.setuptools]
