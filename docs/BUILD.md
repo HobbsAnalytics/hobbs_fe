@@ -45,25 +45,49 @@ Catalog `mfg_mc_se_sa` is shared with other teams: touch only objects whose sche
 
 ## Running a notebook so its outputs are real
 
-Committed notebooks are executed on the workspace as a one-time serverless job run, so the outputs in them are genuine. The recipe, with `00_setup/00_create_schemas_and_volumes.ipynb` as the worked example:
+Committed notebooks are executed on the workspace as a one-time serverless job run, and the run's own cell outputs are written into the `.ipynb` by [`scripts/nb_evidence.py`](../scripts/nb_evidence.py) (standard library only). What a reader sees in the notebook is therefore what the run produced. The commands below use `01_synthetic_data/01_generate_project_data.ipynb` as the worked example; change `NB` and `SCRATCH` for another notebook.
 
 ```bash
-# 1. Put the notebook in the workspace (a scratch folder is fine)
-databricks workspace import /Workspace/Users/<you>/<scratch>/00_setup/00_create_schemas_and_volumes \
-  --file 00_setup/00_create_schemas_and_volumes.ipynb --format JUPYTER --overwrite --profile DEFAULT
+NB=01_synthetic_data/01_generate_project_data      # the notebook, without ".ipynb"
+SCRATCH=/Workspace/Users/<you>/_scratch_bluerridge # throwaway workspace folder
 
-# 2. Run it once. A notebook_task with no cluster spec runs on serverless compute.
-#    submit.json: {"run_name": "...", "tasks": [{"task_key": "main",
-#                  "notebook_task": {"notebook_path": "/Workspace/Users/<you>/<scratch>/00_setup/00_create_schemas_and_volumes"}}]}
-databricks jobs submit --json @submit.json --profile DEFAULT
+# 1. Put the notebook in the scratch folder (import does not create parent folders)
+databricks workspace mkdirs $SCRATCH/$(dirname $NB) --profile DEFAULT
+databricks workspace import $SCRATCH/$NB --file $NB.ipynb --format JUPYTER --overwrite --profile DEFAULT
 
-# 3. Export the executed notebook, using the task run id from the submit output
-databricks jobs export-run <task_run_id> --views-to-export ALL --profile DEFAULT -o json
+# 2. Run it once. A notebook_task with no cluster spec runs on serverless compute, and `jobs submit`
+#    waits for the run to finish (about a minute for a small notebook). submit.json:
+#    {"run_name": "...", "tasks": [{"task_key": "main", "notebook_task": {"notebook_path": "<$SCRATCH/$NB>"}}]}
+databricks jobs submit --json @submit.json --profile DEFAULT -o json > result.json
+
+# 3. Export the run's record of the executed notebook, using the TASK run id (.tasks[0].run_id)
+read -r RUN TASK URL < <(python3 -c "import json; d=json.load(open('result.json')); print(d['run_id'], d['tasks'][0]['run_id'], d['run_page_url'])")
+databricks jobs export-run $TASK --views-to-export ALL --profile DEFAULT -o json > export.json
+
+# 4. Write that run's real outputs, run id and run URL into the notebook
+python3 -I scripts/nb_evidence.py export.json $NB.ipynb --run-id $RUN --task-run-id $TASK --run-url "$URL"
+
+# 5. Render a readable HTML page for the evidence folder
+python3 -m pip install nbconvert   # once; used for evidence capture only
+python3 -m nbconvert --to html $NB.ipynb --output-dir evidence/notebook_html_exports
+
+# 6. Pull back the files the notebook wrote to outputs/, and drop the exec bit the export adds
+databricks workspace export $SCRATCH/$(dirname $NB)/outputs/<file> --file $(dirname $NB)/outputs/<file> --format AUTO --profile DEFAULT
+chmod 644 $(dirname $NB)/outputs/*
+
+# 7. Remove the scratch folder (the run itself stays exportable)
+databricks workspace delete $SCRATCH --recursive --profile DEFAULT
 ```
 
-The exported HTML goes to `evidence/notebook_html_exports/<notebook name>.html`. The same run's cell outputs, run id and run URL are recorded in the committed `.ipynb`. A notebook that writes `outputs/...` does so next to itself in the workspace (the working directory of a notebook run is its own folder); copy it back with `databricks workspace export <path> --file <local path> --format AUTO --profile DEFAULT`.
+Things the recipe depends on:
+
+- **Why step 4 exists.** The HTML that `jobs export-run` returns carries the executed notebook as a base64 blob, so the printed text and tables in it cannot be read as text. `nb_evidence.py` decodes the blob and writes the outputs into the `.ipynb` as plain JSON. The HTML to commit is the one `nbconvert` renders from that enriched notebook in step 5, not the raw run page (`nb_evidence.py --html` can still save the raw page).
+- **The notebook must not change between steps 1 and 4.** The tool compares every cell's source with the run's and stops on a mismatch; after any edit, re-import and re-run.
+- **Supported outputs** are stdout (`print`) and `display(df)` tables. Any other output type (images, HTML, errors) makes the tool stop rather than drop it silently.
+- **`outputs/` is relative.** A notebook run uses its own folder as the working directory, so `outputs/...` lands next to the workspace notebook. The scratch folder has no `outputs/` directory, so notebooks create it themselves.
 
 ## Gotchas found while building
 
+- `databricks workspace export` writes files with the exec bit (mode 755). `chmod 644` anything under `outputs/` before `git add`.
 - `SHOW SCHEMAS ... LIKE` uses `*` as its wildcard and matches `%` literally, so `LIKE 'bluerridge_%'` returns nothing. Use `LIKE 'bluerridge_*'`.
 - `databricks bundle validate` accepts any key under `experimental.scripts`, so a passing validate does not prove a lifecycle hook name is real. The top-level `scripts:` block holds named scripts that run on demand with `databricks bundle run <name>`.
