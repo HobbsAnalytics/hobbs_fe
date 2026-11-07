@@ -1,0 +1,216 @@
+{
+  "pipeline_id": "6201f0e1-ccb9-4768-bba8-adf2473245cd",
+  "pipeline_name": "bluerridge-pipeline-drawings",
+  "source": "databricks pipelines get-update, the pipeline event log (event_log()) and SELECT queries on the tables; flow metrics are summed over a flow's micro-batches",
+  "code": {
+    "file": "02_pipelines/pipeline_drawings.py",
+    "sha256": "890e672c8006b10a26a4addce82eb754e3cec85861518c4b73e8bb8330c23082"
+  },
+  "final_state": {
+    "bronze_rows": 1200,
+    "bronze_distinct_paths": 1200,
+    "bronze_rows_with_pdf_header": 1200,
+    "bronze_rows_rescued": 0,
+    "bronze_malformed_rows": 0,
+    "bronze_total_bytes": 9145510,
+    "bronze_min_bytes": 4591,
+    "bronze_max_bytes": 15640,
+    "silver_rows": 1200,
+    "silver_distinct_drawing_ids": 1200,
+    "silver_ids_equal_manifest": true,
+    "silver_volume_path_equals_manifest": 1200,
+    "volume_pdf_files": 1200,
+    "volume_malformed_files": 0
+  },
+  "updates_on_committed_code": [
+    {
+      "update_id": "f8c24c64-3632-4af3-86ec-a7b746aa3e3e",
+      "role": "malformed_file_test: incremental update that ingests MALFORMED-TEST.pdf",
+      "full_refresh": false,
+      "validate_only": false,
+      "state": "COMPLETED",
+      "created": "2026-11-07T03:30:53.454Z",
+      "completed": "2026-11-07T03:31:50.511Z",
+      "duration_sec": 57.1,
+      "running_sec": 23.8,
+      "state_timeline": [
+        {
+          "state": "WAITING_FOR_RESOURCES",
+          "timestamp": "2026-11-07T03:30:56.444Z"
+        },
+        {
+          "state": "INITIALIZING",
+          "timestamp": "2026-11-07T03:31:07.504Z"
+        },
+        {
+          "state": "SETTING_UP_TABLES",
+          "timestamp": "2026-11-07T03:31:24.451Z"
+        },
+        {
+          "state": "RUNNING",
+          "timestamp": "2026-11-07T03:31:26.678Z"
+        },
+        {
+          "state": "COMPLETED",
+          "timestamp": "2026-11-07T03:31:50.511Z"
+        }
+      ],
+      "flows": [
+        {
+          "flow": "bluerridge_bronze_drawings.raw_files",
+          "rows_written": 1,
+          "dropped_records": 0,
+          "expectations": [
+            {
+              "name": "no_rescued_data",
+              "action": "WARN",
+              "passed_records": 0,
+              "failed_records": 1
+            }
+          ]
+        },
+        {
+          "flow": "bluerridge_silver_engineering.drawings_raw_tracking",
+          "rows_written": 1201,
+          "dropped_records": 0,
+          "expectations": [
+            {
+              "name": "drawing_id_present",
+              "action": "DROP",
+              "passed_records": 1201,
+              "failed_records": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "update_id": "b420d5ac-e9de-4c39-a6ad-0b8e7b624272",
+      "role": "malformed_file_test cleanup: full refresh after the file was deleted (evidence update)",
+      "full_refresh": true,
+      "validate_only": false,
+      "state": "COMPLETED",
+      "created": "2026-11-07T03:32:04.727Z",
+      "completed": "2026-11-07T03:32:59.772Z",
+      "duration_sec": 55.0,
+      "running_sec": 19.6,
+      "state_timeline": [
+        {
+          "state": "WAITING_FOR_RESOURCES",
+          "timestamp": "2026-11-07T03:32:07.753Z"
+        },
+        {
+          "state": "INITIALIZING",
+          "timestamp": "2026-11-07T03:32:18.608Z"
+        },
+        {
+          "state": "RESETTING",
+          "timestamp": "2026-11-07T03:32:34.950Z"
+        },
+        {
+          "state": "SETTING_UP_TABLES",
+          "timestamp": "2026-11-07T03:32:35.824Z"
+        },
+        {
+          "state": "RUNNING",
+          "timestamp": "2026-11-07T03:32:40.136Z"
+        },
+        {
+          "state": "COMPLETED",
+          "timestamp": "2026-11-07T03:32:59.772Z"
+        }
+      ],
+      "flows": [
+        {
+          "flow": "bluerridge_bronze_drawings.raw_files",
+          "rows_written": 1200,
+          "dropped_records": 0,
+          "expectations": [
+            {
+              "name": "no_rescued_data",
+              "action": "WARN",
+              "passed_records": 1200,
+              "failed_records": 0
+            }
+          ]
+        },
+        {
+          "flow": "bluerridge_silver_engineering.drawings_raw_tracking",
+          "rows_written": 1200,
+          "dropped_records": 0,
+          "expectations": [
+            {
+              "name": "drawing_id_present",
+              "action": "DROP",
+              "passed_records": 1200,
+              "failed_records": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "update_id": "185df85d-c65e-4557-b955-842815c242b2",
+      "role": "idempotency: plain update with nothing new",
+      "full_refresh": false,
+      "validate_only": false,
+      "state": "COMPLETED",
+      "created": "2026-11-07T03:33:44.003Z",
+      "completed": "2026-11-07T03:34:26.021Z",
+      "duration_sec": 42.0,
+      "running_sec": 11.4,
+      "state_timeline": [
+        {
+          "state": "WAITING_FOR_RESOURCES",
+          "timestamp": "2026-11-07T03:33:46.690Z"
+        },
+        {
+          "state": "INITIALIZING",
+          "timestamp": "2026-11-07T03:33:57.297Z"
+        },
+        {
+          "state": "SETTING_UP_TABLES",
+          "timestamp": "2026-11-07T03:34:13.344Z"
+        },
+        {
+          "state": "RUNNING",
+          "timestamp": "2026-11-07T03:34:14.601Z"
+        },
+        {
+          "state": "COMPLETED",
+          "timestamp": "2026-11-07T03:34:26.021Z"
+        }
+      ],
+      "flows": [
+        {
+          "flow": "bluerridge_silver_engineering.drawings_raw_tracking",
+          "rows_written": 1200,
+          "dropped_records": 0,
+          "expectations": [
+            {
+              "name": "drawing_id_present",
+              "action": "DROP",
+              "passed_records": 1200,
+              "failed_records": 0
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "malformed_file_test": {
+    "file": "MALFORMED-TEST.pdf",
+    "update_id": "f8c24c64-3632-4af3-86ec-a7b746aa3e3e",
+    "read_with": "SELECT ... FROM raw_files VERSION AS OF 22 WHERE path LIKE '%MALFORMED%' (the table version the incremental update wrote; 1,201 rows, 1 rescued, 1,200 real PDFs)",
+    "bronze_row": {
+      "_ingest_timestamp": "2026-11-07T03:31:33.381Z",
+      "_rescued_data": "{\"_file_path\":\"/Volumes/mfg_mc_se_sa/bluerridge_landing/drawings/MALFORMED-TEST.pdf\",\"reason\":\"content does not start with the %PDF- header\"}",
+      "_source_file": "/Volumes/mfg_mc_se_sa/bluerridge_landing/drawings/MALFORMED-TEST.pdf",
+      "content_text": "This is plain text renamed .pdf; it is not a PDF document.",
+      "first_bytes_hex": "5468697320697320",
+      "length": "58",
+      "modification_time": "2026-11-07T03:30:48.000Z",
+      "path": "dbfs:/Volumes/mfg_mc_se_sa/bluerridge_landing/drawings/MALFORMED-TEST.pdf"
+    }
+  }
+}

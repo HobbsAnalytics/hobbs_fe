@@ -1,0 +1,30 @@
+# Lakeflow ingestion of the synthetic drawing PDFs: Auto Loader (binaryFile) + Spark Declarative
+# Pipelines.
+#
+# One serverless, triggered pipeline reads the 1,200 PDFs in
+#   /Volumes/${var.catalog}/${var.schema_prefix}_landing/drawings/
+# into one bronze streaming table, raw_files, in ${var.schema_prefix}_bronze_drawings (the
+# pipeline's default schema) and one silver materialized view, drawings_raw_tracking, in
+# ${var.schema_prefix}_silver_engineering. The silver dataset carries a fully-qualified name in the
+# code, which is how one pipeline writes two schemas. See 02_pipelines/pipeline_drawings.py.
+#
+#   databricks bundle run pipeline_drawings -t demo --profile DEFAULT
+#
+# Needs the PDFs from job_synthetic_data first. A plain update reads each file path once; to
+# rebuild bronze (regenerated PDFs, or a file removed from the Volume), add --full-refresh-all.
+resources:
+  pipelines:
+    pipeline_drawings:
+      name: bluerridge-pipeline-drawings
+      catalog: ${var.catalog}
+      schema: ${var.schema_prefix}_bronze_drawings
+      serverless: true
+      continuous: false
+      channel: CURRENT
+      root_path: ../02_pipelines
+      libraries:
+        - file:
+            path: ../02_pipelines/pipeline_drawings.py
+      configuration:
+        bluerridge.catalog: ${var.catalog}
+        bluerridge.schema_prefix: ${var.schema_prefix}

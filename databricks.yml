@@ -13,7 +13,6 @@ bundle:
 # Resource definitions live in resources/. Each task that adds a resource file also
 # adds its path here (explicit list, not a glob, so a missing file fails loudly).
 # Still to come, added by the task that creates each file:
-#   - resources/pipeline-drawings.yml     # SDP: drawing PDF ingestion
 #   - resources/vector-search.yml         # Vector Search endpoint + index
 #   - resources/job-risk-forecast.yml     # ai_forecast schedule-slip job
 #   - resources/genie-space.yml           # Genie Space
@@ -22,6 +21,7 @@ bundle:
 include:
   - resources/job-synthetic-data.yml      # one-time synthetic data: project CSVs + drawing PDFs (two parallel serverless notebook tasks)
   - resources/pipeline-project.yml        # SDP: project data ingestion (6 bronze streaming tables + 6 silver materialized views)
+  - resources/pipeline-drawings.yml       # SDP: drawing PDF ingestion (1 bronze streaming table + 1 silver materialized view)
 
 variables:
   catalog:

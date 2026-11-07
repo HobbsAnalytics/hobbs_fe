@@ -14,7 +14,7 @@ Status key: **☑ done** means the file is committed and the link resolves. **�
 
 | # | FE Bar box | Headline proof | Status |
 |---|---|---|---|
-| 1 | Lakeflow ingestion | [`02_pipelines/outputs/pipeline_project_run_summary.md`](../02_pipelines/outputs/pipeline_project_run_summary.md) | ☑ done |
+| 1 | Lakeflow ingestion | [`02_pipelines/outputs/pipeline_project_run_summary.md`](../02_pipelines/outputs/pipeline_project_run_summary.md) (project data) and [`02_pipelines/outputs/pipeline_drawings_run_summary.md`](../02_pipelines/outputs/pipeline_drawings_run_summary.md) (drawing PDFs) | ☑ done |
 | 2 | Unity Catalog governance | [`evidence/grant_listing.md`](grant_listing.md) | ☐ pending |
 | 3 | Lakebase | [`08_lakebase/outputs/synced_tables_listing.md`](../08_lakebase/outputs/synced_tables_listing.md) | ☐ pending |
 | 4 | GenAI: document intelligence | [`evidence/sample_compliance_outputs/compliance_eval_summary.md`](sample_compliance_outputs/compliance_eval_summary.md) | ☐ pending |
@@ -46,12 +46,13 @@ Not an FE Bar box, but everything below writes into these objects.
 | Status | Artifact | What it proves |
 |---|---|---|
 | ☑ done | [`02_pipelines/outputs/pipeline_project_run_summary.md`](../02_pipelines/outputs/pipeline_project_run_summary.md) | Project pipeline run: id, duration, row counts for all twelve bronze and silver tables, data-quality results |
-| ☐ pending | [`02_pipelines/outputs/pipeline_drawings_run_summary.md`](../02_pipelines/outputs/pipeline_drawings_run_summary.md) | Drawings pipeline run summary, including the quarantined malformed file |
+| ☑ done | [`02_pipelines/outputs/pipeline_drawings_run_summary.md`](../02_pipelines/outputs/pipeline_drawings_run_summary.md) | Drawings pipeline run: id, duration, row counts for the bronze table and the silver view, data-quality results, and the malformed-file test with the quarantined row |
 | ☑ done | [`02_pipelines/outputs/pipeline_project_schema.json`](../02_pipelines/outputs/pipeline_project_schema.json) | Table schemas the project pipeline produced |
 | ☑ done | [`evidence/pipeline_run_logs/pipeline_project_run.json`](pipeline_run_logs/pipeline_project_run.json) | Raw pipeline update record for the project run |
 | ☑ done | [`evidence/pipeline_run_logs/pipeline_project_run_metrics.json`](pipeline_run_logs/pipeline_project_run_metrics.json) | The project run's numbers as JSON, read from the pipeline event log: rows written, rows dropped and every expectation's passed and failed counts per table, plus the update's state timeline |
-| ☐ pending | [`evidence/pipeline_run_logs/pipeline_drawings_run.json`](pipeline_run_logs/pipeline_drawings_run.json) | Raw pipeline update record for the drawings run |
-| ☐ pending | [`02_pipelines/tests/test_malformed_drawing.py`](../02_pipelines/tests/test_malformed_drawing.py) | A non-PDF dropped into the drawings Volume is rescued and quarantined instead of crashing the run |
+| ☑ done | [`evidence/pipeline_run_logs/pipeline_drawings_run.json`](pipeline_run_logs/pipeline_drawings_run.json) | Raw pipeline update record for the drawings run |
+| ☑ done | [`evidence/pipeline_run_logs/pipeline_drawings_run_metrics.json`](pipeline_run_logs/pipeline_drawings_run_metrics.json) | The drawings run's numbers as JSON, read from the pipeline event log and the tables: rows written and every expectation's passed and failed counts per table for the malformed-file update, the clean rebuild and a no-op update, the update state timelines, and the quarantined row itself |
+| ☑ done | [`02_pipelines/tests/test_malformed_drawing.py`](../02_pipelines/tests/test_malformed_drawing.py) | A non-PDF dropped into the drawings Volume is flagged in `_rescued_data` and kept instead of crashing the run (a live workspace test, opt-in with `BLUERRIDGE_LIVE_TESTS=1`; its result is in the drawings run summary) |
 
 ## 2. Unity Catalog governance
 

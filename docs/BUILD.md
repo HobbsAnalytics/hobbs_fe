@@ -32,7 +32,7 @@ Each stage reads what the earlier stages wrote.
 |---|---|---|---|
 | 0 | Unity Catalog objects | `00_setup/00_create_schemas_and_volumes.ipynb` | Seven `bluerridge_*` schemas; Volumes `bluerridge_landing.drawings` and `bluerridge_landing.project` |
 | 1 | Synthetic data | `01_synthetic_data/`, `resources/job-synthetic-data.yml` | Project CSVs and drawing PDFs in the two Volumes, plus the planted-flaw ground truth. One job, two parallel tasks: `databricks bundle run job_synthetic_data -t demo --profile DEFAULT` |
-| 2 | Lakeflow ingestion | `02_pipelines/`, `resources/pipeline-*.yml` | Bronze and silver tables from Auto Loader + Spark Declarative Pipelines. Project data: one serverless pipeline, 6 bronze streaming tables and 6 silver materialized views, after the stage 1 CSVs exist: `databricks bundle run pipeline_project -t demo --profile DEFAULT` |
+| 2 | Lakeflow ingestion | `02_pipelines/`, `resources/pipeline-*.yml` | Bronze and silver tables from Auto Loader + Spark Declarative Pipelines. Project data: one serverless pipeline, 6 bronze streaming tables and 6 silver materialized views, after the stage 1 CSVs exist: `databricks bundle run pipeline_project -t demo --profile DEFAULT`. Drawings: a second pipeline, 1 bronze streaming table (`raw_files`, the PDFs as bytes) and 1 silver materialized view (`drawings_raw_tracking`), after the stage 1 PDFs exist: `databricks bundle run pipeline_drawings -t demo --profile DEFAULT` |
 | 3 | Document intelligence | `03_doc_intelligence/` | `drawings_parsed`, `drawings_extracted`, `compliance_findings`, `compliance_eval` |
 | 4 | Vector Search | `04_vector_search/`, `resources/vector-search.yml` | `code_excerpts` table, endpoint `bluerridge_vs`, index `code_excerpts_vs` |
 | 5 | Gold | `05_gold/` | `kpi_daily`, `risk_forecast`, `daily_brief` |
@@ -91,4 +91,5 @@ Things the recipe depends on:
 
 - `databricks workspace export` writes files with the exec bit (mode 755). `chmod 644` anything under `outputs/` before `git add`.
 - `SHOW SCHEMAS ... LIKE` uses `*` as its wildcard and matches `%` literally, so `LIKE 'bluerridge_%'` returns nothing. Use `LIKE 'bluerridge_*'`.
+- Auto Loader's `binaryFile` format has a fixed schema: it rejects `cloudFiles.schemaEvolutionMode=rescue` (`CF_UNSUPPORTED_SCHEMA_EVOLUTION_MODE`; use `none`) and adds no `_rescued_data` column, so a malformed file is an ordinary row. `pipeline_drawings.py` sets `_rescued_data` itself for files without the `%PDF-` header. A streaming table also keeps the row of a source file that is later deleted; only a full refresh removes it.
 - `databricks bundle validate` accepts any key under `experimental.scripts`, so a passing validate does not prove a lifecycle hook name is real. The top-level `scripts:` block holds named scripts that run on demand with `databricks bundle run <name>`.
