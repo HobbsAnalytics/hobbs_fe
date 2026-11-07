@@ -8301,6 +8301,7 @@ AI Query steps in the physical plan: 2 (ai_extract, ai_classify)
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
 <h2 id="Send-the-drawings-to-the-models-and-write-their-answers">Send the drawings to the models and write their answers<a class="anchor-link" href="#Send-the-drawings-to-the-models-and-write-their-answers">¶</a></h2><p>The only cell that calls the AI functions. <code>overwrite</code> makes a re-run replace the table instead of appending a second copy of every drawing.</p>
+<p><strong>Run record (cost guard).</strong> The run that produced the outputs below (job run 751609482738894) was a one-time <code>jobs submit</code> (<code>run_type</code> SUBMIT_RUN) that made a single attempt (<code>attempt_number</code> 0, no retry). <code>disable_auto_optimization</code> was <strong>not</strong> set on that submit, so the flag was not applied to this evidence run. It is set explicitly on every AI-calling task in <code>resources/job-doc-intelligence.yml</code>, which Task 8 adds.</p>
 </div>
 </div>
 </div>
