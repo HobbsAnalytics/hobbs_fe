@@ -1,0 +1,26 @@
+# One-time generation of the six synthetic project CSVs (schedule, cost, change orders, NCRs,
+# safety log, daily reports) into the landing Volume. The drawing PDFs have their own job.
+#
+# Runs on serverless compute: the task names no cluster, job cluster or environment, the same
+# way the notebook was executed for its committed outputs (docs/BUILD.md). The notebook installs
+# its one extra dependency (Faker, pinned) itself, so it also runs from the notebook UI.
+#
+#   databricks bundle run job_synthetic_data -t demo --profile DEFAULT
+#
+# The notebook is deterministic for a given as_of_date (default 2026-11-06). To shift every date
+# to another anchor: databricks bundle run job_synthetic_data --notebook-params as_of_date=2026-11-20
+resources:
+  jobs:
+    job_synthetic_data:
+      name: bluerridge-synthetic-data
+      description: >-
+        Blue Ridge LNG PM Co-Pilot: generate the synthetic project data CSVs into
+        /Volumes/${var.catalog}/${var.schema_prefix}_landing/project/.
+      max_concurrent_runs: 1
+      tasks:
+        - task_key: generate_project_data
+          notebook_task:
+            notebook_path: ../01_synthetic_data/01_generate_project_data.ipynb
+            base_parameters:
+              catalog: ${var.catalog}
+              schema_prefix: ${var.schema_prefix}

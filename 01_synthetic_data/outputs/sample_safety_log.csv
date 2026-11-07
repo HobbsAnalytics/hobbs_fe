@@ -1,0 +1,6 @@
+log_id,event_date,event_type,is_incident,severity,area,discipline,description,root_cause,corrective_action,reported_by,days_lost
+SAF-0001,2025-11-05,property_damage,True,medium,Tank T-203,structural,Property damage: crane boom contacted scaffold (Tank T-203),equipment failure,job hazard analysis updated,Joseph Sheppard,0
+SAF-0101,2026-04-01,property_damage,True,medium,Main Substation,mechanical,Property damage: crane boom contacted scaffold (Main Substation),housekeeping,toolbox talk held,William Long,0
+SAF-0201,2026-06-05,near_miss,False,medium,Utilities Block,piping,Near miss: vehicle reversed without a spotter (Utilities Block),procedure not followed,barricade installed,Michael Jordan,0
+SAF-0300,2026-07-22,unsafe_condition,False,low,Train 3,electrical,Unsafe condition: uncontrolled cable across walkway (Train 3),procedure not followed,toolbox talk held,Samantha Roach,0
+SAF-0400,2026-10-26,unsafe_condition,False,low,Pipe Rack North,instr,Unsafe condition: uncontrolled cable across walkway (Pipe Rack North),procedure not followed,procedure revised,Blake Barnes,0

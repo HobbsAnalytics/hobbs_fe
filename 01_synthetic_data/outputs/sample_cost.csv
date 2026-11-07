@@ -1,0 +1,6 @@
+cost_id,cost_code,description,discipline,category,area,vendor,budget_usd,committed_usd,actual_usd,eac_usd,variance_usd,report_date
+CST-001,PIP-MAT-001,Cryogenic piping material supply - Train 4,piping,material,Train 4,Ortiz Cryogenics,909000,932000,436000,940000,31000,2026-11-06
+CST-031,STR-EQP-031,Structural steel and concrete equipment and rentals - Tank T-203,structural,equipment,Tank T-203,Jones Fabrication,3012000,2923000,2406000,3024000,12000,2026-11-06
+CST-061,MEC-LAB-061,Rotating and static equipment installation labor - Pipe Rack North,mechanical,labor,Pipe Rack North,EPC self-perform,3708000,3612000,2236000,3759000,51000,2026-11-06
+CST-090,ELE-LAB-090,Power and distribution installation labor - Train 3,electrical,labor,Train 3,EPC self-perform,791000,622000,289000,826000,35000,2026-11-06
+CST-120,INS-IND-120,Instrumentation and controls field indirects - Flare and Vent,instr,indirect,Flare and Vent,EPC site services,1688000,1348000,551000,1708000,20000,2026-11-06

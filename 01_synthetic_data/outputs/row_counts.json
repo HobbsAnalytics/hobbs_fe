@@ -1,0 +1,8 @@
+{
+  "schedule": 500,
+  "cost": 120,
+  "ncrs": 80,
+  "change_orders": 20,
+  "safety_log": 400,
+  "daily_reports": 180
+}

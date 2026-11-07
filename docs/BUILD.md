@@ -31,7 +31,7 @@ Each stage reads what the earlier stages wrote.
 | # | Stage | Where | Result |
 |---|---|---|---|
 | 0 | Unity Catalog objects | `00_setup/00_create_schemas_and_volumes.ipynb` | Seven `bluerridge_*` schemas; Volumes `bluerridge_landing.drawings` and `bluerridge_landing.project` |
-| 1 | Synthetic data | `01_synthetic_data/` | Project CSVs and drawing PDFs in the two Volumes, plus the planted-flaw ground truth |
+| 1 | Synthetic data | `01_synthetic_data/`, `resources/job-synthetic-data.yml` | Project CSVs and drawing PDFs in the two Volumes, plus the planted-flaw ground truth |
 | 2 | Lakeflow ingestion | `02_pipelines/`, `resources/pipeline-*.yml` | Bronze and silver tables from Auto Loader + Spark Declarative Pipelines |
 | 3 | Document intelligence | `03_doc_intelligence/` | `drawings_parsed`, `drawings_extracted`, `compliance_findings`, `compliance_eval` |
 | 4 | Vector Search | `04_vector_search/`, `resources/vector-search.yml` | `code_excerpts` table, endpoint `bluerridge_vs`, index `code_excerpts_vs` |
@@ -67,9 +67,9 @@ databricks jobs export-run $TASK --views-to-export ALL --profile DEFAULT -o json
 # 4. Write that run's real outputs, run id and run URL into the notebook
 python3 -I scripts/nb_evidence.py export.json $NB.ipynb --run-id $RUN --task-run-id $TASK --run-url "$URL"
 
-# 5. Render a readable HTML page for the evidence folder
-python3 -m pip install nbconvert   # once; used for evidence capture only
-python3 -m nbconvert --to html $NB.ipynb --output-dir evidence/notebook_html_exports
+# 5. Render a readable HTML page for the evidence folder. uv fetches nbconvert on the fly (a system
+#    python3 refuses `pip install` under PEP 668); in a virtualenv with nbconvert, drop the "uv run" prefix.
+uv run --no-project --with nbconvert python -m nbconvert --to html $NB.ipynb --output-dir evidence/notebook_html_exports
 
 # 6. Pull back the files the notebook wrote to outputs/, and drop the exec bit the export adds
 databricks workspace export $SCRATCH/$(dirname $NB)/outputs/<file> --file $(dirname $NB)/outputs/<file> --format AUTO --profile DEFAULT

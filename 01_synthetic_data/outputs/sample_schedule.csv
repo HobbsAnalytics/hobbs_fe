@@ -1,0 +1,6 @@
+milestone_id,name,discipline,planned_start,planned_end,actual_start,actual_end,depends_on,criticality
+MS-001,Install underground duct bank - Jetty 2 (WP-001),electrical,2025-10-02,2025-10-19,2025-10-04,2025-10-22,,1
+MS-126,Pull instrument cable - Train 4 (WP-129),instr,2026-03-20,2026-04-15,2026-03-20,2026-04-15,MS-085,4
+MS-251,Install heat exchanger - Pipe Rack North (WP-256),mechanical,2026-08-20,2026-09-14,2026-08-19,2026-09-12,MS-218,4
+MS-375,Energize MCC - Pipe Rack North (WP-359),electrical,2027-02-14,2027-02-19,,,MS-336,2
+MS-500,Commissioning Start (Cooldown Ready),piping,2027-08-19,2027-09-02,,,MS-457;MS-484;MS-496,5

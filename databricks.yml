@@ -11,7 +11,8 @@ bundle:
   name: bluerridge_pm_copilot
 
 # Resource definitions live in resources/. Each task that adds a resource file also
-# adds its path here (explicit list, not a glob, so a missing file fails loudly):
+# adds its path here (explicit list, not a glob, so a missing file fails loudly).
+# Still to come, added by the task that creates each file:
 #   - resources/pipeline-project.yml      # SDP: project data ingestion
 #   - resources/pipeline-drawings.yml     # SDP: drawing PDF ingestion
 #   - resources/vector-search.yml         # Vector Search endpoint + index
@@ -19,7 +20,8 @@ bundle:
 #   - resources/genie-space.yml           # Genie Space
 #   - resources/lakebase.yml              # Lakebase instance + synced tables
 #   - resources/app.yml                   # Databricks App
-include: []
+include:
+  - resources/job-synthetic-data.yml      # one-time synthetic project data generator (serverless notebook job)
 
 variables:
   catalog:

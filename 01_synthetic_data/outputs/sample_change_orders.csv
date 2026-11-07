@@ -1,0 +1,6 @@
+co_id,cost_id,title,reason,status,amount_usd,schedule_impact_days,requested_date,decided_date,requested_by
+CO-101,CST-053,Added spare pump and isolation valves - Tank T-203,scope_addition,approved,28000,4,2025-12-01,2025-12-30,Larry Paul
+CO-106,CST-084,Additional fireproofing at pipe rack - Utilities Block,scope_addition,approved,28000,6,2026-01-20,2026-02-04,Joseph Freeman
+CO-111,CST-101,Added spare pump and isolation valves - Train 4,scope_addition,approved,179000,5,2026-03-27,2026-04-14,Larry Paul
+CO-115,CST-050,Equipment material surcharge - Train 4,materials_inflation,approved,390000,0,2026-06-17,2026-07-21,Austin Weber
+CO-120,CST-101,Relocated equipment skid per updated plot plan - Train 4,design_change,pending,352000,14,2026-09-21,,Larry Paul
