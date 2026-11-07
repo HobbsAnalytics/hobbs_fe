@@ -12,8 +12,9 @@ Usage (the full recipe, with every command, is "Running a notebook so its output
   # 2. databricks jobs export-run <TASK_RUN_ID> --views-to-export ALL --profile DEFAULT -o json > export.json
   # 3. python3 -I scripts/nb_evidence.py export.json notebook.ipynb --run-id R --task-run-id T --run-url URL
 
-The notebook must be the one that was run: every cell's source is compared with the run's, and a mismatch stops the
-tool. For a readable HTML page, render the enriched notebook with `python3 -m nbconvert --to html`.
+The notebook must be the one that was run: every code cell's source is compared with the run's and a mismatch stops
+the tool (markdown cells are only checked to be markdown, so re-run after prose edits too). For a readable HTML page,
+render the enriched notebook with `python3 -m nbconvert --to html`.
 
 Supported result types: ansi (stdout), table (display(df)). Anything else raises, so a new type is
 noticed instead of silently dropped.

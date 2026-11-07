@@ -11,7 +11,7 @@ The whole project is one Declarative Automation Bundle: `databricks.yml` (bundle
 | CLI profile | any profile for that workspace; the commands below use `DEFAULT` and always pass `--profile` |
 | Catalog | `mfg_mc_se_sa`, which already exists (`CREATE CATALOG` is blocked in this workspace) |
 | SQL warehouse | `hobbs`, id `527214d7319cb124`, serverless |
-| Local tools | Python 3.10+ (`pip install -e ".[dev]"` for the unit tests), Node.js 18+ (frontend build) |
+| Local tools | Python 3.10+ (`pip install -e ".[dev]"` for the unit tests), Node.js 18+ (frontend build), `uv` (only to render the evidence HTML, see below) |
 
 The bundle variables default to these values: `catalog` = `mfg_mc_se_sa`, `schema_prefix` = `bluerridge`, `warehouse_id` = `527214d7319cb124`.
 
@@ -82,7 +82,7 @@ databricks workspace delete $SCRATCH --recursive --profile DEFAULT
 Things the recipe depends on:
 
 - **Why step 4 exists.** The HTML that `jobs export-run` returns carries the executed notebook as a base64 blob, so the printed text and tables in it cannot be read as text. `nb_evidence.py` decodes the blob and writes the outputs into the `.ipynb` as plain JSON. The HTML to commit is the one `nbconvert` renders from that enriched notebook in step 5, not the raw run page (`nb_evidence.py --html` can still save the raw page).
-- **The notebook must not change between steps 1 and 4.** The tool compares every cell's source with the run's and stops on a mismatch; after any edit, re-import and re-run.
+- **The notebook must not change between steps 1 and 4.** The tool compares every code cell's source with the run's and stops on a mismatch (markdown cells are only checked to be markdown, so an edit to prose goes unnoticed); after any edit, re-import and re-run.
 - **Supported outputs** are stdout (`print`) and `display(df)` tables. Any other output type (images, HTML, errors) makes the tool stop rather than drop it silently.
 - **`outputs/` is relative.** A notebook run uses its own folder as the working directory, so `outputs/...` lands next to the workspace notebook. The scratch folder has no `outputs/` directory, so notebooks create it themselves.
 
