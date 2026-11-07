@@ -72,7 +72,7 @@ Not an FE Bar box, but everything below writes into these objects.
 
 | Status | Artifact | What it proves |
 |---|---|---|
-| ☐ pending | [`03_doc_intelligence/outputs/sample_parsed.md`](../03_doc_intelligence/outputs/sample_parsed.md) | One drawing exactly as `ai_parse_document` returns it |
+| ☑ done | [`03_doc_intelligence/outputs/sample_parsed.md`](../03_doc_intelligence/outputs/sample_parsed.md) | One drawing, `BRL-INS-PID-0052` (a P&ID with three planted flaws), as `ai_parse_document` parsed it: the `parsed_markdown` stored in `drawings_parsed`, the pixel box of every element and the element each planted flaw falls in. The notebook under "Executed notebooks" parsed all 1,200 drawings with no errors |
 | ☐ pending | [`03_doc_intelligence/outputs/sample_extracted.jsonl`](../03_doc_intelligence/outputs/sample_extracted.jsonl) | Ten rows of `ai_extract` and `ai_classify` output |
 | ☐ pending | [`03_doc_intelligence/outputs/sample_findings.jsonl`](../03_doc_intelligence/outputs/sample_findings.jsonl) | Twenty compliance-judge findings covering pass, fail and review |
 | ☐ pending | [`evidence/sample_compliance_outputs/compliance_eval_summary.md`](sample_compliance_outputs/compliance_eval_summary.md) | Per-flaw-type precision, recall and F1 against the planted ground truth, with wins and losses |
@@ -121,7 +121,7 @@ Each has its outputs embedded in the `.ipynb` and an HTML export of the same run
 | ☑ done | [`00_setup/00_create_schemas_and_volumes.ipynb`](../00_setup/00_create_schemas_and_volumes.ipynb) | [html](notebook_html_exports/00_create_schemas_and_volumes.html) | Foundation |
 | ☑ done | [`01_synthetic_data/01_generate_project_data.ipynb`](../01_synthetic_data/01_generate_project_data.ipynb) | [html](notebook_html_exports/01_generate_project_data.html) | 1, 4 |
 | ☑ done | [`01_synthetic_data/02_generate_drawings.ipynb`](../01_synthetic_data/02_generate_drawings.ipynb) | [html](notebook_html_exports/02_generate_drawings.html) | 1, 4 |
-| ☐ pending | [`03_doc_intelligence/01_parse_drawings.ipynb`](../03_doc_intelligence/01_parse_drawings.ipynb) | [html](notebook_html_exports/01_parse_drawings.html) | 4 |
+| ☑ done | [`03_doc_intelligence/01_parse_drawings.ipynb`](../03_doc_intelligence/01_parse_drawings.ipynb) | [html](notebook_html_exports/01_parse_drawings.html) | 4 |
 | ☐ pending | [`03_doc_intelligence/02_extract_classify.ipynb`](../03_doc_intelligence/02_extract_classify.ipynb) | [html](notebook_html_exports/02_extract_classify.html) | 4 |
 | ☐ pending | [`03_doc_intelligence/03_compliance_check.ipynb`](../03_doc_intelligence/03_compliance_check.ipynb) | [html](notebook_html_exports/03_compliance_check.html) | 4 |
 | ☐ pending | [`03_doc_intelligence/04_ground_truth_scoring.ipynb`](../03_doc_intelligence/04_ground_truth_scoring.ipynb) | [html](notebook_html_exports/04_ground_truth_scoring.html) | 4 |

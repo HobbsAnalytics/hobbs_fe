@@ -58,6 +58,7 @@ databricks workspace import $SCRATCH/$NB --file $NB.ipynb --format JUPYTER --ove
 # 2. Run it once. A notebook_task with no cluster spec runs on serverless compute, and `jobs submit`
 #    waits for the run to finish (about a minute for a small notebook). submit.json:
 #    {"run_name": "...", "tasks": [{"task_key": "main", "notebook_task": {"notebook_path": "<$SCRATCH/$NB>"}}]}
+#    (a notebook that calls AI functions also needs "disable_auto_optimization": true on the task, see Gotchas)
 databricks jobs submit --json @submit.json --profile DEFAULT -o json > result.json
 
 # 3. Export the run's record of the executed notebook, using the TASK run id (.tasks[0].run_id)
@@ -92,4 +93,5 @@ Things the recipe depends on:
 - `databricks workspace export` writes files with the exec bit (mode 755). `chmod 644` anything under `outputs/` before `git add`.
 - `SHOW SCHEMAS ... LIKE` uses `*` as its wildcard and matches `%` literally, so `LIKE 'bluerridge_%'` returns nothing. Use `LIKE 'bluerridge_*'`.
 - Auto Loader's `binaryFile` format has a fixed schema: it rejects `cloudFiles.schemaEvolutionMode=rescue` (`CF_UNSUPPORTED_SCHEMA_EVOLUTION_MODE`; use `none`) and adds no `_rescued_data` column, so a malformed file is an ordinary row. `pipeline_drawings.py` sets `_rescued_data` itself for files without the `%PDF-` header. A streaming table also keeps the row of a source file that is later deleted; only a full refresh removes it.
+- A failed serverless notebook task is retried automatically (`attempt_number` 1 in `databricks jobs get-run`), and the retry runs the whole notebook again, AI calls included. For a notebook that calls an AI function (`03_doc_intelligence/01_parse_drawings.ipynb` bills about 1,370 pages per run) put `"disable_auto_optimization": true` on the task in the `jobs submit` JSON; the bundle schema has the same field for job tasks. `jobs submit` also stops waiting after 20 minutes (`--timeout`): for a longer notebook use `--no-wait` and poll `databricks jobs get-run`.
 - `databricks bundle validate` accepts any key under `experimental.scripts`, so a passing validate does not prove a lifecycle hook name is real. The top-level `scripts:` block holds named scripts that run on demand with `databricks bundle run <name>`.
