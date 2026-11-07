@@ -1,7 +1,7 @@
 """Blue Ridge LNG Terminal: project data ingestion, a Lakeflow Spark Declarative Pipeline (SDP).
 
-Auto Loader streams the six synthetic project CSVs out of the landing Volume into bronze
-streaming tables, and six silver materialized views type, clean and validate them.
+Auto Loader streams the six synthetic project CSVs out of the landing Volume into six bronze
+streaming tables; six silver materialized views then type, clean and validate them.
 
     /Volumes/<catalog>/<prefix>_landing/project/<dataset>.csv     (flat files, one per dataset)
         -> <catalog>.<prefix>_bronze_project.<dataset>_raw        (streaming table, raw + lineage)

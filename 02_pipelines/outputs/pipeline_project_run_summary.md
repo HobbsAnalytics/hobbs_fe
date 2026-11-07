@@ -82,7 +82,7 @@ All COMPLETED. After the first dry run the module changed only in table comments
 | `ccde86ad-f88b-469c-866e-fa42ea48290a` | Re-run with no new files | Counts unchanged: no duplicates |
 | `ba13c9e3-a676-49ad-9b67-51da3ee721a2` | Re-run after rewriting `schedule.csv` with identical bytes (new modification time) | `schedule_raw` still 500 rows, 500 distinct `milestone_id`: a touched file is not re-read |
 | `9cc6e9fa-047e-4da2-9e0f-444e6b3ae099` | Full refresh (this document) | Twelve tables rebuilt from the Volume |
-| `efebb8dd-e2a7-4dc9-8571-9f2313a7d8f9` | `--validate-only` on the committed file, run after the last comment and formatting edits | Graph valid, so the committed bytes load |
+| `965b2418-3741-4bcd-aece-cab8f89d83e8` | `--validate-only` on the committed file, run after the last comment and formatting edits | Graph valid, so the committed bytes load |
 
 ## How these numbers were read
 
