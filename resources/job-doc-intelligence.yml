@@ -1,0 +1,51 @@
+# Document intelligence, end to end: three notebook tasks in sequence.
+#
+#   parse             01_parse_drawings.ipynb     ai_parse_document on the 1,200 PDFs -> silver_engineering.drawings_parsed
+#   extract_classify  02_extract_classify.ipynb   ai_extract + ai_classify            -> silver_engineering.drawings_extracted
+#   compliance_check  03_compliance_check.ipynb   ai_query judge (Claude Sonnet 4.5)  -> gold_pm.compliance_findings
+#
+# Runs on serverless compute (no cluster or environment named), like the other jobs. Every task sets
+# disable_auto_optimization: true because every task calls an AI function: serverless otherwise retries a failed
+# notebook task automatically, and a retry repeats the whole notebook, AI calls included (see docs/BUILD.md).
+# No task passes max_rows, so each notebook processes the full 1,200 drawings; max_rows is only for trial runs of a notebook.
+#
+# Running this job re-bills all three AI steps (about 1,370 parsed pages, 2,400 extract/classify calls and 1,200 judge
+# calls) and replaces drawings_parsed, drawings_extracted and compliance_findings. The committed outputs of the three
+# notebooks came from one-time `jobs submit` runs, so this job is validated (`databricks bundle validate`) and is not
+# part of the normal build:
+#
+#   databricks bundle run job_doc_intelligence -t demo --profile DEFAULT
+resources:
+  jobs:
+    job_doc_intelligence:
+      name: bluerridge-doc-intelligence
+      description: >-
+        Blue Ridge LNG PM Co-Pilot: parse the drawing PDFs, extract and classify them, then judge each drawing
+        against five code rules into ${var.catalog}.${var.schema_prefix}_gold_pm.compliance_findings.
+      max_concurrent_runs: 1
+      tasks:
+        - task_key: parse
+          disable_auto_optimization: true
+          notebook_task:
+            notebook_path: ../03_doc_intelligence/01_parse_drawings.ipynb
+            base_parameters:
+              catalog: ${var.catalog}
+              schema_prefix: ${var.schema_prefix}
+        - task_key: extract_classify
+          depends_on:
+            - task_key: parse
+          disable_auto_optimization: true
+          notebook_task:
+            notebook_path: ../03_doc_intelligence/02_extract_classify.ipynb
+            base_parameters:
+              catalog: ${var.catalog}
+              schema_prefix: ${var.schema_prefix}
+        - task_key: compliance_check
+          depends_on:
+            - task_key: extract_classify
+          disable_auto_optimization: true
+          notebook_task:
+            notebook_path: ../03_doc_intelligence/03_compliance_check.ipynb
+            base_parameters:
+              catalog: ${var.catalog}
+              schema_prefix: ${var.schema_prefix}

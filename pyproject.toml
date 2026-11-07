@@ -36,5 +36,5 @@ packages = []
 # 01_synthetic_data on the path lets tests load 02_generate_drawings.py via importlib (a module
 # name starting with a digit cannot appear in an `import` statement). 09_app on the path lets
 # backend tests `from backend.main import app`, matching `cd 09_app && uvicorn backend.main:app`.
-pythonpath = ["01_synthetic_data", "09_app"]
+pythonpath = ["01_synthetic_data", "03_doc_intelligence", "09_app"]
 addopts = "-ra"
