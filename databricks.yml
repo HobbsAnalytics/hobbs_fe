@@ -13,7 +13,6 @@ bundle:
 # Resource definitions live in resources/. Each task that adds a resource file also
 # adds its path here (explicit list, not a glob, so a missing file fails loudly).
 # Still to come, added by the task that creates each file:
-#   - resources/pipeline-project.yml      # SDP: project data ingestion
 #   - resources/pipeline-drawings.yml     # SDP: drawing PDF ingestion
 #   - resources/vector-search.yml         # Vector Search endpoint + index
 #   - resources/job-risk-forecast.yml     # ai_forecast schedule-slip job
@@ -22,6 +21,7 @@ bundle:
 #   - resources/app.yml                   # Databricks App
 include:
   - resources/job-synthetic-data.yml      # one-time synthetic data: project CSVs + drawing PDFs (two parallel serverless notebook tasks)
+  - resources/pipeline-project.yml        # SDP: project data ingestion (6 bronze streaming tables + 6 silver materialized views)
 
 variables:
   catalog:

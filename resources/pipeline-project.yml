@@ -1,0 +1,28 @@
+# Lakeflow ingestion of the synthetic project data: Auto Loader + Spark Declarative Pipelines.
+#
+# One serverless, triggered pipeline reads the six CSVs in
+#   /Volumes/${var.catalog}/${var.schema_prefix}_landing/project/
+# into six bronze streaming tables in ${var.schema_prefix}_bronze_project (the pipeline's default
+# schema) and six silver materialized views in ${var.schema_prefix}_silver_engineering. The silver
+# datasets carry fully-qualified names in the code, which is how one pipeline writes two schemas.
+# See 02_pipelines/pipeline_project.py.
+#
+#   databricks bundle run pipeline_project -t demo --profile DEFAULT
+#
+# Needs the CSVs from job_synthetic_data first. To reload regenerated CSVs, add --full-refresh-all.
+resources:
+  pipelines:
+    pipeline_project:
+      name: bluerridge-pipeline-project
+      catalog: ${var.catalog}
+      schema: ${var.schema_prefix}_bronze_project
+      serverless: true
+      continuous: false
+      channel: CURRENT
+      root_path: ../02_pipelines
+      libraries:
+        - file:
+            path: ../02_pipelines/pipeline_project.py
+      configuration:
+        bluerridge.catalog: ${var.catalog}
+        bluerridge.schema_prefix: ${var.schema_prefix}

@@ -1,0 +1,282 @@
+{
+  "pipeline": "bluerridge-pipeline-project",
+  "pipeline_id": "1d76045d-1abc-47f3-8336-f3bc6eb8d077",
+  "update_id": "9cc6e9fa-047e-4da2-9e0f-444e6b3ae099",
+  "state": "COMPLETED",
+  "full_refresh": true,
+  "source": "event_log('1d76045d-1abc-47f3-8336-f3bc6eb8d077') where origin.update_id = '9cc6e9fa-047e-4da2-9e0f-444e6b3ae099' (flow_progress events), plus SELECT count(*) on each table",
+  "created_utc": "2026-11-07T02:41:15.682Z",
+  "completed_utc": "2026-11-07T02:42:23.411Z",
+  "duration_sec": 67.7,
+  "running_state_sec": 17.7,
+  "state_timeline": [
+    {
+      "timestamp": "2026-11-07T02:41:15.682Z",
+      "state": "CREATED"
+    },
+    {
+      "timestamp": "2026-11-07T02:41:18.643Z",
+      "state": "WAITING_FOR_RESOURCES"
+    },
+    {
+      "timestamp": "2026-11-07T02:41:29.056Z",
+      "state": "INITIALIZING"
+    },
+    {
+      "timestamp": "2026-11-07T02:41:56.048Z",
+      "state": "RESETTING"
+    },
+    {
+      "timestamp": "2026-11-07T02:41:57.645Z",
+      "state": "SETTING_UP_TABLES"
+    },
+    {
+      "timestamp": "2026-11-07T02:42:05.737Z",
+      "state": "RUNNING"
+    },
+    {
+      "timestamp": "2026-11-07T02:42:23.411Z",
+      "state": "COMPLETED"
+    }
+  ],
+  "totals": {
+    "datasets": 12,
+    "rows_dropped": 0,
+    "expectations": 15,
+    "expectation_failures": 0,
+    "bronze_rescued_rows": 0
+  },
+  "datasets": [
+    {
+      "layer": "bronze",
+      "table": "mfg_mc_se_sa.bluerridge_bronze_project.schedule_raw",
+      "table_type": "STREAMING_TABLE",
+      "expected_rows": 500,
+      "rows_written_by_update": 500,
+      "rows_in_table": 500,
+      "dropped_records": 0,
+      "rescued_data_rows": 0
+    },
+    {
+      "layer": "bronze",
+      "table": "mfg_mc_se_sa.bluerridge_bronze_project.cost_raw",
+      "table_type": "STREAMING_TABLE",
+      "expected_rows": 120,
+      "rows_written_by_update": 120,
+      "rows_in_table": 120,
+      "dropped_records": 0,
+      "rescued_data_rows": 0
+    },
+    {
+      "layer": "bronze",
+      "table": "mfg_mc_se_sa.bluerridge_bronze_project.ncrs_raw",
+      "table_type": "STREAMING_TABLE",
+      "expected_rows": 80,
+      "rows_written_by_update": 80,
+      "rows_in_table": 80,
+      "dropped_records": 0,
+      "rescued_data_rows": 0
+    },
+    {
+      "layer": "bronze",
+      "table": "mfg_mc_se_sa.bluerridge_bronze_project.change_orders_raw",
+      "table_type": "STREAMING_TABLE",
+      "expected_rows": 20,
+      "rows_written_by_update": 20,
+      "rows_in_table": 20,
+      "dropped_records": 0,
+      "rescued_data_rows": 0
+    },
+    {
+      "layer": "bronze",
+      "table": "mfg_mc_se_sa.bluerridge_bronze_project.safety_log_raw",
+      "table_type": "STREAMING_TABLE",
+      "expected_rows": 400,
+      "rows_written_by_update": 400,
+      "rows_in_table": 400,
+      "dropped_records": 0,
+      "rescued_data_rows": 0
+    },
+    {
+      "layer": "bronze",
+      "table": "mfg_mc_se_sa.bluerridge_bronze_project.daily_reports_raw",
+      "table_type": "STREAMING_TABLE",
+      "expected_rows": 180,
+      "rows_written_by_update": 180,
+      "rows_in_table": 180,
+      "dropped_records": 0,
+      "rescued_data_rows": 0
+    },
+    {
+      "layer": "silver",
+      "table": "mfg_mc_se_sa.bluerridge_silver_engineering.schedule",
+      "table_type": "MATERIALIZED_VIEW",
+      "expected_rows": 500,
+      "rows_written_by_update": 500,
+      "rows_in_table": 500,
+      "dropped_records": 0,
+      "expectations": [
+        {
+          "name": "milestone_id_not_null",
+          "action": "DROP",
+          "rule": "milestone_id IS NOT NULL",
+          "passed": 500,
+          "failed": 0
+        },
+        {
+          "name": "discipline_in_vocabulary",
+          "action": "FAIL",
+          "rule": "discipline IN ('mechanical', 'electrical', 'structural', 'piping', 'instr')",
+          "passed": 500,
+          "failed": 0
+        },
+        {
+          "name": "planned_dates_ordered",
+          "action": "WARN",
+          "rule": "planned_end >= planned_start",
+          "passed": 500,
+          "failed": 0
+        }
+      ]
+    },
+    {
+      "layer": "silver",
+      "table": "mfg_mc_se_sa.bluerridge_silver_engineering.cost",
+      "table_type": "MATERIALIZED_VIEW",
+      "expected_rows": 120,
+      "rows_written_by_update": 120,
+      "rows_in_table": 120,
+      "dropped_records": 0,
+      "expectations": [
+        {
+          "name": "cost_id_not_null",
+          "action": "DROP",
+          "rule": "cost_id IS NOT NULL",
+          "passed": 120,
+          "failed": 0
+        },
+        {
+          "name": "variance_is_eac_minus_budget",
+          "action": "WARN",
+          "rule": "variance_usd = eac_usd - budget_usd",
+          "passed": 120,
+          "failed": 0
+        },
+        {
+          "name": "amounts_not_negative",
+          "action": "WARN",
+          "rule": "budget_usd >= 0 AND committed_usd >= 0 AND actual_usd >= 0",
+          "passed": 120,
+          "failed": 0
+        }
+      ]
+    },
+    {
+      "layer": "silver",
+      "table": "mfg_mc_se_sa.bluerridge_silver_engineering.ncrs",
+      "table_type": "MATERIALIZED_VIEW",
+      "expected_rows": 80,
+      "rows_written_by_update": 80,
+      "rows_in_table": 80,
+      "dropped_records": 0,
+      "expectations": [
+        {
+          "name": "ncr_id_not_null",
+          "action": "DROP",
+          "rule": "ncr_id IS NOT NULL",
+          "passed": 80,
+          "failed": 0
+        },
+        {
+          "name": "closed_not_before_raised",
+          "action": "WARN",
+          "rule": "closed_date IS NULL OR closed_date >= raised_date",
+          "passed": 80,
+          "failed": 0
+        }
+      ]
+    },
+    {
+      "layer": "silver",
+      "table": "mfg_mc_se_sa.bluerridge_silver_engineering.change_orders",
+      "table_type": "MATERIALIZED_VIEW",
+      "expected_rows": 20,
+      "rows_written_by_update": 20,
+      "rows_in_table": 20,
+      "dropped_records": 0,
+      "expectations": [
+        {
+          "name": "co_id_not_null",
+          "action": "DROP",
+          "rule": "co_id IS NOT NULL",
+          "passed": 20,
+          "failed": 0
+        },
+        {
+          "name": "decided_not_before_requested",
+          "action": "WARN",
+          "rule": "decided_date IS NULL OR decided_date >= requested_date",
+          "passed": 20,
+          "failed": 0
+        }
+      ]
+    },
+    {
+      "layer": "silver",
+      "table": "mfg_mc_se_sa.bluerridge_silver_engineering.safety_log",
+      "table_type": "MATERIALIZED_VIEW",
+      "expected_rows": 400,
+      "rows_written_by_update": 400,
+      "rows_in_table": 400,
+      "dropped_records": 0,
+      "expectations": [
+        {
+          "name": "log_id_not_null",
+          "action": "DROP",
+          "rule": "log_id IS NOT NULL",
+          "passed": 400,
+          "failed": 0
+        },
+        {
+          "name": "days_lost_not_negative",
+          "action": "WARN",
+          "rule": "days_lost >= 0",
+          "passed": 400,
+          "failed": 0
+        }
+      ]
+    },
+    {
+      "layer": "silver",
+      "table": "mfg_mc_se_sa.bluerridge_silver_engineering.daily_reports",
+      "table_type": "MATERIALIZED_VIEW",
+      "expected_rows": 180,
+      "rows_written_by_update": 180,
+      "rows_in_table": 180,
+      "dropped_records": 0,
+      "expectations": [
+        {
+          "name": "report_id_not_null",
+          "action": "DROP",
+          "rule": "report_id IS NOT NULL",
+          "passed": 180,
+          "failed": 0
+        },
+        {
+          "name": "report_date_not_null",
+          "action": "DROP",
+          "rule": "report_date IS NOT NULL",
+          "passed": 180,
+          "failed": 0
+        },
+        {
+          "name": "headcount_positive",
+          "action": "WARN",
+          "rule": "headcount > 0",
+          "passed": 180,
+          "failed": 0
+        }
+      ]
+    }
+  ]
+}

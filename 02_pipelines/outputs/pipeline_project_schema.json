@@ -1,0 +1,943 @@
+{
+  "pipeline_id": "1d76045d-1abc-47f3-8336-f3bc6eb8d077",
+  "update_id": "9cc6e9fa-047e-4da2-9e0f-444e6b3ae099",
+  "source": "mfg_mc_se_sa.information_schema.columns and .tables, read after the update",
+  "tables": [
+    {
+      "table": "mfg_mc_se_sa.bluerridge_bronze_project.schedule_raw",
+      "layer": "bronze",
+      "table_type": "STREAMING_TABLE",
+      "comment": "Raw schedule milestones, one row per milestone, as ingested from schedule.csv.",
+      "columns": [
+        {
+          "name": "milestone_id",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "name",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "discipline",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "planned_start",
+          "type": "DATE",
+          "nullable": true
+        },
+        {
+          "name": "planned_end",
+          "type": "DATE",
+          "nullable": true
+        },
+        {
+          "name": "actual_start",
+          "type": "DATE",
+          "nullable": true
+        },
+        {
+          "name": "actual_end",
+          "type": "DATE",
+          "nullable": true
+        },
+        {
+          "name": "depends_on",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "criticality",
+          "type": "INT",
+          "nullable": true
+        },
+        {
+          "name": "_rescued_data",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "_ingest_timestamp",
+          "type": "TIMESTAMP",
+          "nullable": true
+        },
+        {
+          "name": "_source_file",
+          "type": "STRING",
+          "nullable": true
+        }
+      ]
+    },
+    {
+      "table": "mfg_mc_se_sa.bluerridge_bronze_project.cost_raw",
+      "layer": "bronze",
+      "table_type": "STREAMING_TABLE",
+      "comment": "Raw cost-control line items (budget, committed, actual, EAC) from cost.csv.",
+      "columns": [
+        {
+          "name": "cost_id",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "cost_code",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "description",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "discipline",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "category",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "area",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "vendor",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "budget_usd",
+          "type": "INT",
+          "nullable": true
+        },
+        {
+          "name": "committed_usd",
+          "type": "INT",
+          "nullable": true
+        },
+        {
+          "name": "actual_usd",
+          "type": "INT",
+          "nullable": true
+        },
+        {
+          "name": "eac_usd",
+          "type": "INT",
+          "nullable": true
+        },
+        {
+          "name": "variance_usd",
+          "type": "INT",
+          "nullable": true
+        },
+        {
+          "name": "report_date",
+          "type": "DATE",
+          "nullable": true
+        },
+        {
+          "name": "_rescued_data",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "_ingest_timestamp",
+          "type": "TIMESTAMP",
+          "nullable": true
+        },
+        {
+          "name": "_source_file",
+          "type": "STRING",
+          "nullable": true
+        }
+      ]
+    },
+    {
+      "table": "mfg_mc_se_sa.bluerridge_bronze_project.ncrs_raw",
+      "layer": "bronze",
+      "table_type": "STREAMING_TABLE",
+      "comment": "Raw non-conformance reports (NCRs), as ingested from ncrs.csv.",
+      "columns": [
+        {
+          "name": "ncr_id",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "title",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "description",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "discipline",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "category",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "severity",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "status",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "area",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "raised_date",
+          "type": "DATE",
+          "nullable": true
+        },
+        {
+          "name": "due_date",
+          "type": "DATE",
+          "nullable": true
+        },
+        {
+          "name": "closed_date",
+          "type": "DATE",
+          "nullable": true
+        },
+        {
+          "name": "raised_by",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "assigned_to",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "milestone_id",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "code_reference",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "_rescued_data",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "_ingest_timestamp",
+          "type": "TIMESTAMP",
+          "nullable": true
+        },
+        {
+          "name": "_source_file",
+          "type": "STRING",
+          "nullable": true
+        }
+      ]
+    },
+    {
+      "table": "mfg_mc_se_sa.bluerridge_bronze_project.change_orders_raw",
+      "layer": "bronze",
+      "table_type": "STREAMING_TABLE",
+      "comment": "Raw change orders, each linked to a cost line, as ingested from change_orders.csv.",
+      "columns": [
+        {
+          "name": "co_id",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "cost_id",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "title",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "reason",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "status",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "amount_usd",
+          "type": "INT",
+          "nullable": true
+        },
+        {
+          "name": "schedule_impact_days",
+          "type": "INT",
+          "nullable": true
+        },
+        {
+          "name": "requested_date",
+          "type": "DATE",
+          "nullable": true
+        },
+        {
+          "name": "decided_date",
+          "type": "DATE",
+          "nullable": true
+        },
+        {
+          "name": "requested_by",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "_rescued_data",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "_ingest_timestamp",
+          "type": "TIMESTAMP",
+          "nullable": true
+        },
+        {
+          "name": "_source_file",
+          "type": "STRING",
+          "nullable": true
+        }
+      ]
+    },
+    {
+      "table": "mfg_mc_se_sa.bluerridge_bronze_project.safety_log_raw",
+      "layer": "bronze",
+      "table_type": "STREAMING_TABLE",
+      "comment": "Raw site safety log (near misses, incidents, unsafe acts) from safety_log.csv.",
+      "columns": [
+        {
+          "name": "log_id",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "event_date",
+          "type": "DATE",
+          "nullable": true
+        },
+        {
+          "name": "event_type",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "is_incident",
+          "type": "BOOLEAN",
+          "nullable": true
+        },
+        {
+          "name": "severity",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "area",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "discipline",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "description",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "root_cause",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "corrective_action",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "reported_by",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "days_lost",
+          "type": "INT",
+          "nullable": true
+        },
+        {
+          "name": "_rescued_data",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "_ingest_timestamp",
+          "type": "TIMESTAMP",
+          "nullable": true
+        },
+        {
+          "name": "_source_file",
+          "type": "STRING",
+          "nullable": true
+        }
+      ]
+    },
+    {
+      "table": "mfg_mc_se_sa.bluerridge_bronze_project.daily_reports_raw",
+      "layer": "bronze",
+      "table_type": "STREAMING_TABLE",
+      "comment": "Raw free-text site daily reports, as ingested from daily_reports.csv.",
+      "columns": [
+        {
+          "name": "report_id",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "report_date",
+          "type": "DATE",
+          "nullable": true
+        },
+        {
+          "name": "author",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "weather",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "temp_f",
+          "type": "INT",
+          "nullable": true
+        },
+        {
+          "name": "headcount",
+          "type": "INT",
+          "nullable": true
+        },
+        {
+          "name": "work_summary",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "delays_and_issues",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "field_notes",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "_rescued_data",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "_ingest_timestamp",
+          "type": "TIMESTAMP",
+          "nullable": true
+        },
+        {
+          "name": "_source_file",
+          "type": "STRING",
+          "nullable": true
+        }
+      ]
+    },
+    {
+      "table": "mfg_mc_se_sa.bluerridge_silver_engineering.schedule",
+      "layer": "silver",
+      "table_type": "MATERIALIZED_VIEW",
+      "comment": "Typed, validated schedule milestones, one row per milestone_id. slip_days is actual_end - planned_end (NULL until the milestone finishes); depends_on_ids is the predecessor milestone ids as an array (empty for root milestones).",
+      "columns": [
+        {
+          "name": "milestone_id",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "name",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "discipline",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "planned_start",
+          "type": "DATE",
+          "nullable": true
+        },
+        {
+          "name": "planned_end",
+          "type": "DATE",
+          "nullable": true
+        },
+        {
+          "name": "actual_start",
+          "type": "DATE",
+          "nullable": true
+        },
+        {
+          "name": "actual_end",
+          "type": "DATE",
+          "nullable": true
+        },
+        {
+          "name": "depends_on",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "depends_on_ids",
+          "type": "ARRAY<STRING>",
+          "nullable": true
+        },
+        {
+          "name": "criticality",
+          "type": "INT",
+          "nullable": true
+        },
+        {
+          "name": "slip_days",
+          "type": "INT",
+          "nullable": true
+        },
+        {
+          "name": "_ingest_timestamp",
+          "type": "TIMESTAMP",
+          "nullable": true
+        },
+        {
+          "name": "_source_file",
+          "type": "STRING",
+          "nullable": true
+        }
+      ]
+    },
+    {
+      "table": "mfg_mc_se_sa.bluerridge_silver_engineering.cost",
+      "layer": "silver",
+      "table_type": "MATERIALIZED_VIEW",
+      "comment": "Typed, validated cost-control line items, one row per cost_id. Amounts are whole US dollars (BIGINT); variance_usd = eac_usd - budget_usd.",
+      "columns": [
+        {
+          "name": "cost_id",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "cost_code",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "description",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "discipline",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "category",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "area",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "vendor",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "budget_usd",
+          "type": "BIGINT",
+          "nullable": true
+        },
+        {
+          "name": "committed_usd",
+          "type": "BIGINT",
+          "nullable": true
+        },
+        {
+          "name": "actual_usd",
+          "type": "BIGINT",
+          "nullable": true
+        },
+        {
+          "name": "eac_usd",
+          "type": "BIGINT",
+          "nullable": true
+        },
+        {
+          "name": "variance_usd",
+          "type": "BIGINT",
+          "nullable": true
+        },
+        {
+          "name": "report_date",
+          "type": "DATE",
+          "nullable": true
+        },
+        {
+          "name": "_ingest_timestamp",
+          "type": "TIMESTAMP",
+          "nullable": true
+        },
+        {
+          "name": "_source_file",
+          "type": "STRING",
+          "nullable": true
+        }
+      ]
+    },
+    {
+      "table": "mfg_mc_se_sa.bluerridge_silver_engineering.ncrs",
+      "layer": "silver",
+      "table_type": "MATERIALIZED_VIEW",
+      "comment": "Typed, validated non-conformance reports, one row per ncr_id. Severity is passed through as reported (critical, major, minor); code_reference is set on compliance NCRs.",
+      "columns": [
+        {
+          "name": "ncr_id",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "title",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "description",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "discipline",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "category",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "severity",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "status",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "area",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "raised_date",
+          "type": "DATE",
+          "nullable": true
+        },
+        {
+          "name": "due_date",
+          "type": "DATE",
+          "nullable": true
+        },
+        {
+          "name": "closed_date",
+          "type": "DATE",
+          "nullable": true
+        },
+        {
+          "name": "raised_by",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "assigned_to",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "milestone_id",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "code_reference",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "_ingest_timestamp",
+          "type": "TIMESTAMP",
+          "nullable": true
+        },
+        {
+          "name": "_source_file",
+          "type": "STRING",
+          "nullable": true
+        }
+      ]
+    },
+    {
+      "table": "mfg_mc_se_sa.bluerridge_silver_engineering.change_orders",
+      "layer": "silver",
+      "table_type": "MATERIALIZED_VIEW",
+      "comment": "Typed, validated change orders, one row per co_id, linked to cost_id. amount_usd is whole US dollars; schedule_impact_days is negative for an acceleration.",
+      "columns": [
+        {
+          "name": "co_id",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "cost_id",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "title",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "reason",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "status",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "amount_usd",
+          "type": "BIGINT",
+          "nullable": true
+        },
+        {
+          "name": "schedule_impact_days",
+          "type": "INT",
+          "nullable": true
+        },
+        {
+          "name": "requested_date",
+          "type": "DATE",
+          "nullable": true
+        },
+        {
+          "name": "decided_date",
+          "type": "DATE",
+          "nullable": true
+        },
+        {
+          "name": "requested_by",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "_ingest_timestamp",
+          "type": "TIMESTAMP",
+          "nullable": true
+        },
+        {
+          "name": "_source_file",
+          "type": "STRING",
+          "nullable": true
+        }
+      ]
+    },
+    {
+      "table": "mfg_mc_se_sa.bluerridge_silver_engineering.safety_log",
+      "layer": "silver",
+      "table_type": "MATERIALIZED_VIEW",
+      "comment": "Typed, validated site safety log, one row per log_id. is_incident is true for lagging events (property damage, first aid, recordable, lost time, environmental) and false for leading indicators (near misses, unsafe acts and conditions, stop-work calls).",
+      "columns": [
+        {
+          "name": "log_id",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "event_date",
+          "type": "DATE",
+          "nullable": true
+        },
+        {
+          "name": "event_type",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "is_incident",
+          "type": "BOOLEAN",
+          "nullable": true
+        },
+        {
+          "name": "severity",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "area",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "discipline",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "description",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "root_cause",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "corrective_action",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "reported_by",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "days_lost",
+          "type": "INT",
+          "nullable": true
+        },
+        {
+          "name": "_ingest_timestamp",
+          "type": "TIMESTAMP",
+          "nullable": true
+        },
+        {
+          "name": "_source_file",
+          "type": "STRING",
+          "nullable": true
+        }
+      ]
+    },
+    {
+      "table": "mfg_mc_se_sa.bluerridge_silver_engineering.daily_reports",
+      "layer": "silver",
+      "table_type": "MATERIALIZED_VIEW",
+      "comment": "Typed, validated site daily reports, one row per report_id. The narrative columns (work_summary, delays_and_issues, field_notes) are free text, passed through trimmed.",
+      "columns": [
+        {
+          "name": "report_id",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "report_date",
+          "type": "DATE",
+          "nullable": true
+        },
+        {
+          "name": "author",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "weather",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "temp_f",
+          "type": "INT",
+          "nullable": true
+        },
+        {
+          "name": "headcount",
+          "type": "INT",
+          "nullable": true
+        },
+        {
+          "name": "work_summary",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "delays_and_issues",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "field_notes",
+          "type": "STRING",
+          "nullable": true
+        },
+        {
+          "name": "_ingest_timestamp",
+          "type": "TIMESTAMP",
+          "nullable": true
+        },
+        {
+          "name": "_source_file",
+          "type": "STRING",
+          "nullable": true
+        }
+      ]
+    }
+  ]
+}
