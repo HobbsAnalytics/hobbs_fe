@@ -4,15 +4,18 @@ Serves the JSON API under /api, /health, and the built React SPA (static assets
 plus an index.html fallback for client-side routes).
 """
 import logging
+import os
 import sys
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Optional
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 
-from backend import config
-from backend.routes import whoami
+from backend import config, selftest
+from backend.errors import install_error_handlers
+from backend.routes import citations, compliance, drawings, kpi, whoami
 
 
 def _configure_app_logging() -> None:
@@ -32,7 +35,16 @@ def _configure_app_logging() -> None:
 def create_app(static_dir: Optional[Path] = None) -> FastAPI:
     _configure_app_logging()
     static_root = Path(static_dir) if static_dir is not None else config.STATIC_DIR
-    app = FastAPI(title="Blue Ridge LNG Project Co-Pilot")
+
+    @asynccontextmanager
+    async def lifespan(_: FastAPI):
+        # Non-blocking: SP data access is proven in the logs (one line per source), never at the cost of startup.
+        if os.getenv("BLUERRIDGE_SELFTEST", "on").lower() != "off":
+            selftest.start_background()
+        yield
+
+    app = FastAPI(title="Blue Ridge LNG Project Co-Pilot", lifespan=lifespan)
+    install_error_handlers(app)
 
     @app.get("/health")
     def health() -> dict:
@@ -40,6 +52,8 @@ def create_app(static_dir: Optional[Path] = None) -> FastAPI:
 
     # Feature routers (Tasks 18-20) are included here, before the SPA catch-all.
     app.include_router(whoami.router, prefix="/api")
+    for r in (kpi.router, compliance.router, drawings.router, citations.router):
+        app.include_router(r, prefix="/api")
 
     index_file = static_root / "index.html"
 
