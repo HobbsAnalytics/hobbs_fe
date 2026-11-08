@@ -1,0 +1,30 @@
+# Weekly refresh of gold_pm.risk_forecast (schedule-slip risk forecast).
+#
+# Builds a weekly slip series per discipline from finished milestones, runs ai_forecast on the SQL warehouse
+# (a table-valued function that serverless notebook compute cannot call directly), backtests it, writes
+# risk_forecast and logs metrics to MLflow. Runs on serverless compute. The schedule is PAUSED on purpose: it shows
+# the refresh design without any unattended run. The committed evidence came from one `jobs submit` run
+# (05_gold/outputs/submit_payloads/02_submit.json); this job has not been run.
+#
+#   databricks bundle run job_risk_forecast -t demo --profile DEFAULT     # manual run, only if you want a refresh
+resources:
+  jobs:
+    job_risk_forecast:
+      name: bluerridge-risk-forecast
+      description: >-
+        Blue Ridge LNG PM Co-Pilot: weekly ai_forecast of schedule slip per discipline, then per-milestone slip
+        probability for open milestones due in the next 90 days -> ${var.catalog}.${var.schema_prefix}_gold_pm.risk_forecast.
+      max_concurrent_runs: 1
+      schedule:
+        quartz_cron_expression: "0 0 6 ? * MON"
+        timezone_id: UTC
+        pause_status: PAUSED
+      tasks:
+        - task_key: risk_forecast
+          disable_auto_optimization: true
+          notebook_task:
+            notebook_path: ../05_gold/02_risk_forecast.ipynb
+            base_parameters:
+              catalog: ${var.catalog}
+              schema_prefix: ${var.schema_prefix}
+              warehouse_id: ${var.warehouse_id}

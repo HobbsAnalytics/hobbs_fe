@@ -18,7 +18,7 @@ Status key: **☑ done** means the file is committed and the link resolves. **�
 | 2 | Unity Catalog governance | [`evidence/grant_listing.md`](grant_listing.md) | ☐ pending |
 | 3 | Lakebase | [`08_lakebase/outputs/synced_tables_listing.md`](../08_lakebase/outputs/synced_tables_listing.md) | ☐ pending |
 | 4 | GenAI: document intelligence | [`evidence/sample_compliance_outputs/compliance_eval_summary.md`](sample_compliance_outputs/compliance_eval_summary.md) | ☑ done |
-| 5 | ML: schedule-risk forecast | [`evidence/risk_model_metrics.json`](risk_model_metrics.json) | ☐ pending |
+| 5 | ML: schedule-risk forecast | [`evidence/risk_model_metrics.json`](risk_model_metrics.json) | ☑ done |
 | 6 | Genie Agent | [`evidence/genie_qa_transcript.md`](genie_qa_transcript.md) | ☐ pending |
 | 7 | Databricks App | [`evidence/app_demo.mp4`](app_demo.mp4) and [`evidence/app_screenshots/`](app_screenshots/) | ☐ pending |
 | 8 | One-command deploy | [`evidence/deploy_transcript.txt`](deploy_transcript.txt) | ☐ pending |
@@ -86,7 +86,9 @@ Not an FE Bar box, but everything below writes into these objects.
 
 | Status | Artifact | What it proves |
 |---|---|---|
-| ☐ pending | [`evidence/risk_model_metrics.json`](risk_model_metrics.json) | Mean absolute error and bias of the `ai_forecast` schedule-slip model |
+| ☑ done | [`evidence/risk_model_metrics.json`](risk_model_metrics.json) | Mean absolute error and bias of the `ai_forecast` schedule-slip model |
+| ☑ done | [`05_gold/outputs/risk_top5.md`](../05_gold/outputs/risk_top5.md) | The top 5 schedule risks in PM language, with the method in two sentences |
+| ☑ done | [`05_gold/outputs/risk_forecast_chart.png`](../05_gold/outputs/risk_forecast_chart.png) | Forecast against history with the interval band and the backtest overlay |
 | ☑ done | [`05_gold/outputs/kpi_today.md`](../05_gold/outputs/kpi_today.md) | The gold KPI row the app's KPI strip reads |
 
 ## 6. Genie Agent
@@ -131,7 +133,7 @@ Each has its outputs embedded in the `.ipynb` and an HTML export of the same run
 | ☑ done | [`04_vector_search/01_load_code_excerpts.ipynb`](../04_vector_search/01_load_code_excerpts.ipynb) | [html](notebook_html_exports/01_load_code_excerpts.html) | 4 |
 | ☑ done | [`04_vector_search/02_create_endpoint_and_index.ipynb`](../04_vector_search/02_create_endpoint_and_index.ipynb) | [html](notebook_html_exports/02_create_endpoint_and_index.html) | 4 |
 | ☑ done | [`05_gold/01_kpi_daily.ipynb`](../05_gold/01_kpi_daily.ipynb) | [html](notebook_html_exports/01_kpi_daily.html) | 5 |
-| ☐ pending | [`05_gold/02_risk_forecast.ipynb`](../05_gold/02_risk_forecast.ipynb) | [html](notebook_html_exports/02_risk_forecast.html) | 5 |
+| ☑ done | [`05_gold/02_risk_forecast.ipynb`](../05_gold/02_risk_forecast.ipynb) | [html](notebook_html_exports/02_risk_forecast.html) | 5 |
 | ☐ pending | [`05_gold/03_daily_brief.ipynb`](../05_gold/03_daily_brief.ipynb) | [html](notebook_html_exports/03_daily_brief.html) | 4 |
 | ☐ pending | [`06_governance/apply.ipynb`](../06_governance/apply.ipynb) | [html](notebook_html_exports/apply.html) | 2 |
 | ☐ pending | [`07_genie_agent/01_create_space.ipynb`](../07_genie_agent/01_create_space.ipynb) | [html](notebook_html_exports/01_create_space.html) | 6 |

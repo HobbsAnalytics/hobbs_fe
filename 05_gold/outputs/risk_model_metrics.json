@@ -1,0 +1,65 @@
+{
+  "method": "ai_forecast",
+  "method_detail": "ai_forecast weekly slip trend per discipline (13 wk, 80% interval) + normal approx P(slip>0) + upstream-late adjustment",
+  "ai_forecast_path": "SQL warehouse via Statement Execution API (table-valued function; series saved as tables first)",
+  "series_grain": "weekly (ISO week) mean slip_days of milestones finished that week, forward-filled for empty weeks",
+  "grouped_by": "discipline",
+  "series_length_weeks_median_per_group": 55,
+  "observed_weeks_per_discipline": {
+    "electrical": 33,
+    "instr": 33,
+    "mechanical": 36,
+    "piping": 25,
+    "structural": 30
+  },
+  "holdout_weeks": 8,
+  "holdout_start": "2026-09-14",
+  "holdout_points_scored": 12,
+  "mae_days": 11.0483,
+  "bias_days": -10.0911,
+  "interval_coverage": 0.1667,
+  "baseline_last_value_mae_days": 11.3472,
+  "baseline_last_value_bias_days": -9.9028,
+  "per_discipline": [
+    {
+      "discipline": "electrical",
+      "n": 1,
+      "mae": 3.693,
+      "bias": 3.693,
+      "coverage": 0.0
+    },
+    {
+      "discipline": "instr",
+      "n": 4,
+      "mae": 6.826,
+      "bias": -6.826,
+      "coverage": 0.25
+    },
+    {
+      "discipline": "mechanical",
+      "n": 6,
+      "mae": 13.874,
+      "bias": -13.19,
+      "coverage": 0.167
+    },
+    {
+      "discipline": "piping",
+      "n": 1,
+      "mae": 18.34,
+      "bias": -18.34,
+      "coverage": 0.0
+    }
+  ],
+  "horizon_days": 90,
+  "horizon_weeks": 13,
+  "as_of_date": "2026-11-06",
+  "prediction_interval_width": 0.8,
+  "milestones_scored": 64,
+  "slip_probability_note": "heuristic normal approximation from the forecast interval, not calibrated",
+  "job_run_id": 1106931009314004,
+  "mlflow_experiment_path": "/Shared/bluerridge_pm_copilot/schedule_risk_forecast",
+  "mlflow_experiment_id": "4276059729056540",
+  "mlflow_run_id": "9ccaaeb63bd14c589c92615d0deadc97",
+  "task_run_id": 150977885375647,
+  "job_run_id_note": "one-time `jobs submit` run; the notebook itself could not read its run id, so this was filled in from the run record"
+}

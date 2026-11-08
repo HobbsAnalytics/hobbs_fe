@@ -13,7 +13,6 @@ bundle:
 # Resource definitions live in resources/. Each task that adds a resource file also
 # adds its path here (explicit list, not a glob, so a missing file fails loudly).
 # Still to come, added by the task that creates each file:
-#   - resources/job-risk-forecast.yml     # ai_forecast schedule-slip job
 #   - resources/genie-space.yml           # Genie Space
 #   - resources/lakebase.yml              # Lakebase instance + synced tables
 #   - resources/app.yml                   # Databricks App
@@ -23,6 +22,7 @@ include:
   - resources/pipeline-drawings.yml       # SDP: drawing PDF ingestion (1 bronze streaming table + 1 silver materialized view)
   - resources/vector-search.yml           # Vector Search: endpoint bluerridge_vs + Delta Sync index code_excerpts_vs (needs the code_excerpts table first)
   - resources/job-doc-intelligence.yml    # parse -> extract_classify -> compliance_check -> guardrails (4 sequential serverless notebook tasks, the 4th a no-AI guardrails pass; validate only, running it re-bills the AI steps)
+  - resources/job-risk-forecast.yml       # weekly ai_forecast schedule-slip refresh of gold_pm.risk_forecast (schedule PAUSED; validate/deploy only, evidence came from a one-time submit)
 
 variables:
   catalog:
