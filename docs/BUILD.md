@@ -167,7 +167,7 @@ If the project is deleted outside the bundle, remove `resources/lakebase.yml` fr
 
 ## App build and deploy (Task 17 scaffold)
 
-**Layout.** `09_app/` is the app's `source_code_path`: `app.yaml` (uvicorn `backend.main:app`, port `${DATABRICKS_APP_PORT:-8000}`), `requirements.txt`, `backend/` (FastAPI) and `frontend/` (React 18 + Vite + TS + Tailwind). Vite builds to `09_app/frontend/dist`; FastAPI serves it (static assets plus an `index.html` fallback for client routes; `/health` and `/api/*` keep priority and an unknown `/api/*` path is a 404, not the SPA).
+**Layout.** `09_app/` is the app's `source_code_path`: `app.yaml` (uvicorn `backend.main:app`, port 8000), `requirements.txt`, `backend/` (FastAPI) and `frontend/` (React 18 + Vite + TS + Tailwind). Vite builds to `09_app/frontend/dist`; FastAPI serves it (static assets plus an `index.html` fallback for client routes; `/health` and `/api/*` keep priority and an unknown `/api/*` path is a 404, not the SPA).
 
 **Deploy order.** The build output is git-ignored, so build first, then deploy:
 
