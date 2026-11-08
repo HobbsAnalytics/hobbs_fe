@@ -87,7 +87,7 @@ Not an FE Bar box, but everything below writes into these objects.
 | Status | Artifact | What it proves |
 |---|---|---|
 | ☐ pending | [`evidence/risk_model_metrics.json`](risk_model_metrics.json) | Mean absolute error and bias of the `ai_forecast` schedule-slip model |
-| ☐ pending | [`05_gold/outputs/kpi_today.md`](../05_gold/outputs/kpi_today.md) | The gold KPI row the app's KPI strip reads |
+| ☑ done | [`05_gold/outputs/kpi_today.md`](../05_gold/outputs/kpi_today.md) | The gold KPI row the app's KPI strip reads |
 
 ## 6. Genie Agent
 
@@ -130,7 +130,7 @@ Each has its outputs embedded in the `.ipynb` and an HTML export of the same run
 | ☑ done | [`03_doc_intelligence/04_ground_truth_scoring.ipynb`](../03_doc_intelligence/04_ground_truth_scoring.ipynb) | [html](notebook_html_exports/04_ground_truth_scoring.html) | 4 |
 | ☑ done | [`04_vector_search/01_load_code_excerpts.ipynb`](../04_vector_search/01_load_code_excerpts.ipynb) | [html](notebook_html_exports/01_load_code_excerpts.html) | 4 |
 | ☑ done | [`04_vector_search/02_create_endpoint_and_index.ipynb`](../04_vector_search/02_create_endpoint_and_index.ipynb) | [html](notebook_html_exports/02_create_endpoint_and_index.html) | 4 |
-| ☐ pending | [`05_gold/01_kpi_daily.ipynb`](../05_gold/01_kpi_daily.ipynb) | [html](notebook_html_exports/01_kpi_daily.html) | 5 |
+| ☑ done | [`05_gold/01_kpi_daily.ipynb`](../05_gold/01_kpi_daily.ipynb) | [html](notebook_html_exports/01_kpi_daily.html) | 5 |
 | ☐ pending | [`05_gold/02_risk_forecast.ipynb`](../05_gold/02_risk_forecast.ipynb) | [html](notebook_html_exports/02_risk_forecast.html) | 5 |
 | ☐ pending | [`05_gold/03_daily_brief.ipynb`](../05_gold/03_daily_brief.ipynb) | [html](notebook_html_exports/03_daily_brief.html) | 4 |
 | ☐ pending | [`06_governance/apply.ipynb`](../06_governance/apply.ipynb) | [html](notebook_html_exports/apply.html) | 2 |
