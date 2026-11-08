@@ -29,9 +29,15 @@ GRANT SELECT ON SCHEMA mfg_mc_se_sa.bluerridge_gold_pm TO `{engineer_group}`;
 GRANT USE SCHEMA ON SCHEMA mfg_mc_se_sa.bluerridge_landing TO `{engineer_group}`;
 GRANT READ VOLUME ON VOLUME mfg_mc_se_sa.bluerridge_landing.drawings TO `{engineer_group}`;
 
--- TODO (Task 24, post-deploy): the app's service principal does not exist until the app is deployed.
--- Replace {app_sp} with its application id (databricks apps get <app> -> service_principal_client_id).
--- Also needs USE CATALOG on mfg_mc_se_sa (catalog owner) and a '*' row in discipline_access (below).
+-- App service principal (bluerridge-pm-copilot). Applied by scripts/post_deploy_grants.sh after every
+-- `databricks bundle deploy` that (re)creates the app; it runs exactly the statements below that use {app_sp}
+-- (the same comment-strip / split-on-semicolon / {placeholder} rules as apply.ipynb). Idempotent.
+-- {app_sp} is the SP's application id: `databricks apps get bluerridge-pm-copilot -o json` ->
+-- service_principal_client_id. It is also what current_user() returns inside the app's SQL (a UUID), which is why
+-- the row-filter mapping row uses it. The joseph.hobbs@databricks.com deployer holds MANAGE on the catalog, so it
+-- can grant USE CATALOG; that is the only catalog-level grant this project makes, and only to the app SP.
+-- READ VOLUME needs USE SCHEMA on bluerridge_landing as well.
+GRANT USE CATALOG ON CATALOG mfg_mc_se_sa TO `{app_sp}`;
 GRANT USE SCHEMA ON SCHEMA mfg_mc_se_sa.bluerridge_gold_pm TO `{app_sp}`;
 GRANT SELECT ON SCHEMA mfg_mc_se_sa.bluerridge_gold_pm TO `{app_sp}`;
 GRANT USE SCHEMA ON SCHEMA mfg_mc_se_sa.bluerridge_agents TO `{app_sp}`;
@@ -39,6 +45,9 @@ GRANT SELECT ON SCHEMA mfg_mc_se_sa.bluerridge_agents TO `{app_sp}`;
 GRANT USE SCHEMA ON SCHEMA mfg_mc_se_sa.bluerridge_landing TO `{app_sp}`;
 GRANT READ VOLUME ON VOLUME mfg_mc_se_sa.bluerridge_landing.drawings TO `{app_sp}`;
 
--- TODO (Task 24): the app must see all of drawing_register, so add its service principal to the mapping table.
--- Without this row the row filter hides every drawing from the app.
--- INSERT INTO mfg_mc_se_sa.bluerridge_agents.discipline_access VALUES ('{app_sp}', '*');
+-- The app must see all of drawing_register, so its SP gets the '*' row in the row-filter mapping table.
+-- Without it the row filter hides every drawing from the app. MERGE, so a re-run adds nothing.
+MERGE INTO mfg_mc_se_sa.bluerridge_agents.discipline_access t
+USING (SELECT '{app_sp}' AS principal, '*' AS discipline) s
+ON t.principal = s.principal AND t.discipline = s.discipline
+WHEN NOT MATCHED THEN INSERT (principal, discipline) VALUES (s.principal, s.discipline);

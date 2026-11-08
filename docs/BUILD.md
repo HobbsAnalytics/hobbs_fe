@@ -39,7 +39,7 @@ Each stage reads what the earlier stages wrote.
 | 6 | Governance | `06_governance/` | Tags, a row filter on `gold_pm.drawing_register`, lineage evidence; grants are in `grants.sql` (see "Governance follow-ups") |
 | 7 | Genie Space | `07_genie_agent/`, `resources/genie-space.yml` | Genie Space "Blue Ridge LNG — PM Co-Pilot (synthetic)" (bundle resource `bluerridge_pm_copilot`) and its Q&A transcript |
 | 8 | Lakebase | `08_lakebase/`, `resources/lakebase.yml` | Lakebase project `bluerridge-pm` (bundle `postgres_projects`) with the five hot-path tables synced into Postgres schema `bluerridge_app` (bundle `postgres_synced_tables`): `kpi_daily`, `compliance_findings`, `risk_forecast`, `schedule_overdue`, `daily_brief`. `01_create_instance.ipynb` confirms state, row counts and latency; `app_grants.sql` is run after the app exists |
-| 9 | App | `09_app/`, `resources/app.yml` | The Databricks App (`09_app/deploy.sh`) |
+| 9 | App | `09_app/`, `resources/app.yml`, `scripts/post_deploy_grants.sh` | The Databricks App `bluerridge-pm-copilot`: build the SPA, `bundle deploy`, run `scripts/post_deploy_grants.sh`, then `bundle run pm_copilot_app` (see "App build and deploy" and "Post-deploy grants") |
 
 Catalog `mfg_mc_se_sa` is shared with other teams: touch only objects whose schema starts with `bluerridge_`.
 
@@ -111,16 +111,16 @@ The app also needs `postgres` in its `user_api_scopes`/scopes list only if it co
 
 **How the app gets credentials (Task 19 implements this).** The platform injects `PGHOST`, `PGPORT`, `PGDATABASE`, `PGUSER` (the app service principal's client id), `PGSSLMODE` and, with `env: - name: LAKEBASE_ENDPOINT / valueFrom: postgres`, the endpoint path `projects/bluerridge-pm/branches/production/endpoints/primary`. There is no static password: the backend calls `WorkspaceClient().postgres.generate_database_credential(endpoint=os.environ["LAKEBASE_ENDPOINT"]).token` (an OAuth token valid for about an hour) and passes it as the psycopg `password` with `sslmode=require`. Refresh it before expiry (every 30 to 40 minutes, or on a new pooled connection) and retry once on a connection error. Queries use the schema-qualified names `bluerridge_app.kpi_daily_synced` and so on. The notebook proves this exact pattern, with the signed-in user instead of the SP.
 
-**Grant steps and ordering (the first-boot `42501`).** Binding the database lets the SP connect and create its own objects, but not read schema `bluerridge_app`, which the sync writer owns. Order:
+**Grant steps and ordering (the first-boot `42501`).** Binding the database lets the SP connect and create its own objects, but not read schema `bluerridge_app`, which the sync writer owns. `scripts/post_deploy_grants.sh` automates steps 3 to 5 (see "Post-deploy grants"); the manual equivalent is kept here. Order:
 
 1. `databricks bundle deploy -t demo --profile DEFAULT` (project, synced tables, then the app, which creates the SP).
 2. Wait for the five synced tables to be online (`01_create_instance.ipynb`, or `get-synced-table`).
 3. Get the SP client id: `databricks apps get <app> --profile DEFAULT -o json`, field `service_principal_client_id`.
-4. If `databricks postgres list-roles projects/bluerridge-pm/branches/production` shows no role for it yet, create one (command in the header of `08_lakebase/app_grants.sql`; the role id is `sp-<client id>`, the Postgres role name is the bare client id).
-5. Run `08_lakebase/app_grants.sql` as the project owner with `${APP_SP_ROLE}` replaced by the client id: generate a credential with `databricks postgres generate-database-credential projects/bluerridge-pm/branches/production/endpoints/primary --profile DEFAULT -o json`, then connect with psql or psycopg to the endpoint host, database `databricks_postgres`, user = your email, and run the file. It grants CONNECT on the database, USAGE on the schema and SELECT on the five tables. It does **not** use `ALTER DEFAULT PRIVILEGES` (the owner cannot set it for the sync writer role); re-run the file if a re-sync recreates a table.
-6. Only then start or restart the app.
+4. Check `databricks postgres list-roles projects/bluerridge-pm/branches/production`. Binding the `postgres` resource makes the platform create the role itself (role id `dbrx-apps-<client id>`, Postgres role name = the bare client id; seen on the first deploy). Only if it is missing, create one (command in the header of `08_lakebase/app_grants.sql`).
+5. Run `08_lakebase/app_grants.sql` as the project owner with `${APP_SP_ROLE}` replaced by the bare client id (the SQL already double-quotes it): generate a credential with `databricks postgres generate-database-credential projects/bluerridge-pm/branches/production/endpoints/primary --profile DEFAULT -o json`, then connect with psql or psycopg to the endpoint host, database `databricks_postgres`, user = your email, and run the file. It grants CONNECT on the database, USAGE on the schema and SELECT on the five tables. It does **not** use `ALTER DEFAULT PRIVILEGES` (the owner cannot set it for the sync writer role); re-run the file if a re-sync recreates a table.
+6. The app may already be running (Task 18 ran the grants after `bundle run`). Grants apply to new connections and queries without a restart; until they run, a Lakebase query from the SP fails with `42501`.
 
-The statements in `app_grants.sql` were dry-run in a rolled-back transaction against the live endpoint (with the owner's own role in place of the placeholder), so the syntax is verified; the real SP role does not exist until the app does.
+The statements in `app_grants.sql` were first dry-run in a rolled-back transaction (Task 16) and then applied for real to the app SP on the first deploy (Task 18, `09_app/outputs/post_deploy_grants_run.md`).
 
 **Cost and stopping it after the roleplay.** The endpoint is a fixed 1 CU and its scale-to-zero suspend timeout is 86400 s, so an idle project keeps one CU running for up to a day after the last connection. The five snapshot pipelines only run when a sync is triggered. To save cost sooner:
 
@@ -152,7 +152,7 @@ If the project is deleted outside the bundle, remove `resources/lakebase.yml` fr
 
 ## Governance follow-ups (Task 24 and group cleanup)
 
-- **App service principal, after `databricks bundle deploy`:** fill `{app_sp}` in `06_governance/grants.sql` (USE SCHEMA + SELECT on `bluerridge_gold_pm` and `bluerridge_agents`, READ VOLUME on `bluerridge_landing.drawings`; USE CATALOG needs the catalog owner) **and** add the row-filter mapping, otherwise the app sees 0 rows of `drawing_register`: `INSERT INTO mfg_mc_se_sa.bluerridge_agents.discipline_access VALUES ('<app sp application id>', '*')`.
+- **App service principal, after `databricks bundle deploy`:** done by `scripts/post_deploy_grants.sh` (see "Post-deploy grants"), which runs the `{app_sp}` statements of `06_governance/grants.sql`: USE CATALOG on `mfg_mc_se_sa`, USE SCHEMA + SELECT on `bluerridge_gold_pm` and `bluerridge_agents`, USE SCHEMA on `bluerridge_landing` + READ VOLUME on `bluerridge_landing.drawings`, and the row-filter mapping MERGE of `('<app sp application id>', '*')` into `discipline_access`. Without the mapping row the app sees 0 rows of `drawing_register`.
 - **Groups:** workspace-local groups are rejected by Unity Catalog grants (`PRINCIPAL_DOES_NOT_EXIST`), so none exist. If an account admin supplies `bluerridge-pm` / `bluerridge-engineers`, run `06_governance/apply.ipynb` with the widgets `pm_group` / `engineer_group`. To remove them later: `REVOKE` the same privileges, then ask the account admin to delete the groups.
 - **Tags:** the account's governed tags own the keys `layer`, `sensitivity`, `data_class`, `domain`; the project uses `br_layer`, `br_sensitivity`, `br_data_class`, `br_domain`, `synthetic`.
 - **Filters:** never attach a row filter or mask to `kpi_daily`, `compliance_findings`, `risk_forecast` or a pipeline input (Lakebase sync and the notebooks would break). Only `drawing_register` carries one.
@@ -174,13 +174,42 @@ If the project is deleted outside the bundle, remove `resources/lakebase.yml` fr
 ```bash
 cd 09_app/frontend && npm ci && npm run build      # produces 09_app/frontend/dist
 cd ../.. && databricks bundle validate --profile DEFAULT
-databricks bundle deploy -t demo --profile DEFAULT  # uploads dist via databricks.yml sync.include
-# first deploy only: do the app service principal grants (see "Lakebase + app" and the governance section), then
-databricks bundle run pm_copilot_app -t demo --profile DEFAULT   # starts the app (or: databricks apps deploy)
+databricks bundle deploy -t demo --profile DEFAULT  # uploads dist via databricks.yml sync.include; a NEW app is created STOPPED
+databricks bundle run pm_copilot_app -t demo --profile DEFAULT   # starts compute and deploys the source; prints the URL
+databricks apps get bluerridge-pm-copilot --profile DEFAULT -o json   # app_status.state RUNNING; check user_api_scopes survived
+databricks apps logs bluerridge-pm-copilot --profile DEFAULT --tail-lines 40 --follow --timeout 20s   # "Uvicorn running on http://0.0.0.0:8000"
+scripts/post_deploy_grants.sh --profile DEFAULT     # app SP grants (UC + row-filter mapping + Postgres); idempotent
 ```
+
+This is the order Task 18 ran and verified. The grants take effect for new queries at once, so the app does not need a restart after them. Until they run, an SP query fails with `42501` or sees 0 rows of `drawing_register`.
+
+A bare `bundle deploy` of a new app leaves it STOPPED with no deployment ("Start the app compute to deploy the app."); `bundle run pm_copilot_app` starts it. The first deploy (Task 18) is recorded in `09_app/outputs/first_deploy.md`: URL `https://bluerridge-pm-copilot-7474644652812129.aws.databricksapps.com`, RUNNING, clean uvicorn boot on 8000. `databricks apps logs` without `--follow` keeps the connection open after printing; `--follow --timeout 20s` returns.
 
 **Why `sync.include`.** `bundle deploy` skips git-ignored files, so `databricks.yml` has `sync.include: [09_app/frontend/dist/**]`. `databricks bundle sync --dry-run` lists `09_app/frontend/dist/index.html` and `dist/assets/*` for upload when the build exists (and nothing under `node_modules`). If `dist/` is missing the deployed app still answers `/health` but `/` returns 404 "Frontend build not found".
 
 **Local dev.** `cd 09_app && pip install -r requirements.txt && uvicorn backend.main:app --reload` (API on :8000) and `cd 09_app/frontend && npm run dev` (Vite on :3000, proxies `/api` to :8000). Tests: `pytest 09_app/backend/tests -q` and `cd 09_app/frontend && npx vitest run`.
 
-**App resource (`resources/app.yml`).** Bindings (resource name, then what `app.yaml` reads): `sql-warehouse` (`${var.warehouse_id}`, CAN_USE, `WAREHOUSE_ID`), `postgres` (project `bluerridge-pm` production branch and `databricks-postgres` database, CAN_CONNECT_AND_CREATE, `LAKEBASE_ENDPOINT`), `genie-space` (`${resources.genie_spaces.bluerridge_pm_copilot.id}`, CAN_RUN, `GENIE_SPACE_ID`) and `drawings-volume` (`uc_securable` VOLUME `mfg_mc_se_sa.bluerridge_landing.drawings`, READ_VOLUME). On-behalf-of scopes are `user_api_scopes: [dashboards.genie, sql]` on the app resource, not in `app.yaml` (CLI v1.20.0 schema: `resources.apps.*.user_api_scopes`, Public Preview; a workspace admin must have enabled user authorization). Task 17 only ran `bundle validate`; the first deploy is Task 18.
+**App resource (`resources/app.yml`).** Bindings (resource name, then what `app.yaml` reads): `sql-warehouse` (`${var.warehouse_id}`, CAN_USE, `WAREHOUSE_ID`), `postgres` (project `bluerridge-pm` production branch and `databricks-postgres` database, CAN_CONNECT_AND_CREATE, `LAKEBASE_ENDPOINT`), `genie-space` (`${resources.genie_spaces.bluerridge_pm_copilot.id}`, CAN_RUN, `GENIE_SPACE_ID`) and `drawings-volume` (`uc_securable` VOLUME `mfg_mc_se_sa.bluerridge_landing.drawings`, READ_VOLUME). On-behalf-of scopes are `user_api_scopes: [dashboards.genie, sql]` on the app resource, not in `app.yaml` (CLI v1.20.0 schema: `resources.apps.*.user_api_scopes`; user authorization is enabled in this workspace, the deploy accepted the scopes). The `${resources...}` references to the Genie space and the Lakebase branch resolved at the first deploy (Task 18), so no literal ids were needed.
+
+## Auth: how OBO is wired
+
+Research memo with sources: [`09_app/backend/AUTH_NOTES.md`](../09_app/backend/AUTH_NOTES.md) (Databricks Apps auth and HTTP-headers docs, `databricks/app-templates`, `databricks-solutions/databricks-apps-cookbook`).
+
+- **Two identities.** The Genie chat runs **on behalf of the signed-in PM** (OBO). Everything else (warehouse reads, Lakebase, Volume PDFs) runs as the **app service principal**.
+- **Headers.** The Apps proxy forwards `x-forwarded-access-token` (the user's short-lived token, present only when `user_api_scopes` are set), `x-forwarded-email`, `x-forwarded-user` and `x-forwarded-preferred-username` on every request. None of them exist in local dev.
+- **Code.** `backend/auth.py`: `get_user_token(request)`; `user_workspace_client(request)` = `WorkspaceClient(token=<forwarded token>, auth_type="pat")`, built per request, 401 if the header is missing (fails closed, never falls back to the SP). `auth_type="pat"` is required because the app env also holds the SP's `DATABRICKS_CLIENT_ID`/`SECRET`. `sp_workspace_client()` = cached `WorkspaceClient()` (SP OAuth from the injected env). `identity(request)` reads headers only.
+- **`GET /api/whoami`** → `{email, user_name, auth_mode}`, `auth_mode` = `OBO` when a user token was forwarded, else `SP`; `user_name` = preferred username, else `x-forwarded-user`. It logs `email` + `auth_mode` (logger `bluerridge.auth`, stdout) and never returns or logs the token (tested with a planted token).
+- **Scopes.** `dashboards.genie` (the platform's alias of `genie`); `sql` kept until T20 verifies Genie works without it. After any change to `user_api_scopes`: redeploy, restart the app, re-check `databricks apps get ... -o json` (a deploy that adds a resource can drop scopes), and reload in a fresh browser session (users re-consent).
+- **Live check.** Open `<app-url>/api/whoami` in the user's own managed Chrome profile. A browser that is not a managed profile is stopped by Okta's device check (Task 18), and an unauthenticated `/api/*` call gets a 401 `{}` from the proxy.
+
+## Post-deploy grants
+
+`scripts/post_deploy_grants.sh --profile DEFAULT [--out FILE [--append]]` gives the app's service principal what it needs, after every `bundle deploy` that creates or recreates the app (a recreated app gets a new SP). It is idempotent (GRANTs are no-ops when held, the mapping row is a MERGE), runs as you, and never prints a credential:
+
+1. **(a)** reads `service_principal_client_id` (the application id) and `service_principal_name` from `databricks apps get bluerridge-pm-copilot`.
+2. **(b)** runs the `{app_sp}` statements of `06_governance/grants.sql` on the `hobbs` warehouse: USE CATALOG `mfg_mc_se_sa`; USE SCHEMA + SELECT on `bluerridge_gold_pm` and `bluerridge_agents`; USE SCHEMA `bluerridge_landing` + READ VOLUME `bluerridge_landing.drawings`.
+3. **(c)** the same file's MERGE of `('<application id>', '*')` into `bluerridge_agents.discipline_access`. `current_user()` in the app's SQL returns the SP's UUID, its application id (docs: "returns the UUID of the service principal"), which is what the `drawing_register` row filter matches.
+4. **(d)** finds the SP's Lakebase role (`list-roles`, `postgres_role` = application id; created with `create-role` only if missing), then applies `08_lakebase/app_grants.sql` through psycopg as the project owner with a database credential generated in-process (SDK `w.postgres.generate_database_credential`), never echoed.
+5. Verifies: `SHOW GRANTS \`<sp>\` ON ...` for each securable, the mapping row, `has_database_privilege` / `has_schema_privilege`, and a `\dp`-style listing of `bluerridge_app.*` (SELECT, no INSERT).
+
+Needs `uv` (the Python step runs as `uv run --with databricks-sdk --with psycopg[binary]`), or `PYTHON=<interpreter with both>`. The first run and an idempotent re-run are in `09_app/outputs/post_deploy_grants_run.md`. Re-run it after a Lakebase re-sync that recreates a synced table (the table grant is lost with the table).

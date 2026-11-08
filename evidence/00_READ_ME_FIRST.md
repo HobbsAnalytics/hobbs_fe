@@ -111,7 +111,11 @@ Not an FE Bar box, but everything below writes into these objects.
 |---|---|---|
 | ☐ pending | [`evidence/app_screenshots/`](app_screenshots/) | `01_copilot_home.png`, `02_assistant_response_with_sources.png`, `03_compliance_page.png`, `04_pdf_viewer_highlighted.png`, `05_right_rail.png` from the deployed app |
 | ☐ pending | [`evidence/app_demo.mp4`](app_demo.mp4) | A 60 to 90 second run-through: open, read the brief, ask a question, click a drawing citation, see the highlighted PDF |
-| ☐ pending | [`09_app/backend/AUTH_NOTES.md`](../09_app/backend/AUTH_NOTES.md) | The on-behalf-of auth research memo that preceded the auth code |
+| ☑ done | [`09_app/backend/AUTH_NOTES.md`](../09_app/backend/AUTH_NOTES.md) | The on-behalf-of auth research memo that preceded the auth code: Databricks Apps docs and public reference repos (`databricks/app-templates`, `databricks-solutions/databricks-apps-cookbook`), exact header names, SDK patterns, the scope decision, gotchas |
+| ☑ done | [`09_app/backend/auth.py`](../09_app/backend/auth.py), [`routes/whoami.py`](../09_app/backend/routes/whoami.py), [`tests/test_whoami.py`](../09_app/backend/tests/test_whoami.py) | OBO vs service-principal clients and `GET /api/whoami` (`auth_mode` OBO/SP), test-first; a planted token never appears in a response or a log line |
+| ☑ done | [`09_app/outputs/first_deploy.md`](../09_app/outputs/first_deploy.md) | The app's first deploy: `bluerridge-pm-copilot` RUNNING at its URL, resolved resource bindings, OBO scopes, a clean uvicorn boot on port 8000, and the live `/api/whoami` attempt (deferred to Task 24: Okta requires a managed Chrome profile) |
+| ☑ done | [`09_app/outputs/post_deploy_grants_run.md`](../09_app/outputs/post_deploy_grants_run.md) | [`scripts/post_deploy_grants.sh`](../scripts/post_deploy_grants.sh) run twice (apply, then an idempotent re-run): the app SP's Unity Catalog grants (`SHOW GRANTS`), its `'*'` row in `discipline_access`, and its Postgres privileges on the five synced tables (`\dp`-style) |
+| ☐ pending | `evidence/app_screenshots/00_whoami_obo.png` | `/api/whoami` in the signed-in browser showing `auth_mode: "OBO"` (Task 24, needs the user's managed Chrome profile) |
 | ☐ pending | [`evidence/mockups/`](mockups/) | The design mockups the UI was built against |
 
 ## 8. One-command deploy
