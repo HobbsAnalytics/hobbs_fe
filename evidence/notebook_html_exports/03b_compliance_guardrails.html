@@ -7796,24 +7796,32 @@ a.anchor-link {
 <!-- End of mermaid configuration --></head>
 <body class="jp-Notebook" data-jp-theme-light="true" data-jp-theme-name="JupyterLab Light">
 <main>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=acc6f794">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=0cfb9d6f">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h1 id="03b-%C2%B7-Guardrails-over-the-saved-judge-output:-rule-applicability-and-self-consistency">03b · Guardrails over the saved judge output: rule applicability and self-consistency<a class="anchor-link" href="#03b-%C2%B7-Guardrails-over-the-saved-judge-output:-rule-applicability-and-self-consistency">¶</a></h1><p>The judge in <code>03_compliance_check.ipynb</code> is a language model, and it has two habits a rule engine would not have: it applies a rule to a drawing that has nothing for the rule to check (the lockout/tagout rule on a pipe isometric that only says "FROM K-1082 NOZZLE N3"), and it sometimes lists a "violation" whose own explanation says the requirement is met. This notebook removes both <strong>deterministically, without a single new AI call</strong>. It reads the judge's answers exactly as saved in <code>bluerridge_gold_pm.compliance_judge_raw</code> (1,200 answers from job run 726850339672013, the run recorded in <code>03_compliance_check.ipynb</code>, whose AI step is the only one that bills), applies two guardrails, and rewrites <code>compliance_findings</code>.</p>
+<h1 id="03b-%C2%B7-Guardrails-over-the-saved-judge-output:-rule-applicability-and-self-consistency">03b · Guardrails over the saved judge output: rule applicability and self-consistency<a class="anchor-link" href="#03b-%C2%B7-Guardrails-over-the-saved-judge-output:-rule-applicability-and-self-consistency">¶</a></h1><p>The judge in <code>03_compliance_check.ipynb</code> is a language model, and it has two habits a rule engine would not have: it applies a rule to a drawing that has nothing for the rule to check (the lockout/tagout rule on a pipe isometric that only says "FROM <equipment> NOZZLE"), and it sometimes lists a "violation" whose own explanation says the requirement is met. This notebook removes both <strong>deterministically, without a single new AI call</strong>. It reads the judge's answers exactly as saved in <code>bluerridge_gold_pm.compliance_judge_raw</code> (the 1,200 answers of the v3 AI run (job run 649534681854336) recorded in <code>03_compliance_check.ipynb</code>, the only step that bills), applies two guardrails, and rewrites <code>compliance_findings</code>.</equipment></p>
 <ol>
-<li><strong>Rule applicability.</strong> Which of the five citations apply to which drawing type, a named constant <code>compliance_lib.APPLICABILITY</code> with a one-line engineering rationale per cell (the table below). A real rule engine routes rules to document types before it calls a model; this is that routing, applied after the fact to the saved answers. A FAIL entry whose citation does not apply to the drawing's type is suppressed (<code>suppressed_by = rule_applicability</code>).</li>
-<li><strong>Self-contradiction.</strong> A FAIL entry is suppressed (<code>suppressed_by = self_contradiction</code>) when the judge's own output admits compliance: its structured <code>found_in_text</code> is true, or its structured <code>expected_item</code>, when it is a tag (such as LOTO-2505A or PSV-2102, not a quoted requirement like "BW with 100% RT"), is in the drawing text although it answered <code>found_in_text: false</code> (the O/0 confusion of the parser is allowed for), or the lockout/tagout rule was applied to a vessel (which the rule's own text excludes), or its reason contains one of seven conservative phrases such as "is present in the drawing" or "not a violation" (the "is present", "is compliant" and "so it is protected" phrases only count in a sentence that is not negated, so "No LOTO-2702 tag is present" stays a violation). The structured fields are checked first; the phrases are the fallback. Unit-tested in <code>tests/test_guardrails.py</code>.</li>
+<li><strong>Rule applicability.</strong> Which of the five citations apply to which drawing type: the named constant <code>compliance_lib.APPLICABILITY</code>, with a one-line engineering rationale per cell (table below). A real rule engine routes rules to document types before it calls a model; this is that routing, applied after the fact to the saved answers. A FAIL entry whose citation does not apply to the drawing's type is suppressed (<code>suppressed_by = rule_applicability</code>).</li>
+<li><strong>Self-contradiction.</strong> A FAIL entry is suppressed (<code>suppressed_by = self_contradiction</code>) when the judge's own output admits compliance: (a) its structured <code>found_in_text</code> is true <strong>on a presence rule</strong> (lockout/tagout, relief device); (b) its structured <code>expected_item</code>, when it is a tag, is in the drawing text although it answered <code>found_in_text: false</code> (the parser's letter/digit confusion is allowed for), again on a presence rule; (c) the lockout/tagout rule was applied to a vessel, which the rule's own text excludes; or, as the fallback, (d) the <strong>conclusion</strong> (last sentence) of its reason contains one of seven conservative phrases such as "is present in the drawing" or "not a violation" ("is present", "is compliant" and "so it is protected" only count in a sentence that is not negated, so "No isolation tag is present" stays a violation; an admission in an earlier, premise sentence does not count). Unit-tested in <code>tests/test_guardrails.py</code>.</li>
 </ol>
-<p><strong>Nothing is silently dropped.</strong> Every suppressed entry is written to <code>bluerridge_gold_pm.compliance_suppressed</code> with the finding's columns plus <code>suppressed_by</code> and <code>suppression_detail</code>. A drawing whose FAIL entries are all suppressed gets the PASS sentinel row, by the usual grain rules (N FAIL rows, or one PASS, or one REVIEW).</p>
-<p><strong>What is not fixed.</strong> The parser sometimes reads LOTO as ROTO-, LOT0- or LOTOTO-. A judge that flags such a tag is reporting what the text says; no guardrail here guesses the tag back, so those false alarms stay.</p>
-<p><strong>Why a separate notebook.</strong> <code>03_compliance_check.ipynb</code> keeps the evidence of the AI run exactly as it ran: its outputs (the raw judge's numbers, row counts, the run id) match its code. This notebook is the fourth task of the doc-intelligence job, after <code>compliance_check</code>, and rebuilds <code>compliance_findings</code> from the saved answers; it makes no AI call and is safe to re-run.</p>
+<p><strong>Nothing is silently dropped.</strong> Every suppressed entry is written to <code>bluerridge_gold_pm.compliance_suppressed</code> with the finding's columns plus <code>suppressed_by</code> and <code>suppression_detail</code>. A drawing whose FAIL entries are all suppressed gets the PASS sentinel row, its reason saying how many entries were suppressed. A conservation check below asserts <code>all raw entries == kept + suppressed</code>.</p>
+<p><strong>Three columns, so nothing is overstated.</strong> (A) <em>all raw judge entries</em>, exactly what the model answered; (B) <em>after the judge's own <code>found_in_text</code> self-check</em>, which is what <code>03_compliance_check.ipynb</code> wrote to <code>compliance_findings</code>; (C) <em>after the guardrails</em>, what this notebook writes. The self-check's entries (B minus A) are <strong>carried over from the judge's own output</strong> and are not an effect of the guardrails; the guardrails' net effect is C against B. Recall cost is stated against A as well as B.</p>
+<p><strong>Disclosures.</strong></p>
+<ul>
+<li><em>The <code>found_in_text</code> rule is scoped to the two presence rules, and why it is.</em> An earlier version applied it to every rule. A review that looked at the ground truth noticed that it was dropping correct numeric findings (an exit that provides 36 in but requires 44 in has "44 IN" in its schedule, so the judge's search "found" the expected value). Finding the expected value in the text means compliance only for a rule that asks whether an item is <em>present</em>; for a threshold rule the required value is printed in the drawing whether or not the item meets it. The scoping is logical and holds without the ground truth, but it was discovered by looking at the ground truth, and is disclosed here so it is not read as hidden tuning.</li>
+<li><em>The applicability matrix equals the synthetic generator's sheet-content table (<code>SUPPORTS</code> in <code>01_synthetic_data/02_generate_drawings.py</code>) in all 25 cells.</em> It reflects which items this project's drawing set depicts on each sheet type, by design; a real deployment would derive it from the project's drawing index and standards. Only the ISO cells ever suppressed anything in the recorded run (82 lockout/tagout and 3 relief entries), so "no planted flaw lost to <code>rule_applicability</code>" holds <strong>by construction</strong>, and is not evidence that the matrix is right.</li>
+<li><em>The five citations are fixed, illustrative project labels for this synthetic demo</em>; the clause numbers (for example "ASME B16.5 §4.2" for flange pressure rating) are not authoritative. Verify any clause against the licensed standard.</li>
+<li><em>Unfixed on purpose:</em> the parser sometimes reads LOTO as ROTO-, LOT0- or LOTOTO-; a judge that flags such a tag is reporting what the text says, and no guardrail guesses the tag back.</li>
+</ul>
+<p><strong>Why a separate notebook.</strong> <code>03_compliance_check.ipynb</code> keeps the evidence of the AI run exactly as it ran: its outputs (the run id, row counts, the raw judge's numbers) match its code. This notebook is the fourth task of the doc-intelligence job, after <code>compliance_check</code>; it rebuilds <code>compliance_findings</code> from the saved answers, makes no AI call, and is safe to re-run.</p>
+<p><strong>Run record.</strong> The run that produced the outputs below is job run 117575921357807 (task run 628894924073830), a one-time <code>jobs submit</code> with <code>disable_auto_optimization: true</code> (request committed as <code>outputs/submit_payloads/03b_compliance_guardrails_submit.json</code>), one attempt, no AI call, about 84 s. It reads the v3 judge answers of AI run 649534681854336. History, for honesty: a first version of this notebook (run 759744477032990, on the v2 answers) found 241 planted flaws, below the 247 of the unguarded baseline; inspecting those 6 lost flaws showed two bugs in the self-contradiction rule, both fixed on logic grounds with unit tests: the <code>expected_item</code> check matched requirements quoted in the drawing's notes (a threshold rule), and the phrase "is present in the drawing" matched "No isolation tag is present in the drawing". Later runs 277986954018141 (v2 answers, fixed rules) and, in this fix round, 1099205223917164 (v3 answers; superseded because its printed text named the wrong AI run) preceded this one; a cancelled run (15793811783875) wrote nothing that survived.</p>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=bb60ac8e">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=e4e999c8">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7879,7 +7887,7 @@ target: mfg_mc_se_sa.bluerridge_gold_pm.compliance_findings; suppressed entries:
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=a3cded2a">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=69ae2696">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7917,7 +7925,7 @@ target: mfg_mc_se_sa.bluerridge_gold_pm.compliance_findings; suppressed entries:
 <tr>
 <td><strong>GA</strong></td>
 <td>no: A general arrangement plan locates equipment and rooms; line flange classes are not on it.</td>
-<td>yes: The plan shows where powered equipment sits and where its isolation tags are provided.</td>
+<td>yes: This project's general arrangement sheets carry equipment isolation (LOTO) callouts next to the equipment.</td>
 <td>yes: The plan with its egress schedule is where exit widths against occupant load are shown.</td>
 <td>no: Weld joints are not shown on an arrangement plan.</td>
 <td>no: Relief devices and their set pressures are on the P&amp;ID and the relief schedule, not on the arrangement plan.</td>
@@ -7928,7 +7936,7 @@ target: mfg_mc_se_sa.bluerridge_gold_pm.compliance_findings; suppressed entries:
 <td>no: A specification sheet has tables only; there is no equipment to isolate.</td>
 <td>no: A piping or relief specification has no exits or occupant load.</td>
 <td>yes: The piping class specification states the weld joint type and examination for each class.</td>
-<td>yes: The relief device schedule lists each vessel with its PSV tag, set pressure and orifice.</td>
+<td>yes: This project's piping specification sheets include a relief-device schedule listing each vessel with its PSV.</td>
 </tr>
 <tr>
 <td><strong>OTHER</strong></td>
@@ -7943,7 +7951,7 @@ target: mfg_mc_se_sa.bluerridge_gold_pm.compliance_findings; suppressed entries:
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=91ed4c42">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=99a97ed2">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7976,7 +7984,7 @@ OTHER: applies = []
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=3a1b54cd">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=87aa7db3">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7986,7 +7994,7 @@ OTHER: applies = []
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=caa38186">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=ea4261a0">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7999,7 +8007,7 @@ OTHER: applies = []
             <span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">spark</span><span class="o">.</span><span class="n">table</span><span class="p">(</span><span class="n">EXTRACTED</span><span class="p">)</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="s2">"drawing_id"</span><span class="p">,</span> <span class="s2">"drawing_type"</span><span class="p">),</span> <span class="s2">"drawing_id"</span><span class="p">)</span>
             <span class="o">.</span><span class="n">collect</span><span class="p">())</span>
 <span class="n">judged_at</span> <span class="o">=</span> <span class="p">{</span><span class="n">r</span><span class="o">.</span><span class="n">drawing_id</span><span class="p">:</span> <span class="n">r</span><span class="o">.</span><span class="n">judged_at</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">raw_rows</span><span class="p">}</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"reusing </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">raw_rows</span><span class="p">)</span><span class="si">}</span><span class="s2"> judge answers from </span><span class="si">{</span><span class="n">RAW</span><span class="si">}</span><span class="s2">, written by the AI step at </span><span class="si">{</span><span class="nb">max</span><span class="p">(</span><span class="n">judged_at</span><span class="o">.</span><span class="n">values</span><span class="p">())</span><span class="si">}</span><span class="s2"> UTC (job run 726850339672013); no AI call is made here"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"reusing </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">raw_rows</span><span class="p">)</span><span class="si">}</span><span class="s2"> judge answers from </span><span class="si">{</span><span class="n">RAW</span><span class="si">}</span><span class="s2">, written by the AI step at </span><span class="si">{</span><span class="nb">max</span><span class="p">(</span><span class="n">judged_at</span><span class="o">.</span><span class="n">values</span><span class="p">())</span><span class="si">}</span><span class="s2"> UTC (job run 649534681854336, the v3 prompt, recorded in 03_compliance_check.ipynb); no AI call is made here"</span><span class="p">)</span>
 <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">raw_rows</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1200</span> <span class="o">==</span> <span class="n">spark</span><span class="o">.</span><span class="n">table</span><span class="p">(</span><span class="n">RAW</span><span class="p">)</span><span class="o">.</span><span class="n">count</span><span class="p">(),</span> <span class="s2">"expected the 1,200 answers of the full AI run"</span>
 
 <span class="n">manifest</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">MANIFEST</span><span class="o">.</span><span class="n">read_text</span><span class="p">())</span>
@@ -8022,14 +8030,14 @@ OTHER: applies = []
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>reusing 1200 judge answers from mfg_mc_se_sa.bluerridge_gold_pm.compliance_judge_raw, written by the AI step at 2026-11-07 20:36:47.418214 UTC (job run 726850339672013); no AI call is made here
+<pre>reusing 1200 judge answers from mfg_mc_se_sa.bluerridge_gold_pm.compliance_judge_raw, written by the AI step at 2026-11-08 15:07:51.749607 UTC (job run 649534681854336, the v3 prompt, recorded in 03_compliance_check.ipynb); no AI call is made here
 </pre>
 </div>
 </div>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=2f18a89b">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=19813d71">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8039,7 +8047,7 @@ OTHER: applies = []
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=cf9e6b4c">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=765461b9">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8047,12 +8055,14 @@ OTHER: applies = []
 <div class="jp-InputPrompt jp-InputArea-prompt">In [4]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-python"><pre><span></span><span class="n">before</span><span class="p">,</span> <span class="n">after</span><span class="p">,</span> <span class="n">suppressed</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[],</span> <span class="p">[]</span>
+<div class="highlight hl-python"><pre><span></span><span class="n">raw_all</span><span class="p">,</span> <span class="n">before</span><span class="p">,</span> <span class="n">after</span><span class="p">,</span> <span class="n">suppressed</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[],</span> <span class="p">[],</span> <span class="p">[]</span>
 <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">raw_rows</span><span class="p">:</span>
-    <span class="n">before</span> <span class="o">+=</span> <span class="n">lib</span><span class="o">.</span><span class="n">flatten_judgement</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">drawing_id</span><span class="p">,</span> <span class="n">r</span><span class="o">.</span><span class="n">result</span><span class="p">,</span> <span class="n">r</span><span class="o">.</span><span class="n">error</span><span class="p">)</span>
-    <span class="n">kept</span><span class="p">,</span> <span class="n">dropped</span> <span class="o">=</span> <span class="n">lib</span><span class="o">.</span><span class="n">judge_with_guardrails</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">drawing_id</span><span class="p">,</span> <span class="n">r</span><span class="o">.</span><span class="n">drawing_type</span><span class="p">,</span> <span class="n">r</span><span class="o">.</span><span class="n">parsed_markdown</span><span class="p">,</span> <span class="n">r</span><span class="o">.</span><span class="n">result</span><span class="p">,</span> <span class="n">r</span><span class="o">.</span><span class="n">error</span><span class="p">)</span>
+    <span class="n">raw_all</span> <span class="o">+=</span> <span class="p">[{</span><span class="s2">"drawing_id"</span><span class="p">:</span> <span class="n">r</span><span class="o">.</span><span class="n">drawing_id</span><span class="p">,</span> <span class="o">**</span><span class="n">e</span><span class="p">}</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">lib</span><span class="o">.</span><span class="n">raw_entries</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">result</span><span class="p">,</span> <span class="n">r</span><span class="o">.</span><span class="n">error</span><span class="p">)]</span>       <span class="c1"># A: every entry the judge answered</span>
+    <span class="n">before</span> <span class="o">+=</span> <span class="n">lib</span><span class="o">.</span><span class="n">flatten_judgement</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">drawing_id</span><span class="p">,</span> <span class="n">r</span><span class="o">.</span><span class="n">result</span><span class="p">,</span> <span class="n">r</span><span class="o">.</span><span class="n">error</span><span class="p">)</span>                                    <span class="c1"># B: after the judge's own self-check</span>
+    <span class="n">kept</span><span class="p">,</span> <span class="n">dropped</span> <span class="o">=</span> <span class="n">lib</span><span class="o">.</span><span class="n">judge_with_guardrails</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">drawing_id</span><span class="p">,</span> <span class="n">r</span><span class="o">.</span><span class="n">drawing_type</span><span class="p">,</span> <span class="n">r</span><span class="o">.</span><span class="n">parsed_markdown</span><span class="p">,</span> <span class="n">r</span><span class="o">.</span><span class="n">result</span><span class="p">,</span> <span class="n">r</span><span class="o">.</span><span class="n">error</span><span class="p">)</span>   <span class="c1"># C: after the guardrails</span>
     <span class="n">after</span> <span class="o">+=</span> <span class="n">kept</span>
     <span class="n">suppressed</span> <span class="o">+=</span> <span class="n">dropped</span>
+<span class="n">raw_review</span> <span class="o">=</span> <span class="p">{</span><span class="n">x</span><span class="p">[</span><span class="s2">"drawing_id"</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">before</span> <span class="k">if</span> <span class="n">x</span><span class="p">[</span><span class="s2">"status"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"REVIEW"</span><span class="p">}</span>
 
 <span class="k">def</span><span class="w"> </span><span class="nf">drawing_outcome</span><span class="p">(</span><span class="n">rows</span><span class="p">):</span>
     <span class="n">by</span> <span class="o">=</span> <span class="p">{}</span>
@@ -8069,24 +8079,34 @@ OTHER: applies = []
             <span class="s2">"fail_rows"</span><span class="p">:</span> <span class="n">Counter</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="s2">"citation"</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">rows</span> <span class="k">if</span> <span class="n">x</span><span class="p">[</span><span class="s2">"status"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"FAIL"</span><span class="p">),</span>
             <span class="s2">"drawings"</span><span class="p">:</span> <span class="n">Counter</span><span class="p">(</span><span class="n">out</span><span class="o">.</span><span class="n">values</span><span class="p">()),</span> <span class="s2">"week"</span><span class="p">:</span> <span class="n">Counter</span><span class="p">(</span><span class="n">week</span><span class="p">)}</span>
 
-<span class="n">mb</span><span class="p">,</span> <span class="n">ma</span> <span class="o">=</span> <span class="n">metrics</span><span class="p">(</span><span class="n">before</span><span class="p">),</span> <span class="n">metrics</span><span class="p">(</span><span class="n">after</span><span class="p">)</span>
+<span class="c1"># Column A has one "FAIL" per raw entry; a drawing with none is PASS, a drawing whose answer was unusable is REVIEW.</span>
+<span class="n">fail_drawings_a</span> <span class="o">=</span> <span class="p">{</span><span class="n">e</span><span class="p">[</span><span class="s2">"drawing_id"</span><span class="p">]</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">raw_all</span><span class="p">}</span>
+<span class="n">rows_a</span> <span class="o">=</span> <span class="p">[{</span><span class="s2">"drawing_id"</span><span class="p">:</span> <span class="n">e</span><span class="p">[</span><span class="s2">"drawing_id"</span><span class="p">],</span> <span class="s2">"status"</span><span class="p">:</span> <span class="s2">"FAIL"</span><span class="p">,</span> <span class="s2">"citation"</span><span class="p">:</span> <span class="n">e</span><span class="p">[</span><span class="s2">"citation"</span><span class="p">]}</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">raw_all</span><span class="p">]</span> <span class="o">+</span> \
+         <span class="p">[{</span><span class="s2">"drawing_id"</span><span class="p">:</span> <span class="n">r</span><span class="o">.</span><span class="n">drawing_id</span><span class="p">,</span> <span class="s2">"status"</span><span class="p">:</span> <span class="s2">"REVIEW"</span> <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">drawing_id</span> <span class="ow">in</span> <span class="n">raw_review</span> <span class="k">else</span> <span class="s2">"PASS"</span><span class="p">,</span> <span class="s2">"citation"</span><span class="p">:</span> <span class="kc">None</span><span class="p">}</span>
+          <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">raw_rows</span> <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">drawing_id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">fail_drawings_a</span><span class="p">]</span>
+<span class="n">ma</span><span class="p">,</span> <span class="n">mb</span><span class="p">,</span> <span class="n">mc</span> <span class="o">=</span> <span class="n">metrics</span><span class="p">(</span><span class="n">rows_a</span><span class="p">),</span> <span class="n">metrics</span><span class="p">(</span><span class="n">before</span><span class="p">),</span> <span class="n">metrics</span><span class="p">(</span><span class="n">after</span><span class="p">)</span>
 <span class="n">rows</span> <span class="o">=</span> <span class="p">[]</span>
 <span class="k">for</span> <span class="n">label</span><span class="p">,</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">((</span><span class="s2">"drawings PASS"</span><span class="p">,</span> <span class="s2">"PASS"</span><span class="p">),</span> <span class="p">(</span><span class="s2">"drawings FAIL"</span><span class="p">,</span> <span class="s2">"FAIL"</span><span class="p">),</span> <span class="p">(</span><span class="s2">"drawings REVIEW"</span><span class="p">,</span> <span class="s2">"REVIEW"</span><span class="p">)):</span>
-    <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">label</span><span class="p">,</span> <span class="n">mb</span><span class="p">[</span><span class="s2">"drawings"</span><span class="p">][</span><span class="n">key</span><span class="p">],</span> <span class="n">ma</span><span class="p">[</span><span class="s2">"drawings"</span><span class="p">][</span><span class="n">key</span><span class="p">]))</span>
+    <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">label</span><span class="p">,</span> <span class="n">ma</span><span class="p">[</span><span class="s2">"drawings"</span><span class="p">][</span><span class="n">key</span><span class="p">],</span> <span class="n">mb</span><span class="p">[</span><span class="s2">"drawings"</span><span class="p">][</span><span class="n">key</span><span class="p">],</span> <span class="n">mc</span><span class="p">[</span><span class="s2">"drawings"</span><span class="p">][</span><span class="n">key</span><span class="p">]))</span>
 <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">lib</span><span class="o">.</span><span class="n">CITATIONS</span><span class="p">:</span>
-    <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="sa">f</span><span class="s2">"FAIL rows: </span><span class="si">{</span><span class="n">c</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span> <span class="n">mb</span><span class="p">[</span><span class="s2">"fail_rows"</span><span class="p">][</span><span class="n">c</span><span class="p">],</span> <span class="n">ma</span><span class="p">[</span><span class="s2">"fail_rows"</span><span class="p">][</span><span class="n">c</span><span class="p">]))</span>
-<span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s2">"FAIL rows: total"</span><span class="p">,</span> <span class="nb">sum</span><span class="p">(</span><span class="n">mb</span><span class="p">[</span><span class="s2">"fail_rows"</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">()),</span> <span class="nb">sum</span><span class="p">(</span><span class="n">ma</span><span class="p">[</span><span class="s2">"fail_rows"</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">())))</span>
-<span class="n">rows</span> <span class="o">+=</span> <span class="p">[(</span><span class="s2">"distinct (drawing, citation) findings"</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">mb</span><span class="p">[</span><span class="s2">"pairs"</span><span class="p">]),</span> <span class="nb">len</span><span class="p">(</span><span class="n">ma</span><span class="p">[</span><span class="s2">"pairs"</span><span class="p">])),</span>
-         <span class="p">(</span><span class="s2">"planted flaws found (true positives)"</span><span class="p">,</span> <span class="n">mb</span><span class="p">[</span><span class="s2">"tp"</span><span class="p">],</span> <span class="n">ma</span><span class="p">[</span><span class="s2">"tp"</span><span class="p">]),</span>
-         <span class="p">(</span><span class="s2">"precision %"</span><span class="p">,</span> <span class="nb">round</span><span class="p">(</span><span class="mi">100</span> <span class="o">*</span> <span class="n">mb</span><span class="p">[</span><span class="s2">"precision"</span><span class="p">],</span> <span class="mi">1</span><span class="p">),</span> <span class="nb">round</span><span class="p">(</span><span class="mi">100</span> <span class="o">*</span> <span class="n">ma</span><span class="p">[</span><span class="s2">"precision"</span><span class="p">],</span> <span class="mi">1</span><span class="p">)),</span>
-         <span class="p">(</span><span class="s2">"recall %"</span><span class="p">,</span> <span class="nb">round</span><span class="p">(</span><span class="mi">100</span> <span class="o">*</span> <span class="n">mb</span><span class="p">[</span><span class="s2">"recall"</span><span class="p">],</span> <span class="mi">1</span><span class="p">),</span> <span class="nb">round</span><span class="p">(</span><span class="mi">100</span> <span class="o">*</span> <span class="n">ma</span><span class="p">[</span><span class="s2">"recall"</span><span class="p">],</span> <span class="mi">1</span><span class="p">)),</span>
-         <span class="p">(</span><span class="s2">"as-of week: reviewed"</span><span class="p">,</span> <span class="mi">238</span><span class="p">,</span> <span class="mi">238</span><span class="p">),</span>
-         <span class="p">(</span><span class="s2">"as-of week: passed"</span><span class="p">,</span> <span class="n">mb</span><span class="p">[</span><span class="s2">"week"</span><span class="p">][</span><span class="s2">"PASS"</span><span class="p">],</span> <span class="n">ma</span><span class="p">[</span><span class="s2">"week"</span><span class="p">][</span><span class="s2">"PASS"</span><span class="p">]),</span>
-         <span class="p">(</span><span class="s2">"as-of week: failed"</span><span class="p">,</span> <span class="n">mb</span><span class="p">[</span><span class="s2">"week"</span><span class="p">][</span><span class="s2">"FAIL"</span><span class="p">],</span> <span class="n">ma</span><span class="p">[</span><span class="s2">"week"</span><span class="p">][</span><span class="s2">"FAIL"</span><span class="p">]),</span>
-         <span class="p">(</span><span class="s2">"as-of week: needs review"</span><span class="p">,</span> <span class="n">mb</span><span class="p">[</span><span class="s2">"week"</span><span class="p">][</span><span class="s2">"REVIEW"</span><span class="p">],</span> <span class="n">ma</span><span class="p">[</span><span class="s2">"week"</span><span class="p">][</span><span class="s2">"REVIEW"</span><span class="p">])]</span>
-<span class="n">display</span><span class="p">(</span><span class="n">spark</span><span class="o">.</span><span class="n">createDataFrame</span><span class="p">([(</span><span class="n">a</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">b</span><span class="p">),</span> <span class="nb">float</span><span class="p">(</span><span class="n">c</span><span class="p">))</span> <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">rows</span><span class="p">],</span> <span class="s2">"measure string, raw_judge double, guardrailed double"</span><span class="p">))</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"precision </span><span class="si">{</span><span class="n">mb</span><span class="p">[</span><span class="s1">'precision'</span><span class="p">]</span><span class="si">:</span><span class="s2">.1%</span><span class="si">}</span><span class="s2"> -&gt; </span><span class="si">{</span><span class="n">ma</span><span class="p">[</span><span class="s1">'precision'</span><span class="p">]</span><span class="si">:</span><span class="s2">.1%</span><span class="si">}</span><span class="s2">, recall </span><span class="si">{</span><span class="n">mb</span><span class="p">[</span><span class="s1">'recall'</span><span class="p">]</span><span class="si">:</span><span class="s2">.1%</span><span class="si">}</span><span class="s2"> -&gt; </span><span class="si">{</span><span class="n">ma</span><span class="p">[</span><span class="s1">'recall'</span><span class="p">]</span><span class="si">:</span><span class="s2">.1%</span><span class="si">}</span><span class="s2">; "</span>
-      <span class="sa">f</span><span class="s2">"as-of week failed </span><span class="si">{</span><span class="n">mb</span><span class="p">[</span><span class="s1">'week'</span><span class="p">][</span><span class="s1">'FAIL'</span><span class="p">]</span><span class="si">}</span><span class="s2"> -&gt; </span><span class="si">{</span><span class="n">ma</span><span class="p">[</span><span class="s1">'week'</span><span class="p">][</span><span class="s1">'FAIL'</span><span class="p">]</span><span class="si">}</span><span class="s2"> of 238 (the planted story is 24)"</span><span class="p">)</span>
+    <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="sa">f</span><span class="s2">"FAIL rows: </span><span class="si">{</span><span class="n">c</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span> <span class="n">ma</span><span class="p">[</span><span class="s2">"fail_rows"</span><span class="p">][</span><span class="n">c</span><span class="p">],</span> <span class="n">mb</span><span class="p">[</span><span class="s2">"fail_rows"</span><span class="p">][</span><span class="n">c</span><span class="p">],</span> <span class="n">mc</span><span class="p">[</span><span class="s2">"fail_rows"</span><span class="p">][</span><span class="n">c</span><span class="p">]))</span>
+<span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s2">"FAIL rows: total"</span><span class="p">,</span> <span class="nb">sum</span><span class="p">(</span><span class="n">ma</span><span class="p">[</span><span class="s2">"fail_rows"</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">()),</span> <span class="nb">sum</span><span class="p">(</span><span class="n">mb</span><span class="p">[</span><span class="s2">"fail_rows"</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">()),</span> <span class="nb">sum</span><span class="p">(</span><span class="n">mc</span><span class="p">[</span><span class="s2">"fail_rows"</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">())))</span>
+<span class="n">rows</span> <span class="o">+=</span> <span class="p">[(</span><span class="s2">"distinct (drawing, citation) findings"</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">ma</span><span class="p">[</span><span class="s2">"pairs"</span><span class="p">]),</span> <span class="nb">len</span><span class="p">(</span><span class="n">mb</span><span class="p">[</span><span class="s2">"pairs"</span><span class="p">]),</span> <span class="nb">len</span><span class="p">(</span><span class="n">mc</span><span class="p">[</span><span class="s2">"pairs"</span><span class="p">])),</span>
+         <span class="p">(</span><span class="s2">"planted flaws found (true positives)"</span><span class="p">,</span> <span class="n">ma</span><span class="p">[</span><span class="s2">"tp"</span><span class="p">],</span> <span class="n">mb</span><span class="p">[</span><span class="s2">"tp"</span><span class="p">],</span> <span class="n">mc</span><span class="p">[</span><span class="s2">"tp"</span><span class="p">]),</span>
+         <span class="p">(</span><span class="s2">"precision %"</span><span class="p">,</span> <span class="nb">round</span><span class="p">(</span><span class="mi">100</span> <span class="o">*</span> <span class="n">ma</span><span class="p">[</span><span class="s2">"precision"</span><span class="p">],</span> <span class="mi">1</span><span class="p">),</span> <span class="nb">round</span><span class="p">(</span><span class="mi">100</span> <span class="o">*</span> <span class="n">mb</span><span class="p">[</span><span class="s2">"precision"</span><span class="p">],</span> <span class="mi">1</span><span class="p">),</span> <span class="nb">round</span><span class="p">(</span><span class="mi">100</span> <span class="o">*</span> <span class="n">mc</span><span class="p">[</span><span class="s2">"precision"</span><span class="p">],</span> <span class="mi">1</span><span class="p">)),</span>
+         <span class="p">(</span><span class="s2">"recall %"</span><span class="p">,</span> <span class="nb">round</span><span class="p">(</span><span class="mi">100</span> <span class="o">*</span> <span class="n">ma</span><span class="p">[</span><span class="s2">"recall"</span><span class="p">],</span> <span class="mi">1</span><span class="p">),</span> <span class="nb">round</span><span class="p">(</span><span class="mi">100</span> <span class="o">*</span> <span class="n">mb</span><span class="p">[</span><span class="s2">"recall"</span><span class="p">],</span> <span class="mi">1</span><span class="p">),</span> <span class="nb">round</span><span class="p">(</span><span class="mi">100</span> <span class="o">*</span> <span class="n">mc</span><span class="p">[</span><span class="s2">"recall"</span><span class="p">],</span> <span class="mi">1</span><span class="p">)),</span>
+         <span class="p">(</span><span class="s2">"as-of week: reviewed"</span><span class="p">,</span> <span class="mi">238</span><span class="p">,</span> <span class="mi">238</span><span class="p">,</span> <span class="mi">238</span><span class="p">),</span>
+         <span class="p">(</span><span class="s2">"as-of week: passed"</span><span class="p">,</span> <span class="n">ma</span><span class="p">[</span><span class="s2">"week"</span><span class="p">][</span><span class="s2">"PASS"</span><span class="p">],</span> <span class="n">mb</span><span class="p">[</span><span class="s2">"week"</span><span class="p">][</span><span class="s2">"PASS"</span><span class="p">],</span> <span class="n">mc</span><span class="p">[</span><span class="s2">"week"</span><span class="p">][</span><span class="s2">"PASS"</span><span class="p">]),</span>
+         <span class="p">(</span><span class="s2">"as-of week: failed"</span><span class="p">,</span> <span class="n">ma</span><span class="p">[</span><span class="s2">"week"</span><span class="p">][</span><span class="s2">"FAIL"</span><span class="p">],</span> <span class="n">mb</span><span class="p">[</span><span class="s2">"week"</span><span class="p">][</span><span class="s2">"FAIL"</span><span class="p">],</span> <span class="n">mc</span><span class="p">[</span><span class="s2">"week"</span><span class="p">][</span><span class="s2">"FAIL"</span><span class="p">]),</span>
+         <span class="p">(</span><span class="s2">"as-of week: needs review"</span><span class="p">,</span> <span class="n">ma</span><span class="p">[</span><span class="s2">"week"</span><span class="p">][</span><span class="s2">"REVIEW"</span><span class="p">],</span> <span class="n">mb</span><span class="p">[</span><span class="s2">"week"</span><span class="p">][</span><span class="s2">"REVIEW"</span><span class="p">],</span> <span class="n">mc</span><span class="p">[</span><span class="s2">"week"</span><span class="p">][</span><span class="s2">"REVIEW"</span><span class="p">])]</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"A = all raw judge entries; B = after the judge's own found_in_text self-check (presence rules; what 03_compliance_check wrote); C = after the guardrails (what this notebook writes)"</span><span class="p">)</span>
+<span class="n">display</span><span class="p">(</span><span class="n">spark</span><span class="o">.</span><span class="n">createDataFrame</span><span class="p">([(</span><span class="n">a</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">b</span><span class="p">),</span> <span class="nb">float</span><span class="p">(</span><span class="n">c</span><span class="p">),</span> <span class="nb">float</span><span class="p">(</span><span class="n">d</span><span class="p">))</span> <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">rows</span><span class="p">],</span> <span class="s2">"measure string, A_all_raw_entries double, B_after_judge_self_check double, C_after_guardrails double"</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"precision </span><span class="si">{</span><span class="n">ma</span><span class="p">[</span><span class="s1">'precision'</span><span class="p">]</span><span class="si">:</span><span class="s2">.1%</span><span class="si">}</span><span class="s2"> -&gt; </span><span class="si">{</span><span class="n">mb</span><span class="p">[</span><span class="s1">'precision'</span><span class="p">]</span><span class="si">:</span><span class="s2">.1%</span><span class="si">}</span><span class="s2"> -&gt; </span><span class="si">{</span><span class="n">mc</span><span class="p">[</span><span class="s1">'precision'</span><span class="p">]</span><span class="si">:</span><span class="s2">.1%</span><span class="si">}</span><span class="s2">; recall </span><span class="si">{</span><span class="n">ma</span><span class="p">[</span><span class="s1">'recall'</span><span class="p">]</span><span class="si">:</span><span class="s2">.1%</span><span class="si">}</span><span class="s2"> -&gt; </span><span class="si">{</span><span class="n">mb</span><span class="p">[</span><span class="s1">'recall'</span><span class="p">]</span><span class="si">:</span><span class="s2">.1%</span><span class="si">}</span><span class="s2"> -&gt; </span><span class="si">{</span><span class="n">mc</span><span class="p">[</span><span class="s1">'recall'</span><span class="p">]</span><span class="si">:</span><span class="s2">.1%</span><span class="si">}</span><span class="s2">; "</span>
+      <span class="sa">f</span><span class="s2">"as-of week failed </span><span class="si">{</span><span class="n">ma</span><span class="p">[</span><span class="s1">'week'</span><span class="p">][</span><span class="s1">'FAIL'</span><span class="p">]</span><span class="si">}</span><span class="s2"> -&gt; </span><span class="si">{</span><span class="n">mb</span><span class="p">[</span><span class="s1">'week'</span><span class="p">][</span><span class="s1">'FAIL'</span><span class="p">]</span><span class="si">}</span><span class="s2"> -&gt; </span><span class="si">{</span><span class="n">mc</span><span class="p">[</span><span class="s1">'week'</span><span class="p">][</span><span class="s1">'FAIL'</span><span class="p">]</span><span class="si">}</span><span class="s2"> of 238 (the planted story is 24)"</span><span class="p">)</span>
+<span class="c1"># Conservation: every raw judge entry is either a kept FAIL row or a suppressed entry (none vanishes).</span>
+<span class="n">kept_fail</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="mi">1</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">after</span> <span class="k">if</span> <span class="n">x</span><span class="p">[</span><span class="s2">"status"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"FAIL"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"conservation: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">raw_all</span><span class="p">)</span><span class="si">}</span><span class="s2"> raw entries = </span><span class="si">{</span><span class="n">kept_fail</span><span class="si">}</span><span class="s2"> kept FAIL rows + </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">suppressed</span><span class="p">)</span><span class="si">}</span><span class="s2"> suppressed entries"</span><span class="p">)</span>
+<span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">raw_all</span><span class="p">)</span> <span class="o">==</span> <span class="n">kept_fail</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">suppressed</span><span class="p">),</span> <span class="s2">"a raw judge entry was neither kept nor suppressed"</span>
 </pre></div>
 </div>
 </div>
@@ -8098,20 +8118,28 @@ OTHER: applies = []
 <div class="jp-OutputArea jp-Cell-outputArea">
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>A = all raw judge entries; B = after the judge's own found_in_text self-check (presence rules; what 03_compliance_check wrote); C = after the guardrails (what this notebook writes)
+</pre>
+</div>
+</div>
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedHTMLCommon jp-RenderedHTML jp-OutputArea-output" data-mime-type="text/html" tabindex="0">
-<table><thead><tr><th>measure</th><th>raw_judge</th><th>guardrailed</th></tr></thead><tbody><tr><td>drawings PASS</td><td>822.0</td><td>911.0</td></tr><tr><td>drawings FAIL</td><td>377.0</td><td>288.0</td></tr><tr><td>drawings REVIEW</td><td>1.0</td><td>1.0</td></tr><tr><td>FAIL rows: ASME B16.5 §4.2</td><td>99.0</td><td>89.0</td></tr><tr><td>FAIL rows: OSHA 1910.147</td><td>323.0</td><td>130.0</td></tr><tr><td>FAIL rows: IBC 1005.1</td><td>45.0</td><td>45.0</td></tr><tr><td>FAIL rows: ASME B31.3 §341</td><td>50.0</td><td>50.0</td></tr><tr><td>FAIL rows: ASME B31.3 §322</td><td>110.0</td><td>98.0</td></tr><tr><td>FAIL rows: total</td><td>627.0</td><td>412.0</td></tr><tr><td>distinct (drawing, citation) findings</td><td>450.0</td><td>327.0</td></tr><tr><td>planted flaws found (true positives)</td><td>247.0</td><td>247.0</td></tr><tr><td>precision %</td><td>54.9</td><td>75.5</td></tr><tr><td>recall %</td><td>90.1</td><td>90.1</td></tr><tr><td>as-of week: reviewed</td><td>238.0</td><td>238.0</td></tr><tr><td>as-of week: passed</td><td>186.0</td><td>205.0</td></tr><tr><td>as-of week: failed</td><td>52.0</td><td>33.0</td></tr><tr><td>as-of week: needs review</td><td>0.0</td><td>0.0</td></tr></tbody></table>
+<table><thead><tr><th>measure</th><th>A_all_raw_entries</th><th>B_after_judge_self_check</th><th>C_after_guardrails</th></tr></thead><tbody><tr><td>drawings PASS</td><td>771.0</td><td>824.0</td><td>878.0</td></tr><tr><td>drawings FAIL</td><td>426.0</td><td>373.0</td><td>319.0</td></tr><tr><td>drawings REVIEW</td><td>3.0</td><td>3.0</td><td>3.0</td></tr><tr><td>FAIL rows: ASME B16.5 §4.2</td><td>146.0</td><td>146.0</td><td>118.0</td></tr><tr><td>FAIL rows: OSHA 1910.147</td><td>660.0</td><td>329.0</td><td>158.0</td></tr><tr><td>FAIL rows: IBC 1005.1</td><td>51.0</td><td>51.0</td><td>50.0</td></tr><tr><td>FAIL rows: ASME B31.3 §341</td><td>49.0</td><td>49.0</td><td>49.0</td></tr><tr><td>FAIL rows: ASME B31.3 §322</td><td>190.0</td><td>129.0</td><td>123.0</td></tr><tr><td>FAIL rows: total</td><td>1096.0</td><td>704.0</td><td>498.0</td></tr><tr><td>distinct (drawing, citation) findings</td><td>607.0</td><td>482.0</td><td>382.0</td></tr><tr><td>planted flaws found (true positives)</td><td>226.0</td><td>224.0</td><td>222.0</td></tr><tr><td>precision %</td><td>37.2</td><td>46.5</td><td>58.1</td></tr><tr><td>recall %</td><td>82.5</td><td>81.8</td><td>81.0</td></tr><tr><td>as-of week: reviewed</td><td>238.0</td><td>238.0</td><td>238.0</td></tr><tr><td>as-of week: passed</td><td>160.0</td><td>175.0</td><td>187.0</td></tr><tr><td>as-of week: failed</td><td>78.0</td><td>63.0</td><td>51.0</td></tr><tr><td>as-of week: needs review</td><td>0.0</td><td>0.0</td><td>0.0</td></tr></tbody></table>
 </div>
 </div>
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>precision 54.9% -&gt; 75.5%, recall 90.1% -&gt; 90.1%; as-of week failed 52 -&gt; 33 of 238 (the planted story is 24)
+<pre>precision 37.2% -&gt; 46.5% -&gt; 58.1%; recall 82.5% -&gt; 81.8% -&gt; 81.0%; as-of week failed 78 -&gt; 63 -&gt; 51 of 238 (the planted story is 24)
+conservation: 1096 raw entries = 498 kept FAIL rows + 598 suppressed entries
 </pre>
 </div>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=9405c962">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=340e971a">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8125,7 +8153,7 @@ OTHER: applies = []
     <span class="k">if</span> <span class="n">entry</span><span class="p">[</span><span class="s2">"suppressed_by"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"rule_applicability"</span><span class="p">:</span>
         <span class="k">return</span> <span class="s2">"citation does not apply to the drawing type"</span>
     <span class="k">if</span> <span class="n">d</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"found_in_text"</span><span class="p">):</span>
-        <span class="k">return</span> <span class="s2">"judge's found_in_text is true"</span>
+        <span class="k">return</span> <span class="s2">"found_in_text is true (carried over from the judge's self-check)"</span>
     <span class="k">if</span> <span class="n">d</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"expected_item"</span><span class="p">):</span>
         <span class="k">return</span> <span class="s2">"expected_item is in the drawing text"</span>
     <span class="k">if</span> <span class="n">d</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"the lockout"</span><span class="p">):</span>
@@ -8137,20 +8165,28 @@ OTHER: applies = []
 <span class="n">display</span><span class="p">(</span><span class="n">spark</span><span class="o">.</span><span class="n">createDataFrame</span><span class="p">(</span>
     <span class="p">[(</span><span class="n">by</span><span class="p">,</span> <span class="n">kind</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">planted_entries</span><span class="p">[(</span><span class="n">by</span><span class="p">,</span> <span class="n">kind</span><span class="p">)])</span> <span class="k">for</span> <span class="p">(</span><span class="n">by</span><span class="p">,</span> <span class="n">kind</span><span class="p">),</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">by_kind</span><span class="o">.</span><span class="n">items</span><span class="p">())]</span> <span class="o">+</span> <span class="p">[(</span><span class="s2">"total"</span><span class="p">,</span> <span class="s2">""</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">suppressed</span><span class="p">),</span> <span class="nb">sum</span><span class="p">(</span><span class="n">planted_entries</span><span class="o">.</span><span class="n">values</span><span class="p">()))],</span>
     <span class="s2">"suppressed_by string, kind string, suppressed_entries int, of_which_on_a_planted_flaw int"</span><span class="p">))</span>
-<span class="n">lost</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">((</span><span class="n">mb</span><span class="p">[</span><span class="s2">"pairs"</span><span class="p">]</span> <span class="o">&amp;</span> <span class="n">gt_pairs</span><span class="p">)</span> <span class="o">-</span> <span class="p">(</span><span class="n">ma</span><span class="p">[</span><span class="s2">"pairs"</span><span class="p">]</span> <span class="o">&amp;</span> <span class="n">gt_pairs</span><span class="p">))</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"suppressed entries: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">suppressed</span><span class="p">)</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="n">Counter</span><span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="s1">'suppressed_by'</span><span class="p">]</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">s</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">suppressed</span><span class="p">)</span><span class="si">}</span><span class="s2">); </span><span class="si">{</span><span class="nb">sum</span><span class="p">(</span><span class="n">planted_entries</span><span class="o">.</span><span class="n">values</span><span class="p">())</span><span class="si">}</span><span class="s2"> of them sit on a (drawing, citation) that is a planted flaw"</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"recall cost: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">lost</span><span class="p">)</span><span class="si">}</span><span class="s2"> planted flaws found before and not after (the other planted entries had a second, kept entry for the same drawing and citation, or were already counted)"</span><span class="p">)</span>
+<span class="n">carried</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="mi">1</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">suppressed</span> <span class="k">if</span> <span class="n">reason_kind</span><span class="p">(</span><span class="n">s</span><span class="p">)</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"found_in_text"</span><span class="p">))</span>
+<span class="n">net</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">suppressed</span><span class="p">)</span> <span class="o">-</span> <span class="n">carried</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"suppressed entries written to compliance_suppressed: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">suppressed</span><span class="p">)</span><span class="si">}</span><span class="s2"> = </span><span class="si">{</span><span class="n">carried</span><span class="si">}</span><span class="s2"> carried over from the judge's own found_in_text self-check (never FAIL rows in 03) "</span>
+      <span class="sa">f</span><span class="s2">"+ </span><span class="si">{</span><span class="n">net</span><span class="si">}</span><span class="s2"> removed by the guardrails (</span><span class="si">{</span><span class="n">Counter</span><span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="s1">'suppressed_by'</span><span class="p">]</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">s</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">suppressed</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="ow">not</span><span class="w"> </span><span class="n">reason_kind</span><span class="p">(</span><span class="n">s</span><span class="p">)</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">'found_in_text'</span><span class="p">))</span><span class="si">}</span><span class="s2">)"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"guardrails' net effect on FAIL rows: </span><span class="si">{</span><span class="nb">sum</span><span class="p">(</span><span class="n">mb</span><span class="p">[</span><span class="s1">'fail_rows'</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">())</span><span class="si">}</span><span class="s2"> -&gt; </span><span class="si">{</span><span class="nb">sum</span><span class="p">(</span><span class="n">mc</span><span class="p">[</span><span class="s1">'fail_rows'</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">())</span><span class="si">}</span><span class="s2"> (-</span><span class="si">{</span><span class="n">net</span><span class="si">}</span><span class="s2">)"</span><span class="p">)</span>
+<span class="n">lost_vs_a</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">((</span><span class="n">ma</span><span class="p">[</span><span class="s2">"pairs"</span><span class="p">]</span> <span class="o">&amp;</span> <span class="n">gt_pairs</span><span class="p">)</span> <span class="o">-</span> <span class="p">(</span><span class="n">mc</span><span class="p">[</span><span class="s2">"pairs"</span><span class="p">]</span> <span class="o">&amp;</span> <span class="n">gt_pairs</span><span class="p">))</span>
+<span class="n">lost_vs_b</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">((</span><span class="n">mb</span><span class="p">[</span><span class="s2">"pairs"</span><span class="p">]</span> <span class="o">&amp;</span> <span class="n">gt_pairs</span><span class="p">)</span> <span class="o">-</span> <span class="p">(</span><span class="n">mc</span><span class="p">[</span><span class="s2">"pairs"</span><span class="p">]</span> <span class="o">&amp;</span> <span class="n">gt_pairs</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"recall cost, stated against the true raw output (A): </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">lost_vs_a</span><span class="p">)</span><span class="si">}</span><span class="s2"> planted flaws (</span><span class="si">{</span><span class="n">ma</span><span class="p">[</span><span class="s1">'tp'</span><span class="p">]</span><span class="si">}</span><span class="s2"> -&gt; </span><span class="si">{</span><span class="n">mc</span><span class="p">[</span><span class="s1">'tp'</span><span class="p">]</span><span class="si">}</span><span class="s2">); against the already self-checked output (B): </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">lost_vs_b</span><span class="p">)</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="n">mb</span><span class="p">[</span><span class="s1">'tp'</span><span class="p">]</span><span class="si">}</span><span class="s2"> -&gt; </span><span class="si">{</span><span class="n">mc</span><span class="p">[</span><span class="s1">'tp'</span><span class="p">]</span><span class="si">}</span><span class="s2">)"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"(the self-check's own share of that cost is A -&gt; B:"</span><span class="p">,</span> <span class="n">ma</span><span class="p">[</span><span class="s2">"tp"</span><span class="p">]</span> <span class="o">-</span> <span class="n">mb</span><span class="p">[</span><span class="s2">"tp"</span><span class="p">],</span> <span class="s2">"planted flaws, all on presence rules)"</span><span class="p">)</span>
+<span class="n">lost</span> <span class="o">=</span> <span class="n">lost_vs_a</span>
 <span class="n">display</span><span class="p">(</span><span class="n">spark</span><span class="o">.</span><span class="n">createDataFrame</span><span class="p">([(</span><span class="n">d</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">dtype_of</span><span class="p">[</span><span class="n">d</span><span class="p">])</span> <span class="k">for</span> <span class="n">d</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">lost</span><span class="p">],</span> <span class="s2">"drawing_id string, citation string, drawing_type string"</span><span class="p">))</span>
 
 <span class="nb">print</span><span class="p">(</span><span class="s2">"false alarms (judged and not planted) by drawing type, before and after:"</span><span class="p">)</span>
+<span class="n">fa_raw</span> <span class="o">=</span> <span class="n">Counter</span><span class="p">(</span><span class="n">dtype_of</span><span class="p">[</span><span class="n">d</span><span class="p">]</span> <span class="k">for</span> <span class="n">d</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">ma</span><span class="p">[</span><span class="s2">"pairs"</span><span class="p">]</span> <span class="o">-</span> <span class="n">gt_pairs</span><span class="p">)</span>
 <span class="n">fa_b</span> <span class="o">=</span> <span class="n">Counter</span><span class="p">(</span><span class="n">dtype_of</span><span class="p">[</span><span class="n">d</span><span class="p">]</span> <span class="k">for</span> <span class="n">d</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">mb</span><span class="p">[</span><span class="s2">"pairs"</span><span class="p">]</span> <span class="o">-</span> <span class="n">gt_pairs</span><span class="p">)</span>
-<span class="n">fa_a</span> <span class="o">=</span> <span class="n">Counter</span><span class="p">(</span><span class="n">dtype_of</span><span class="p">[</span><span class="n">d</span><span class="p">]</span> <span class="k">for</span> <span class="n">d</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">ma</span><span class="p">[</span><span class="s2">"pairs"</span><span class="p">]</span> <span class="o">-</span> <span class="n">gt_pairs</span><span class="p">)</span>
-<span class="n">display</span><span class="p">(</span><span class="n">spark</span><span class="o">.</span><span class="n">createDataFrame</span><span class="p">([(</span><span class="n">t</span><span class="p">,</span> <span class="n">fa_b</span><span class="p">[</span><span class="n">t</span><span class="p">],</span> <span class="n">fa_a</span><span class="p">[</span><span class="n">t</span><span class="p">])</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"ISO"</span><span class="p">,</span> <span class="s2">"PID"</span><span class="p">,</span> <span class="s2">"GA"</span><span class="p">,</span> <span class="s2">"SPEC"</span><span class="p">,</span> <span class="s2">"OTHER"</span><span class="p">)],</span> <span class="s2">"drawing_type string, false_alarms_before int, false_alarms_after int"</span><span class="p">))</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"ISO false alarms: </span><span class="si">{</span><span class="n">fa_b</span><span class="p">[</span><span class="s1">'ISO'</span><span class="p">]</span><span class="si">}</span><span class="s2"> before, </span><span class="si">{</span><span class="n">fa_a</span><span class="p">[</span><span class="s1">'ISO'</span><span class="p">]</span><span class="si">}</span><span class="s2"> after"</span><span class="p">)</span>
-<span class="n">fa_after_cit</span> <span class="o">=</span> <span class="n">Counter</span><span class="p">(</span><span class="n">c</span> <span class="k">for</span> <span class="n">d</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">ma</span><span class="p">[</span><span class="s2">"pairs"</span><span class="p">]</span> <span class="o">-</span> <span class="n">gt_pairs</span><span class="p">)</span>
+<span class="n">fa_a</span> <span class="o">=</span> <span class="n">Counter</span><span class="p">(</span><span class="n">dtype_of</span><span class="p">[</span><span class="n">d</span><span class="p">]</span> <span class="k">for</span> <span class="n">d</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">mc</span><span class="p">[</span><span class="s2">"pairs"</span><span class="p">]</span> <span class="o">-</span> <span class="n">gt_pairs</span><span class="p">)</span>
+<span class="n">display</span><span class="p">(</span><span class="n">spark</span><span class="o">.</span><span class="n">createDataFrame</span><span class="p">([(</span><span class="n">t</span><span class="p">,</span> <span class="n">fa_raw</span><span class="p">[</span><span class="n">t</span><span class="p">],</span> <span class="n">fa_b</span><span class="p">[</span><span class="n">t</span><span class="p">],</span> <span class="n">fa_a</span><span class="p">[</span><span class="n">t</span><span class="p">])</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"ISO"</span><span class="p">,</span> <span class="s2">"PID"</span><span class="p">,</span> <span class="s2">"GA"</span><span class="p">,</span> <span class="s2">"SPEC"</span><span class="p">,</span> <span class="s2">"OTHER"</span><span class="p">)],</span> <span class="s2">"drawing_type string, A_all_raw int, B_after_self_check int, C_after_guardrails int"</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"ISO false alarms: </span><span class="si">{</span><span class="n">fa_raw</span><span class="p">[</span><span class="s1">'ISO'</span><span class="p">]</span><span class="si">}</span><span class="s2"> raw, </span><span class="si">{</span><span class="n">fa_b</span><span class="p">[</span><span class="s1">'ISO'</span><span class="p">]</span><span class="si">}</span><span class="s2"> after the self-check, </span><span class="si">{</span><span class="n">fa_a</span><span class="p">[</span><span class="s1">'ISO'</span><span class="p">]</span><span class="si">}</span><span class="s2"> after the guardrails"</span><span class="p">)</span>
+<span class="n">fa_after_cit</span> <span class="o">=</span> <span class="n">Counter</span><span class="p">(</span><span class="n">c</span> <span class="k">for</span> <span class="n">d</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">mc</span><span class="p">[</span><span class="s2">"pairs"</span><span class="p">]</span> <span class="o">-</span> <span class="n">gt_pairs</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="s2">"false alarms that remain, by citation:"</span><span class="p">,</span> <span class="nb">dict</span><span class="p">(</span><span class="n">fa_after_cit</span><span class="p">),</span> <span class="s2">"- mostly the lockout/tagout rule on P&amp;IDs, where the parser misreads LOTO as ROTO-/LOT0-/LOTOTO-"</span><span class="p">)</span>
-<span class="k">assert</span> <span class="n">fa_a</span><span class="p">[</span><span class="s2">"ISO"</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">fa_a</span><span class="p">[</span><span class="s2">"ISO"</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">fa_b</span><span class="p">[</span><span class="s2">"ISO"</span><span class="p">]</span>
-<span class="k">assert</span> <span class="n">ma</span><span class="p">[</span><span class="s2">"precision"</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">mb</span><span class="p">[</span><span class="s2">"precision"</span><span class="p">]</span> <span class="ow">and</span> <span class="n">ma</span><span class="p">[</span><span class="s2">"tp"</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="n">mb</span><span class="p">[</span><span class="s2">"tp"</span><span class="p">]</span> <span class="o">-</span> <span class="mi">10</span><span class="p">,</span> <span class="s2">"the guardrails should raise precision at a small recall cost"</span>
+<span class="k">assert</span> <span class="n">fa_a</span><span class="p">[</span><span class="s2">"ISO"</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">fa_b</span><span class="p">[</span><span class="s2">"ISO"</span><span class="p">]</span> <span class="ow">or</span> <span class="n">fa_b</span><span class="p">[</span><span class="s2">"ISO"</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span>
+<span class="k">assert</span> <span class="n">mc</span><span class="p">[</span><span class="s2">"precision"</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">mb</span><span class="p">[</span><span class="s2">"precision"</span><span class="p">],</span> <span class="s2">"the guardrails should raise precision"</span>
 </pre></div>
 </div>
 </div>
@@ -8163,21 +8199,23 @@ OTHER: applies = []
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedHTMLCommon jp-RenderedHTML jp-OutputArea-output" data-mime-type="text/html" tabindex="0">
-<table><thead><tr><th>suppressed_by</th><th>kind</th><th>suppressed_entries</th><th>of_which_on_a_planted_flaw</th></tr></thead><tbody><tr><td>rule_applicability</td><td>citation does not apply to the drawing type</td><td>85</td><td>0</td></tr><tr><td>self_contradiction</td><td>LOTO rule applied to a vessel</td><td>20</td><td>2</td></tr><tr><td>self_contradiction</td><td>expected_item is in the drawing text</td><td>91</td><td>7</td></tr><tr><td>self_contradiction</td><td>judge's found_in_text is true</td><td>465</td><td>48</td></tr><tr><td>self_contradiction</td><td>reason admits compliance</td><td>19</td><td>3</td></tr><tr><td>total</td><td></td><td>680</td><td>60</td></tr></tbody></table>
+<table><thead><tr><th>suppressed_by</th><th>kind</th><th>suppressed_entries</th><th>of_which_on_a_planted_flaw</th></tr></thead><tbody><tr><td>rule_applicability</td><td>citation does not apply to the drawing type</td><td>2</td><td>0</td></tr><tr><td>self_contradiction</td><td>LOTO rule applied to a vessel</td><td>5</td><td>0</td></tr><tr><td>self_contradiction</td><td>expected_item is in the drawing text</td><td>165</td><td>13</td></tr><tr><td>self_contradiction</td><td>found_in_text is true (carried over from the judge's self-check)</td><td>392</td><td>28</td></tr><tr><td>self_contradiction</td><td>reason admits compliance</td><td>34</td><td>4</td></tr><tr><td>total</td><td></td><td>598</td><td>45</td></tr></tbody></table>
 </div>
 </div>
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>suppressed entries: 680 (Counter({'self_contradiction': 595, 'rule_applicability': 85})); 60 of them sit on a (drawing, citation) that is a planted flaw
-recall cost: 0 planted flaws found before and not after (the other planted entries had a second, kept entry for the same drawing and citation, or were already counted)
+<pre>suppressed entries written to compliance_suppressed: 598 = 392 carried over from the judge's own found_in_text self-check (never FAIL rows in 03) + 206 removed by the guardrails (Counter({'self_contradiction': 204, 'rule_applicability': 2}))
+guardrails' net effect on FAIL rows: 704 -&gt; 498 (-206)
+recall cost, stated against the true raw output (A): 4 planted flaws (226 -&gt; 222); against the already self-checked output (B): 2 (224 -&gt; 222)
+(the self-check's own share of that cost is A -&gt; B: 2 planted flaws, all on presence rules)
 </pre>
 </div>
 </div>
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedHTMLCommon jp-RenderedHTML jp-OutputArea-output" data-mime-type="text/html" tabindex="0">
-<table><thead><tr><th>drawing_id</th><th>citation</th><th>drawing_type</th></tr></thead><tbody></tbody></table>
+<table><thead><tr><th>drawing_id</th><th>citation</th><th>drawing_type</th></tr></thead><tbody><tr><td>BRL-MEC-GA-0014</td><td>OSHA 1910.147</td><td>GA</td></tr><tr><td>BRL-PIP-PID-0286</td><td>ASME B16.5 §4.2</td><td>PID</td></tr><tr><td>BRL-PIP-PID-0502</td><td>OSHA 1910.147</td><td>PID</td></tr><tr><td>BRL-PIP-PID-0865</td><td>OSHA 1910.147</td><td>PID</td></tr></tbody></table>
 </div>
 </div>
 <div class="jp-OutputArea-child">
@@ -8190,21 +8228,21 @@ recall cost: 0 planted flaws found before and not after (the other planted entri
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedHTMLCommon jp-RenderedHTML jp-OutputArea-output" data-mime-type="text/html" tabindex="0">
-<table><thead><tr><th>drawing_type</th><th>false_alarms_before</th><th>false_alarms_after</th></tr></thead><tbody><tr><td>ISO</td><td>45</td><td>0</td></tr><tr><td>PID</td><td>121</td><td>48</td></tr><tr><td>GA</td><td>12</td><td>9</td></tr><tr><td>SPEC</td><td>25</td><td>23</td></tr><tr><td>OTHER</td><td>0</td><td>0</td></tr></tbody></table>
+<table><thead><tr><th>drawing_type</th><th>A_all_raw</th><th>B_after_self_check</th><th>C_after_guardrails</th></tr></thead><tbody><tr><td>ISO</td><td>3</td><td>3</td><td>2</td></tr><tr><td>PID</td><td>307</td><td>199</td><td>112</td></tr><tr><td>GA</td><td>33</td><td>18</td><td>17</td></tr><tr><td>SPEC</td><td>38</td><td>38</td><td>29</td></tr><tr><td>OTHER</td><td>0</td><td>0</td><td>0</td></tr></tbody></table>
 </div>
 </div>
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>ISO false alarms: 45 before, 0 after
-false alarms that remain, by citation: {'OSHA 1910.147': 30, 'ASME B31.3 §322': 23, 'ASME B16.5 §4.2': 24, 'IBC 1005.1': 3} - mostly the lockout/tagout rule on P&amp;IDs, where the parser misreads LOTO as ROTO-/LOT0-/LOTOTO-
+<pre>ISO false alarms: 3 raw, 3 after the self-check, 2 after the guardrails
+false alarms that remain, by citation: {'OSHA 1910.147': 62, 'ASME B31.3 §322': 49, 'ASME B16.5 §4.2': 44, 'IBC 1005.1': 5} - mostly the lockout/tagout rule on P&amp;IDs, where the parser misreads LOTO as ROTO-/LOT0-/LOTOTO-
 </pre>
 </div>
 </div>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=a73ab022">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=ac8417cd">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8220,7 +8258,7 @@ false alarms that remain, by citation: {'OSHA 1910.147': 30, 'ASME B31.3 §322':
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=c8a18157">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=4ee81c37">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8258,7 +8296,7 @@ false alarms that remain, by citation: {'OSHA 1910.147': 30, 'ASME B31.3 §322':
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=a3ac6b3a">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=4d11745f">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8268,7 +8306,7 @@ false alarms that remain, by citation: {'OSHA 1910.147': 30, 'ASME B31.3 §322':
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=a41a3719">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=1b445acb">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8296,13 +8334,13 @@ false alarms that remain, by citation: {'OSHA 1910.147': 30, 'ASME B31.3 §322':
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>1324 rows for 1200 drawings
+<pre>1379 rows for 1200 drawings
 </pre>
 </div>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=e8239f5a">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=43c8a2c6">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8358,14 +8396,14 @@ false alarms that remain, by citation: {'OSHA 1910.147': 30, 'ASME B31.3 §322':
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>165 FAIL rows without a planted box; a parse element was found for 126
+<pre>276 FAIL rows without a planted box; a parse element was found for 171
 columns: ['drawing_id', 'finding_id', 'volume_path', 'page_num', 'bbox', 'bbox_source', 'discipline', 'revision', 'drawing_type', 'status', 'severity', 'reason', 'citation', 'evidence_text', 'matched_ground_truth', 'review_date', 'generated_at']
 </pre>
 </div>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=78afc236">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=ad147a0c">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8419,7 +8457,7 @@ columns: ['drawing_id', 'finding_id', 'volume_path', 'page_num', 'bbox', 'bbox_s
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>wrote mfg_mc_se_sa.bluerridge_gold_pm.compliance_findings in 7 s
+<pre>wrote mfg_mc_se_sa.bluerridge_gold_pm.compliance_findings in 4 s
 </pre>
 </div>
 </div>
@@ -8432,7 +8470,7 @@ columns: ['drawing_id', 'finding_id', 'volume_path', 'page_num', 'bbox', 'bbox_s
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=2b1971da">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=03b84e86">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8442,7 +8480,7 @@ columns: ['drawing_id', 'finding_id', 'volume_path', 'page_num', 'bbox', 'bbox_s
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=082cf213">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=4bbadbbc">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8487,20 +8525,20 @@ columns: ['drawing_id', 'finding_id', 'volume_path', 'page_num', 'bbox', 'bbox_s
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>mfg_mc_se_sa.bluerridge_gold_pm.compliance_suppressed: 680 rows, 680 distinct keys, 60 on a planted flaw
+<pre>mfg_mc_se_sa.bluerridge_gold_pm.compliance_suppressed: 598 rows, 598 distinct keys, 45 on a planted flaw
 </pre>
 </div>
 </div>
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedHTMLCommon jp-RenderedHTML jp-OutputArea-output" data-mime-type="text/html" tabindex="0">
-<table><thead><tr><th>suppressed_by</th><th>citation</th><th>drawing_type</th><th>entries</th></tr></thead><tbody><tr><td>rule_applicability</td><td>OSHA 1910.147</td><td>ISO</td><td>82</td></tr><tr><td>rule_applicability</td><td>ASME B31.3 §322</td><td>ISO</td><td>3</td></tr><tr><td>self_contradiction</td><td>OSHA 1910.147</td><td>PID</td><td>424</td></tr><tr><td>self_contradiction</td><td>ASME B31.3 §322</td><td>PID</td><td>138</td></tr><tr><td>self_contradiction</td><td>OSHA 1910.147</td><td>GA</td><td>17</td></tr><tr><td>self_contradiction</td><td>ASME B16.5 §4.2</td><td>PID</td><td>7</td></tr><tr><td>self_contradiction</td><td>ASME B16.5 §4.2</td><td>SPEC</td><td>5</td></tr><tr><td>self_contradiction</td><td>IBC 1005.1</td><td>GA</td><td>3</td></tr><tr><td>self_contradiction</td><td>ASME B16.5 §4.2</td><td>ISO</td><td>1</td></tr></tbody></table>
+<table><thead><tr><th>suppressed_by</th><th>citation</th><th>drawing_type</th><th>entries</th></tr></thead><tbody><tr><td>rule_applicability</td><td>OSHA 1910.147</td><td>ISO</td><td>2</td></tr><tr><td>self_contradiction</td><td>OSHA 1910.147</td><td>PID</td><td>473</td></tr><tr><td>self_contradiction</td><td>ASME B31.3 §322</td><td>PID</td><td>67</td></tr><tr><td>self_contradiction</td><td>OSHA 1910.147</td><td>GA</td><td>27</td></tr><tr><td>self_contradiction</td><td>ASME B16.5 §4.2</td><td>SPEC</td><td>21</td></tr><tr><td>self_contradiction</td><td>ASME B16.5 §4.2</td><td>PID</td><td>7</td></tr><tr><td>self_contradiction</td><td>IBC 1005.1</td><td>GA</td><td>1</td></tr></tbody></table>
 </div>
 </div>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=597e5931">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=0f832f5c">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8510,7 +8548,7 @@ columns: ['drawing_id', 'finding_id', 'volume_path', 'page_num', 'bbox', 'bbox_s
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=9d3fdd88">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=63d866b6">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8579,13 +8617,13 @@ columns: ['drawing_id', 'finding_id', 'volume_path', 'page_num', 'bbox', 'bbox_s
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedHTMLCommon jp-RenderedHTML jp-OutputArea-output" data-mime-type="text/html" tabindex="0">
-<table><thead><tr><th>rows</th><th>distinct_keys</th><th>drawings</th><th>bad_status</th><th>fail_bad_box</th><th>bad_source</th><th>fail_bad_citation</th><th>fail_bad_severity</th><th>fail_missing_text</th><th>sentinel_not_null</th><th>review_no_reason</th><th>missing_context</th></tr></thead><tbody><tr><td>1324</td><td>1324</td><td>1200</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr></tbody></table>
+<table><thead><tr><th>rows</th><th>distinct_keys</th><th>drawings</th><th>bad_status</th><th>fail_bad_box</th><th>bad_source</th><th>fail_bad_citation</th><th>fail_bad_severity</th><th>fail_missing_text</th><th>sentinel_not_null</th><th>review_no_reason</th><th>missing_context</th></tr></thead><tbody><tr><td>1379</td><td>1379</td><td>1200</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr></tbody></table>
 </div>
 </div>
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>1324 rows, 1324 distinct (drawing_id, finding_id), 1200 drawings; 0 drawings with a wrong mix of statuses; 0 rows without a drawings_extracted row; 0 drawings sent but without a row
+<pre>1379 rows, 1379 distinct (drawing_id, finding_id), 1200 drawings; 0 drawings with a wrong mix of statuses; 0 rows without a drawings_extracted row; 0 drawings sent but without a row
 all checks passed
 </pre>
 </div>
@@ -8593,7 +8631,7 @@ all checks passed
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=357fea06">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=e6d4a55c">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8603,7 +8641,7 @@ all checks passed
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=2479f856">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=e4800114">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8659,7 +8697,7 @@ all checks passed
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedHTMLCommon jp-RenderedHTML jp-OutputArea-output" data-mime-type="text/html" tabindex="0">
-<table><thead><tr><th>drawings_reviewed</th><th>passed</th><th>failed</th><th>needs_review</th><th>fail_rows</th></tr></thead><tbody><tr><td>1200</td><td>911</td><td>288</td><td>1</td><td>412</td></tr></tbody></table>
+<table><thead><tr><th>drawings_reviewed</th><th>passed</th><th>failed</th><th>needs_review</th><th>fail_rows</th></tr></thead><tbody><tr><td>1200</td><td>878</td><td>319</td><td>3</td><td>498</td></tr></tbody></table>
 </div>
 </div>
 <div class="jp-OutputArea-child">
@@ -8672,7 +8710,7 @@ all checks passed
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedHTMLCommon jp-RenderedHTML jp-OutputArea-output" data-mime-type="text/html" tabindex="0">
-<table><thead><tr><th>citation</th><th>fail_rows</th><th>drawings</th><th>matched_ground_truth</th><th>critical</th><th>high</th><th>medium</th><th>low</th></tr></thead><tbody><tr><td>OSHA 1910.147</td><td>130</td><td>81</td><td>60</td><td>0</td><td>130</td><td>0</td><td>0</td></tr><tr><td>ASME B31.3 §322</td><td>98</td><td>76</td><td>69</td><td>98</td><td>0</td><td>0</td><td>0</td></tr><tr><td>ASME B16.5 §4.2</td><td>89</td><td>76</td><td>52</td><td>89</td><td>0</td><td>0</td><td>0</td></tr><tr><td>ASME B31.3 §341</td><td>50</td><td>49</td><td>50</td><td>0</td><td>0</td><td>50</td><td>0</td></tr><tr><td>IBC 1005.1</td><td>45</td><td>45</td><td>42</td><td>0</td><td>45</td><td>0</td><td>0</td></tr></tbody></table>
+<table><thead><tr><th>citation</th><th>fail_rows</th><th>drawings</th><th>matched_ground_truth</th><th>critical</th><th>high</th><th>medium</th><th>low</th></tr></thead><tbody><tr><td>OSHA 1910.147</td><td>158</td><td>94</td><td>43</td><td>0</td><td>158</td><td>0</td><td>0</td></tr><tr><td>ASME B31.3 §322</td><td>123</td><td>97</td><td>53</td><td>123</td><td>0</td><td>0</td><td>0</td></tr><tr><td>ASME B16.5 §4.2</td><td>118</td><td>98</td><td>56</td><td>118</td><td>0</td><td>0</td><td>0</td></tr><tr><td>IBC 1005.1</td><td>50</td><td>50</td><td>45</td><td>0</td><td>50</td><td>0</td><td>0</td></tr><tr><td>ASME B31.3 §341</td><td>49</td><td>43</td><td>49</td><td>0</td><td>0</td><td>49</td><td>0</td></tr></tbody></table>
 </div>
 </div>
 <div class="jp-OutputArea-child">
@@ -8685,13 +8723,13 @@ all checks passed
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedHTMLCommon jp-RenderedHTML jp-OutputArea-output" data-mime-type="text/html" tabindex="0">
-<table><thead><tr><th>bbox_source</th><th>fail_rows</th><th>pct</th></tr></thead><tbody><tr><td>ground_truth</td><td>247</td><td>60.0</td></tr><tr><td>parse_element</td><td>126</td><td>30.6</td></tr><tr><td>page</td><td>39</td><td>9.5</td></tr></tbody></table>
+<table><thead><tr><th>bbox_source</th><th>fail_rows</th><th>pct</th></tr></thead><tbody><tr><td>ground_truth</td><td>222</td><td>44.6</td></tr><tr><td>parse_element</td><td>171</td><td>34.3</td></tr><tr><td>page</td><td>105</td><td>21.1</td></tr></tbody></table>
 </div>
 </div>
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>matched_ground_truth on FAIL rows: 273 of 412 (66.3%)
+<pre>matched_ground_truth on FAIL rows: 246 of 498 (49.4%)
 as-of week 2026-10-31..2026-11-06 (review_date), the demo's "reviewed / passed / failed this week":
 </pre>
 </div>
@@ -8699,7 +8737,7 @@ as-of week 2026-10-31..2026-11-06 (review_date), the demo's "reviewed / passed /
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedHTMLCommon jp-RenderedHTML jp-OutputArea-output" data-mime-type="text/html" tabindex="0">
-<table><thead><tr><th>reviewed</th><th>passed</th><th>failed</th><th>needs_review</th></tr></thead><tbody><tr><td>238</td><td>205</td><td>33</td><td>0</td></tr></tbody></table>
+<table><thead><tr><th>reviewed</th><th>passed</th><th>failed</th><th>needs_review</th></tr></thead><tbody><tr><td>238</td><td>187</td><td>51</td><td>0</td></tr></tbody></table>
 </div>
 </div>
 <div class="jp-OutputArea-child">
@@ -8712,13 +8750,13 @@ as-of week 2026-10-31..2026-11-06 (review_date), the demo's "reviewed / passed /
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedHTMLCommon jp-RenderedHTML jp-OutputArea-output" data-mime-type="text/html" tabindex="0">
-<table><thead><tr><th>drawing_type</th><th>drawings</th><th>failed</th></tr></thead><tbody><tr><td>ISO</td><td>397</td><td>55</td></tr><tr><td>PID</td><td>373</td><td>119</td></tr><tr><td>GA</td><td>269</td><td>62</td></tr><tr><td>SPEC</td><td>135</td><td>52</td></tr><tr><td>OTHER</td><td>26</td><td>0</td></tr></tbody></table>
+<table><thead><tr><th>drawing_type</th><th>drawings</th><th>failed</th></tr></thead><tbody><tr><td>ISO</td><td>397</td><td>55</td></tr><tr><td>PID</td><td>373</td><td>147</td></tr><tr><td>GA</td><td>269</td><td>62</td></tr><tr><td>SPEC</td><td>135</td><td>55</td></tr><tr><td>OTHER</td><td>26</td><td>0</td></tr></tbody></table>
 </div>
 </div>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=7918bcc4">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=44c8c8f4">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8728,7 +8766,7 @@ as-of week 2026-10-31..2026-11-06 (review_date), the demo's "reviewed / passed /
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=f3a8c289">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=2b3b942b">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8773,15 +8811,15 @@ as-of week 2026-10-31..2026-11-06 (review_date), the demo's "reviewed / passed /
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>planted flaws on the drawings sent: 274; distinct judged findings: 327; found correctly: 247
-recall 90.1%, precision 75.5%
+<pre>planted flaws on the drawings sent: 274; distinct judged findings: 382; found correctly: 222
+recall 81.0%, precision 58.1%
 </pre>
 </div>
 </div>
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedHTMLCommon jp-RenderedHTML jp-OutputArea-output" data-mime-type="text/html" tabindex="0">
-<table><thead><tr><th>citation</th><th>planted</th><th>judged</th><th>found</th><th>false_alarms</th><th>missed</th></tr></thead><tbody><tr><td>ASME B16.5 §4.2</td><td>63</td><td>76</td><td>52</td><td>24</td><td>11</td></tr><tr><td>ASME B31.3 §322</td><td>58</td><td>76</td><td>53</td><td>23</td><td>5</td></tr><tr><td>ASME B31.3 §341</td><td>49</td><td>49</td><td>49</td><td>0</td><td>0</td></tr><tr><td>IBC 1005.1</td><td>45</td><td>45</td><td>42</td><td>3</td><td>3</td></tr><tr><td>OSHA 1910.147</td><td>59</td><td>81</td><td>51</td><td>30</td><td>8</td></tr></tbody></table>
+<table><thead><tr><th>citation</th><th>planted</th><th>judged</th><th>found</th><th>false_alarms</th><th>missed</th></tr></thead><tbody><tr><td>ASME B16.5 §4.2</td><td>63</td><td>98</td><td>54</td><td>44</td><td>9</td></tr><tr><td>ASME B31.3 §322</td><td>58</td><td>97</td><td>48</td><td>49</td><td>10</td></tr><tr><td>ASME B31.3 §341</td><td>49</td><td>43</td><td>43</td><td>0</td><td>6</td></tr><tr><td>IBC 1005.1</td><td>45</td><td>50</td><td>45</td><td>5</td><td>0</td></tr><tr><td>OSHA 1910.147</td><td>59</td><td>94</td><td>32</td><td>62</td><td>27</td></tr></tbody></table>
 </div>
 </div>
 <div class="jp-OutputArea-child">
@@ -8794,13 +8832,13 @@ recall 90.1%, precision 75.5%
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedHTMLCommon jp-RenderedHTML jp-OutputArea-output" data-mime-type="text/html" tabindex="0">
-<table><thead><tr><th>drawing_type</th><th>found</th><th>false_alarms</th><th>missed</th></tr></thead><tbody><tr><td>GA</td><td>59</td><td>9</td><td>8</td></tr><tr><td>ISO</td><td>59</td><td>0</td><td>1</td></tr><tr><td>PID</td><td>92</td><td>48</td><td>18</td></tr><tr><td>SPEC</td><td>37</td><td>23</td><td>0</td></tr></tbody></table>
+<table><thead><tr><th>drawing_type</th><th>found</th><th>false_alarms</th><th>missed</th></tr></thead><tbody><tr><td>GA</td><td>50</td><td>17</td><td>17</td></tr><tr><td>ISO</td><td>58</td><td>2</td><td>2</td></tr><tr><td>PID</td><td>81</td><td>112</td><td>29</td></tr><tr><td>SPEC</td><td>33</td><td>29</td><td>4</td></tr></tbody></table>
 </div>
 </div>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=009afea9">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=a5c8fade">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8810,7 +8848,7 @@ recall 90.1%, precision 75.5%
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=65721b61">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=82e841b5">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8852,30 +8890,30 @@ recall 90.1%, precision 75.5%
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedHTMLCommon jp-RenderedHTML jp-OutputArea-output" data-mime-type="text/html" tabindex="0">
-<table><thead><tr><th>drawing_type</th><th>matched_findings</th><th>element_found</th><th>element_contains_planted_box</th><th>median_area_vs_planted</th></tr></thead><tbody><tr><td>GA</td><td>59</td><td>33</td><td>33</td><td>93.0</td></tr><tr><td>ISO</td><td>59</td><td>59</td><td>59</td><td>140.6</td></tr><tr><td>PID</td><td>92</td><td>92</td><td>44</td><td>6.5</td></tr><tr><td>SPEC</td><td>37</td><td>11</td><td>5</td><td>6.3</td></tr></tbody></table>
+<table><thead><tr><th>drawing_type</th><th>matched_findings</th><th>element_found</th><th>element_contains_planted_box</th><th>median_area_vs_planted</th></tr></thead><tbody><tr><td>GA</td><td>50</td><td>8</td><td>8</td><td>93.0</td></tr><tr><td>ISO</td><td>58</td><td>48</td><td>48</td><td>126.4</td></tr><tr><td>PID</td><td>81</td><td>64</td><td>33</td><td>8.5</td></tr><tr><td>SPEC</td><td>33</td><td>0</td><td>0</td><td></td></tr></tbody></table>
 </div>
 </div>
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>247 matched findings: a parse element holds the evidence text for 195, and its box contains the planted box for 141
+<pre>222 matched findings: a parse element holds the evidence text for 120, and its box contains the planted box for 89
 </pre>
 </div>
 </div>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=579f6d14">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=8403cbcb">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h2 id="A-sample-for-the-repository">A sample for the repository<a class="anchor-link" href="#A-sample-for-the-repository">¶</a></h2><p>Twenty rows written to <code>outputs/sample_findings.jsonl</code>, one JSON object per line: FAIL rows first (two per citation where the judge found that many, so all five rules appear), then PASS rows, and every REVIEW row there is (up to three), filled up with more FAIL rows.</p>
+<h2 id="Samples-for-the-repository">Samples for the repository<a class="anchor-link" href="#Samples-for-the-repository">¶</a></h2><p><code>outputs/sample_findings.jsonl</code>: twenty rows of the final <code>compliance_findings</code>, one JSON object per line: up to two FAIL rows per rule (so all five rules appear), skipping any FAIL whose reason hedges ("however", "wait", "actually", "appears to"); PASS rows across drawing types (at most one legend sheet), one of them a drawing whose entries were all suppressed; every REVIEW row there is (up to two); filled up with more FAIL rows. <code>outputs/sample_suppressed.jsonl</code>: three rows of <code>compliance_suppressed</code>, kept apart from the findings: one removed by rule applicability, one because the expected item was in the drawing text, one because the reason's conclusion admitted compliance.</p>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=952b7d38">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=5b03526f">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8883,38 +8921,59 @@ recall 90.1%, precision 75.5%
 <div class="jp-InputPrompt jp-InputArea-prompt">In [15]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-python"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">datetime</span>
-<span class="n">final_rows</span> <span class="o">=</span> <span class="n">spark</span><span class="o">.</span><span class="n">table</span><span class="p">(</span><span class="n">TARGET</span><span class="p">)</span><span class="o">.</span><span class="n">orderBy</span><span class="p">(</span><span class="s2">"drawing_id"</span><span class="p">,</span> <span class="s2">"finding_id"</span><span class="p">)</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span>
-<span class="n">fails</span> <span class="o">=</span> <span class="p">[</span><span class="n">r</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">final_rows</span> <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="s2">"FAIL"</span><span class="p">]</span>
+<div class="highlight hl-python"><pre><span></span><span class="n">final_rows</span> <span class="o">=</span> <span class="n">spark</span><span class="o">.</span><span class="n">table</span><span class="p">(</span><span class="n">TARGET</span><span class="p">)</span><span class="o">.</span><span class="n">orderBy</span><span class="p">(</span><span class="s2">"drawing_id"</span><span class="p">,</span> <span class="s2">"finding_id"</span><span class="p">)</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span>
+<span class="n">HEDGE</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"however"</span><span class="p">,</span> <span class="s2">"wait"</span><span class="p">,</span> <span class="s2">"actually"</span><span class="p">,</span> <span class="s2">"appears to"</span><span class="p">,</span> <span class="s2">"re-examin"</span><span class="p">,</span> <span class="s2">"upon careful"</span><span class="p">)</span>
+<span class="n">fails</span> <span class="o">=</span> <span class="p">[</span><span class="n">r</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">final_rows</span> <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="s2">"FAIL"</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span><span class="n">h</span> <span class="ow">in</span> <span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">reason</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">HEDGE</span><span class="p">)]</span>
 <span class="n">passes</span> <span class="o">=</span> <span class="p">[</span><span class="n">r</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">final_rows</span> <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="s2">"PASS"</span><span class="p">]</span>
-<span class="n">reviews</span> <span class="o">=</span> <span class="p">[</span><span class="n">r</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">final_rows</span> <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="s2">"REVIEW"</span><span class="p">][:</span><span class="mi">3</span><span class="p">]</span>
+<span class="n">reviews</span> <span class="o">=</span> <span class="p">[</span><span class="n">r</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">final_rows</span> <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="s2">"REVIEW"</span><span class="p">][:</span><span class="mi">2</span><span class="p">]</span>
 
 <span class="n">picked</span> <span class="o">=</span> <span class="p">[]</span>
 <span class="k">for</span> <span class="n">citation</span> <span class="ow">in</span> <span class="n">lib</span><span class="o">.</span><span class="n">CITATIONS</span><span class="p">:</span>  <span class="c1"># up to two FAIL rows per rule, one of them matched to the ground truth when possible</span>
     <span class="n">of_rule</span> <span class="o">=</span> <span class="p">[</span><span class="n">r</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">fails</span> <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">citation</span> <span class="o">==</span> <span class="n">citation</span><span class="p">]</span>
     <span class="n">first</span> <span class="o">=</span> <span class="nb">next</span><span class="p">((</span><span class="n">r</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">of_rule</span> <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">matched_ground_truth</span> <span class="ow">and</span> <span class="n">r</span><span class="o">.</span><span class="n">bbox_source</span> <span class="o">==</span> <span class="s2">"ground_truth"</span><span class="p">),</span> <span class="kc">None</span><span class="p">)</span>
-    <span class="n">chosen</span> <span class="o">=</span> <span class="p">([</span><span class="n">first</span><span class="p">]</span> <span class="k">if</span> <span class="n">first</span> <span class="k">else</span> <span class="p">[])</span> <span class="o">+</span> <span class="p">[</span><span class="n">r</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">of_rule</span> <span class="k">if</span> <span class="n">r</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">first</span><span class="p">][:</span><span class="mi">2</span> <span class="o">-</span> <span class="nb">bool</span><span class="p">(</span><span class="n">first</span><span class="p">)]</span>
-    <span class="n">picked</span> <span class="o">+=</span> <span class="n">chosen</span>
+    <span class="n">picked</span> <span class="o">+=</span> <span class="p">([</span><span class="n">first</span><span class="p">]</span> <span class="k">if</span> <span class="n">first</span> <span class="k">else</span> <span class="p">[])</span> <span class="o">+</span> <span class="p">[</span><span class="n">r</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">of_rule</span> <span class="k">if</span> <span class="n">r</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">first</span><span class="p">][:</span><span class="mi">2</span> <span class="o">-</span> <span class="nb">bool</span><span class="p">(</span><span class="n">first</span><span class="p">)]</span>
 <span class="n">picked</span> <span class="o">+=</span> <span class="n">reviews</span>
-<span class="n">picked</span> <span class="o">+=</span> <span class="n">passes</span><span class="p">[:</span><span class="mi">8</span><span class="p">]</span>
+<span class="n">suppressed_pass</span> <span class="o">=</span> <span class="nb">next</span><span class="p">((</span><span class="n">r</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">passes</span> <span class="k">if</span> <span class="s2">"after guardrails"</span> <span class="ow">in</span> <span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">reason</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">)),</span> <span class="kc">None</span><span class="p">)</span>
+<span class="k">if</span> <span class="n">suppressed_pass</span><span class="p">:</span>
+    <span class="n">picked</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">suppressed_pass</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">dtype</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"ISO"</span><span class="p">,</span> <span class="s2">"PID"</span><span class="p">,</span> <span class="s2">"GA"</span><span class="p">,</span> <span class="s2">"SPEC"</span><span class="p">,</span> <span class="s2">"OTHER"</span><span class="p">):</span>  <span class="c1"># PASS rows across drawing types, at most one legend sheet</span>
+    <span class="n">row</span> <span class="o">=</span> <span class="nb">next</span><span class="p">((</span><span class="n">r</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">passes</span> <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">drawing_type</span> <span class="o">==</span> <span class="n">dtype</span> <span class="ow">and</span> <span class="n">r</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">picked</span><span class="p">),</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">row</span><span class="p">:</span>
+        <span class="n">picked</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
 <span class="n">picked_keys</span> <span class="o">=</span> <span class="p">{(</span><span class="n">r</span><span class="o">.</span><span class="n">drawing_id</span><span class="p">,</span> <span class="n">r</span><span class="o">.</span><span class="n">finding_id</span><span class="p">)</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">picked</span><span class="p">}</span>
 <span class="n">picked</span> <span class="o">+=</span> <span class="p">[</span><span class="n">r</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">fails</span> <span class="k">if</span> <span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">drawing_id</span><span class="p">,</span> <span class="n">r</span><span class="o">.</span><span class="n">finding_id</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">picked_keys</span><span class="p">][:</span> <span class="nb">max</span><span class="p">(</span><span class="mi">20</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">picked</span><span class="p">),</span> <span class="mi">0</span><span class="p">)]</span>
 <span class="n">picked</span> <span class="o">=</span> <span class="n">picked</span><span class="p">[:</span><span class="mi">20</span><span class="p">]</span>
 <span class="k">if</span> <span class="ow">not</span> <span class="n">MAX_ROWS</span><span class="p">:</span>
     <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">picked</span><span class="p">)</span> <span class="o">==</span> <span class="mi">20</span> <span class="ow">and</span> <span class="p">{</span><span class="n">r</span><span class="o">.</span><span class="n">citation</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">picked</span> <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="s2">"FAIL"</span><span class="p">}</span> <span class="o">==</span> <span class="nb">set</span><span class="p">(</span><span class="n">lib</span><span class="o">.</span><span class="n">CITATIONS</span><span class="p">),</span> <span class="s2">"expected 20 rows covering all five rules"</span>
+    <span class="k">assert</span> <span class="nb">sum</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="s2">"PASS"</span> <span class="ow">and</span> <span class="n">r</span><span class="o">.</span><span class="n">drawing_type</span> <span class="o">==</span> <span class="s2">"OTHER"</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">picked</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">1</span>
 
 <span class="n">utc</span> <span class="o">=</span> <span class="n">spark</span><span class="o">.</span><span class="n">conf</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"spark.sql.session.timeZone"</span><span class="p">)</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"UTC"</span><span class="p">,</span> <span class="s2">"Etc/UTC"</span><span class="p">)</span>  <span class="c1"># serverless sessions run in UTC</span>
-<span class="n">lines</span> <span class="o">=</span> <span class="p">[]</span>
-<span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">picked</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">as_json</span><span class="p">(</span><span class="n">r</span><span class="p">):</span>
     <span class="n">d</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">asDict</span><span class="p">()</span>
-    <span class="n">d</span><span class="p">[</span><span class="s2">"bbox"</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">bbox</span><span class="p">)</span> <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">bbox</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="s2">"bbox"</span> <span class="ow">in</span> <span class="n">d</span><span class="p">:</span>
+        <span class="n">d</span><span class="p">[</span><span class="s2">"bbox"</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">bbox</span><span class="p">)</span> <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">bbox</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
     <span class="n">d</span><span class="p">[</span><span class="s2">"review_date"</span><span class="p">]</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">review_date</span><span class="o">.</span><span class="n">isoformat</span><span class="p">()</span>
     <span class="n">d</span><span class="p">[</span><span class="s2">"generated_at"</span><span class="p">]</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">generated_at</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">"%Y-%m-</span><span class="si">%d</span><span class="s2">T%H:%M:%S"</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="s2">"Z"</span> <span class="k">if</span> <span class="n">utc</span> <span class="k">else</span> <span class="s2">""</span><span class="p">)</span>
-    <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">ensure_ascii</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">ensure_ascii</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+<span class="n">lines</span> <span class="o">=</span> <span class="p">[</span><span class="n">as_json</span><span class="p">(</span><span class="n">r</span><span class="p">)</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">picked</span><span class="p">]</span>
 <span class="n">OUT</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="p">(</span><span class="n">OUT</span> <span class="o">/</span> <span class="s2">"sample_findings.jsonl"</span><span class="p">)</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span> <span class="o">+</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"wrote </span><span class="si">{</span><span class="n">OUT</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="s1">'sample_findings.jsonl'</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span><span class="si">}</span><span class="s2"> rows (</span><span class="si">{</span><span class="nb">sum</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">status</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="s1">'FAIL'</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">r</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">picked</span><span class="p">)</span><span class="si">}</span><span class="s2"> FAIL, </span><span class="si">{</span><span class="nb">sum</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">status</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="s1">'PASS'</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">r</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">picked</span><span class="p">)</span><span class="si">}</span><span class="s2"> PASS, </span><span class="si">{</span><span class="nb">sum</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">status</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="s1">'REVIEW'</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">r</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">picked</span><span class="p">)</span><span class="si">}</span><span class="s2"> REVIEW)</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">lines</span><span class="p">[:</span><span class="mi">6</span><span class="p">]))</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"wrote </span><span class="si">{</span><span class="n">OUT</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="s1">'sample_findings.jsonl'</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span><span class="si">}</span><span class="s2"> rows (</span><span class="si">{</span><span class="nb">sum</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">status</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="s1">'FAIL'</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">r</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">picked</span><span class="p">)</span><span class="si">}</span><span class="s2"> FAIL, </span><span class="si">{</span><span class="nb">sum</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">status</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="s1">'PASS'</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">r</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">picked</span><span class="p">)</span><span class="si">}</span><span class="s2"> PASS, </span><span class="si">{</span><span class="nb">sum</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">status</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="s1">'REVIEW'</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">r</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">picked</span><span class="p">)</span><span class="si">}</span><span class="s2"> REVIEW)"</span><span class="p">)</span>
+
+<span class="n">sup_rows</span> <span class="o">=</span> <span class="n">spark</span><span class="o">.</span><span class="n">table</span><span class="p">(</span><span class="n">SUPPRESSED</span><span class="p">)</span><span class="o">.</span><span class="n">orderBy</span><span class="p">(</span><span class="s2">"drawing_id"</span><span class="p">,</span> <span class="s2">"finding_id"</span><span class="p">)</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span>
+<span class="n">sup_picked</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="k">for</span> <span class="n">test</span> <span class="ow">in</span> <span class="p">(</span><span class="k">lambda</span> <span class="n">r</span><span class="p">:</span> <span class="n">r</span><span class="o">.</span><span class="n">suppressed_by</span> <span class="o">==</span> <span class="s2">"rule_applicability"</span><span class="p">,</span>
+             <span class="k">lambda</span> <span class="n">r</span><span class="p">:</span> <span class="n">r</span><span class="o">.</span><span class="n">suppression_detail</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"expected_item"</span><span class="p">),</span>
+             <span class="k">lambda</span> <span class="n">r</span><span class="p">:</span> <span class="n">r</span><span class="o">.</span><span class="n">suppression_detail</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"the reason admits"</span><span class="p">)):</span>
+    <span class="n">row</span> <span class="o">=</span> <span class="nb">next</span><span class="p">((</span><span class="n">r</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">sup_rows</span> <span class="k">if</span> <span class="n">test</span><span class="p">(</span><span class="n">r</span><span class="p">)</span> <span class="ow">and</span> <span class="n">r</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">sup_picked</span><span class="p">),</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">row</span><span class="p">:</span>
+        <span class="n">sup_picked</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
+<span class="p">(</span><span class="n">OUT</span> <span class="o">/</span> <span class="s2">"sample_suppressed.jsonl"</span><span class="p">)</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">as_json</span><span class="p">(</span><span class="n">r</span><span class="p">)</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">sup_picked</span><span class="p">)</span> <span class="o">+</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"wrote </span><span class="si">{</span><span class="n">OUT</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="s1">'sample_suppressed.jsonl'</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">sup_picked</span><span class="p">)</span><span class="si">}</span><span class="s2"> rows of compliance_suppressed"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">lines</span><span class="p">[:</span><span class="mi">4</span><span class="p">]))</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"--- suppressed:"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">as_json</span><span class="p">(</span><span class="n">r</span><span class="p">)</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">sup_picked</span><span class="p">))</span>
 </pre></div>
 </div>
 </div>
@@ -8927,14 +8986,16 @@ recall 90.1%, precision 75.5%
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>wrote outputs/sample_findings.jsonl: 20 rows (11 FAIL, 8 PASS, 1 REVIEW)
-
-{"drawing_id": "BRL-INS-PID-0052", "finding_id": "BRL-INS-PID-0052-C01", "volume_path": "/Volumes/mfg_mc_se_sa/bluerridge_landing/drawings/BRL-INS-PID-0052.pdf", "page_num": 0, "bbox": [0.235, 0.5532, 0.0334, 0.0365], "bbox_source": "ground_truth", "discipline": "instr", "revision": "B", "drawing_type": "PID", "status": "FAIL", "severity": "critical", "reason": "Line 10-BOG-2551-B3S has design pressure 500 PSIG and uses flange class CL150, whose maximum allowable pressure is 275 PSIG, below the design pressure.", "citation": "ASME B16.5 §4.2", "evidence_text": "FLG CL150", "matched_ground_truth": true, "review_date": "2026-07-12", "generated_at": "2026-11-07T20:36:47Z"}
-{"drawing_id": "BRL-INS-PID-0055", "finding_id": "BRL-INS-PID-0055-C01", "volume_path": "/Volumes/mfg_mc_se_sa/bluerridge_landing/drawings/BRL-INS-PID-0055.pdf", "page_num": 0, "bbox": [0.2299, 0.2501, 0.0334, 0.0365], "bbox_source": "ground_truth", "discipline": "instr", "revision": "B", "drawing_type": "PID", "status": "FAIL", "severity": "critical", "reason": "Flanged joint FLG CL150 on line 6\"-FG-2250-C6S has design pressure 1230 PSIG, but CLASS 150 is rated only to 275 PSIG maximum allowable pressure.", "citation": "ASME B16.5 §4.2", "evidence_text": "FLG CL150", "matched_ground_truth": true, "review_date": "2026-09-14", "generated_at": "2026-11-07T20:36:47Z"}
-{"drawing_id": "BRL-ELE-GA-0328", "finding_id": "BRL-ELE-GA-0328-C01", "volume_path": "/Volumes/mfg_mc_se_sa/bluerridge_landing/drawings/BRL-ELE-GA-0328.pdf", "page_num": 0, "bbox": [0.2666, 0.4821, 0.0557, 0.0962], "bbox_source": "ground_truth", "discipline": "electrical", "revision": "C", "drawing_type": "GA", "status": "FAIL", "severity": "high", "reason": "Local control panel LCP-3103 is powered equipment but has no LOTO isolation tag. Every item of powered equipment must carry a LOTO tag.", "citation": "OSHA 1910.147", "evidence_text": "LCP-3103", "matched_ground_truth": true, "review_date": "2026-07-14", "generated_at": "2026-11-07T20:36:47Z"}
-{"drawing_id": "BRL-ELE-GA-0024", "finding_id": "BRL-ELE-GA-0024-C01", "volume_path": "/Volumes/mfg_mc_se_sa/bluerridge_landing/drawings/BRL-ELE-GA-0024.pdf", "page_num": 0, "bbox": [0.0526, 0.0689, 0.5576, 0.6221], "bbox_source": "parse_element", "discipline": "electrical", "revision": "C", "drawing_type": "GA", "status": "FAIL", "severity": "high", "reason": "Local control panel LCP-3602 is powered equipment but has no LOTO isolation tag. OSHA 1910.147 requires every item of powered equipment to carry a LOTO tag.", "citation": "OSHA 1910.147", "evidence_text": "LCP-3602", "matched_ground_truth": false, "review_date": "2026-06-07", "generated_at": "2026-11-07T20:36:47Z"}
-{"drawing_id": "BRL-ELE-GA-0024", "finding_id": "BRL-ELE-GA-0024-C02", "volume_path": "/Volumes/mfg_mc_se_sa/bluerridge_landing/drawings/BRL-ELE-GA-0024.pdf", "page_num": 0, "bbox": [0.0664, 0.399, 0.0529, 0.0284], "bbox_source": "ground_truth", "discipline": "electrical", "revision": "C", "drawing_type": "GA", "status": "FAIL", "severity": "high", "reason": "EXIT 2 provides only 32 inches clear width but requires 44 inches for its occupant load. The provided width is less than required.", "citation": "IBC 1005.1", "evidence_text": "EXIT 2 CLR 32 IN", "matched_ground_truth": true, "review_date": "2026-06-07", "generated_at": "2026-11-07T20:36:47Z"}
-{"drawing_id": "BRL-ELE-GA-0069", "finding_id": "BRL-ELE-GA-0069-C01", "volume_path": "/Volumes/mfg_mc_se_sa/bluerridge_landing/drawings/BRL-ELE-GA-0069.pdf", "page_num": 0, "bbox": [0.0627, 0.0689, 0.5939, 0.6625], "bbox_source": "parse_element", "discipline": "electrical", "revision": "C", "drawing_type": "GA", "status": "FAIL", "severity": "high", "reason": "EXIT 4 has a provided clear width of 68 IN but requires 60 IN according to the egress schedule. The provided width (68 IN) is less than the required width shown in the drawing.", "citation": "IBC 1005.1", "evidence_text": "EXIT 4 CLR 68 IN", "matched_ground_truth": false, "review_date": "2026-09-06", "generated_at": "2026-11-07T20:36:47Z"}
+<pre>wrote outputs/sample_findings.jsonl: 20 rows (12 FAIL, 6 PASS, 2 REVIEW)
+wrote outputs/sample_suppressed.jsonl: 3 rows of compliance_suppressed
+{"drawing_id": "BRL-INS-PID-0199", "finding_id": "BRL-INS-PID-0199-C01", "volume_path": "/Volumes/mfg_mc_se_sa/bluerridge_landing/drawings/BRL-INS-PID-0199.pdf", "page_num": 0, "bbox": [0.4022, 0.2501, 0.0334, 0.0365], "bbox_source": "ground_truth", "discipline": "instr", "revision": "C", "drawing_type": "PID", "status": "FAIL", "severity": "critical", "reason": "Flange LOT0-2402 is marked CL150 (rated 275 PSIG per the drawing's table) but serves line 8\"-N2-2450-B3S with design pressure 580 PSIG. The flange rating is below the line design pressure.", "citation": "ASME B16.5 §4.2", "evidence_text": "LOT0-2402 FLG CL150 8\"-N2-2450-B3S DP 580 PSIG", "matched_ground_truth": true, "review_date": "2026-09-08", "generated_at": "2026-11-08T15:07:51Z"}
+{"drawing_id": "BRL-INS-PID-0458", "finding_id": "BRL-INS-PID-0458-C02", "volume_path": "/Volumes/mfg_mc_se_sa/bluerridge_landing/drawings/BRL-INS-PID-0458.pdf", "page_num": 0, "bbox": [0.2325, 0.5532, 0.0334, 0.0365], "bbox_source": "ground_truth", "discipline": "instr", "revision": "E", "drawing_type": "PID", "status": "FAIL", "severity": "critical", "reason": "Line 4\"-NG-2851-C6S has design pressure 1095 PSIG but uses FLG CL300 (rated 720 PSIG per table), which is below the design pressure.", "citation": "ASME B16.5 §4.2", "evidence_text": "4\"-NG-2851-C6S DP 1095 PSIG FLG CL300", "matched_ground_truth": true, "review_date": "2026-09-01", "generated_at": "2026-11-08T15:07:51Z"}
+{"drawing_id": "BRL-ELE-GA-0630", "finding_id": "BRL-ELE-GA-0630-C01", "volume_path": "/Volumes/mfg_mc_se_sa/bluerridge_landing/drawings/BRL-ELE-GA-0630.pdf", "page_num": 0, "bbox": [0.144, 0.2763, 0.0804, 0.0962], "bbox_source": "ground_truth", "discipline": "electrical", "revision": "A", "drawing_type": "GA", "status": "FAIL", "severity": "high", "reason": "Refrigerant compressor K-3702 is powered equipment but has no LOTO isolation tag. The drawing shows LOTO-3701, LOTO-3703, and LOTO-3704A for other equipment, but no LOTO-3702 tag appears anywhere in the text.", "citation": "OSHA 1910.147", "evidence_text": "K-3702 REFRIGERANT COMPRESSOR", "matched_ground_truth": true, "review_date": "2026-10-04", "generated_at": "2026-11-08T15:07:51Z"}
+{"drawing_id": "BRL-ELE-GA-0585", "finding_id": "BRL-ELE-GA-0585-C01", "volume_path": "/Volumes/mfg_mc_se_sa/bluerridge_landing/drawings/BRL-ELE-GA-0585.pdf", "page_num": 1, "bbox": [0.0636, 0.0666, 0.5909, 0.6244], "bbox_source": "parse_element", "discipline": "electrical", "revision": "D", "drawing_type": "GA", "status": "FAIL", "severity": "high", "reason": "Powered equipment P-3503A (LNG PUMP) on page 1 has no matching LOTO isolation tag LOTO-3503A in the drawing text.", "citation": "OSHA 1910.147", "evidence_text": "P-3503A LNG PUMP", "matched_ground_truth": false, "review_date": "2026-09-07", "generated_at": "2026-11-08T15:07:51Z"}
+--- suppressed:
+{"drawing_id": "BRL-PIP-ISO-1031", "finding_id": "BRL-PIP-ISO-1031-S01", "volume_path": "/Volumes/mfg_mc_se_sa/bluerridge_landing/drawings/BRL-PIP-ISO-1031.pdf", "page_num": 1, "bbox": null, "bbox_source": null, "discipline": "piping", "revision": "B", "drawing_type": "ISO", "status": "FAIL", "severity": "high", "reason": "Equipment K-1078 (compressor or rotating equipment based on K- prefix) has no energy-isolation lockout/tagout tag shown in the drawing text.", "citation": "OSHA 1910.147", "evidence_text": "FROM K-1078 NOZZLE N2", "matched_ground_truth": false, "review_date": "2026-07-27", "generated_at": "2026-11-08T15:07:51Z", "suppressed_by": "rule_applicability", "suppression_detail": "OSHA 1910.147 does not apply to a ISO drawing: An isometric shows pipe, fittings and nozzle tie-ins only; the powered equipment and its isolation tags are on the P&amp;ID and the plan."}
+{"drawing_id": "BRL-INS-PID-0018", "finding_id": "BRL-INS-PID-0018-S01", "volume_path": "/Volumes/mfg_mc_se_sa/bluerridge_landing/drawings/BRL-INS-PID-0018.pdf", "page_num": 0, "bbox": null, "bbox_source": null, "discipline": "instr", "revision": "E", "drawing_type": "PID", "status": "FAIL", "severity": "high", "reason": "Pump P-2102A (BOOSTER PUMP) is powered equipment but has no LOTO energy isolation tag. General Note 5 requires every pump to carry a LOTO tag.", "citation": "OSHA 1910.147", "evidence_text": "P-2102A BOOSTER PUMP", "matched_ground_truth": false, "review_date": "2026-11-04", "generated_at": "2026-11-08T15:07:51Z", "suppressed_by": "self_contradiction", "suppression_detail": "expected_item 'LOTO-2102A' is in the drawing text although found_in_text is false"}
+{"drawing_id": "BRL-INS-PID-0608", "finding_id": "BRL-INS-PID-0608-S01", "volume_path": "/Volumes/mfg_mc_se_sa/bluerridge_landing/drawings/BRL-INS-PID-0608.pdf", "page_num": 0, "bbox": null, "bbox_source": null, "discipline": "instr", "revision": "C", "drawing_type": "PID", "status": "FAIL", "severity": "high", "reason": "Suction drum V-2202 feeds compressor K-2201, but the drawing shows only LOTO-2201 for the compressor. Vessel V-2202 itself is not powered equipment and does not require a LOTO tag.", "citation": "OSHA 1910.147", "evidence_text": "K-2201 REFRIGERANT COMPRESSOR ... LOTO-2201", "matched_ground_truth": false, "review_date": "2026-06-12", "generated_at": "2026-11-08T15:07:51Z", "suppressed_by": "self_contradiction", "suppression_detail": "the reason admits compliance: 'is not powered equipment'"}
 </pre>
 </div>
 </div>

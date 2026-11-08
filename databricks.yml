@@ -22,7 +22,7 @@ include:
   - resources/job-synthetic-data.yml      # one-time synthetic data: project CSVs + drawing PDFs (two parallel serverless notebook tasks)
   - resources/pipeline-project.yml        # SDP: project data ingestion (6 bronze streaming tables + 6 silver materialized views)
   - resources/pipeline-drawings.yml       # SDP: drawing PDF ingestion (1 bronze streaming table + 1 silver materialized view)
-  - resources/job-doc-intelligence.yml    # parse -> extract_classify -> compliance_check (3 sequential serverless notebook tasks; validate only, running it re-bills the AI steps)
+  - resources/job-doc-intelligence.yml    # parse -> extract_classify -> compliance_check -> guardrails (4 sequential serverless notebook tasks, the 4th a no-AI guardrails pass; validate only, running it re-bills the AI steps)
 
 variables:
   catalog:

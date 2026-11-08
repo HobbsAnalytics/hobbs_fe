@@ -7796,7 +7796,7 @@ a.anchor-link {
 <!-- End of mermaid configuration --></head>
 <body class="jp-Notebook" data-jp-theme-light="true" data-jp-theme-name="JupyterLab Light">
 <main>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=cd91af46">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=9a448962">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7896,7 +7896,7 @@ a.anchor-link {
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=e27e016f">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=25d0e163">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7978,18 +7978,24 @@ drawings to send: all
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=61992129">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=d181e9e7">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h2 id="The-rules-and-the-prompt">The rules and the prompt<a class="anchor-link" href="#The-rules-and-the-prompt">¶</a></h2><p><strong>How the prompt got to this form (one revision, kept for the record).</strong> The first full run used a plainer prompt and answer format. It found 97.8% of the 274 planted flaws but also reported hundreds of violations that the drawing text disproves (a LOTO tag or PSV that is in the text, sometimes beside a reason saying so): 578 of 1,200 drawings failed, 367 of 373 P&amp;IDs among them, and only 29.8% of the distinct (drawing, citation) findings were planted flaws. The prompt was revised once, not tuned in a loop: it now tells the judge to search the whole text for the item that would make the drawing comply before reporting it missing, spells out how tags map to equipment (suffix letters, <code>O</code>/<code>0</code>, vessels are not powered equipment, a schematic needs no orifice), and the answer format gets two fields written <em>before</em> the verdict, <code>expected_item</code> and <code>found_in_text</code>, so the judge states what it looked for and whether it found it. <code>compliance_lib</code> drops an entry whose <code>found_in_text</code> is true. The revision was tried on a sample of 48 drawings first (recall 100%, precision 81%, against 100% and 33% for the first prompt on the same drawings).</p>
+<h2 id="The-rules-and-the-prompt">The rules and the prompt<a class="anchor-link" href="#The-rules-and-the-prompt">¶</a></h2><p><strong>Prompt lineage (three versions, kept for the record).</strong></p>
+<ul>
+<li><strong>v1</strong> (baseline, run 880768793395140, raw answers kept as <code>compliance_judge_raw_v1_baseline</code>): a plainer prompt and answer format. Recall 97.8%, precision 29.8%; 578 of 1,200 drawings failed (367 of 373 P&amp;IDs); 99 of the 238 as-of-week drawings failed. Rejected for its false alarms.</li>
+<li><strong>v2</strong> (run 726850339672013, raw answers kept as <code>compliance_judge_raw_v2_prompt_hints</code>): one wording revision after v1: search the text before reporting a missing item, notes on how tags map to equipment, and two answer fields written before the verdict (<code>expected_item</code>, <code>found_in_text</code>). Against the 274 planted flaws, on <code>(drawing_id, citation)</code>: all raw entries 640 pairs, 258 planted found (40.3% precision, 94.2% recall); after the judge's own <code>found_in_text</code> self-check 450 pairs, 247 found (54.9% / 90.1%). 377 drawings failed, 52 of the 238 in the as-of week. <strong>A review of v2 found that its rule text and examples had been written with knowledge of how the synthetic generator corrupts its drawings</strong>: the weld rule listed the generator's own bad joint types and examination levels, and the answer-format examples were a real tag and a real label from a planted-flaw drawing. Disclosure alone was not enough, so v2 was replaced rather than kept.</li>
+<li><strong>v3</strong> (this notebook's run, below): the five rules rewritten as general engineering requirements that say what to compare against what and never which values or labels are wrong; <code>evidence_text</code> asked for as "a short verbatim quote, about 3 to 12 words" with no examples; answer-format examples removed. <code>tests/test_guardrails.py::test_prompt_has_no_generator_literals</code> fails if the prompt contains a corruption-variant literal, a tag-shaped token, or any class number, rating, class code or service word that the generator draws. Against the 274 planted flaws on <code>(drawing_id, citation)</code>: all raw entries 607 pairs, 226 planted found (37.2% precision, 82.5% recall); after the judge's own presence-rule self-check (what this notebook writes to <code>compliance_findings</code>) 482 pairs, 224 found (46.5% / 81.8%, shown in the cells below); 373 drawings failed, 63 of the 238 in the as-of week. The neutral prompt costs recall (v2 90.1% to v3 81.8% on the same basis) and precision, which is the price of removing the dataset-derived hints; the prompt was not tuned further. <code>03b_compliance_guardrails.ipynb</code> then lifts precision to 58.1% at 81.0% recall.</li>
+</ul>
+<p><strong>Citations.</strong> The five citations are fixed, illustrative project labels for this synthetic demo: the ground truth, the tables and the app use them as they are. The clause numbers (for example "ASME B16.5 §4.2" for flange pressure rating) are not authoritative; verify any clause against the licensed standard.</p>
 <p>Five rules, one per citation. Each is a paraphrased requirement that a reviewer could check from the drawing text alone, written the way the requirement reads on a real project. The prompt is the instructions, the five rules and the answer format (the same text for every drawing), followed by the three per-drawing inputs: the type, the discipline and the parsed text. Printed in full so the inputs can be audited.</p>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=1d427f99">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=46c4acb5">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8014,28 +8020,28 @@ drawings to send: all
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>You are a senior piping and facilities engineer checking one engineering drawing of an LNG terminal against the five rules below. The drawing was read from a PDF by a parser: the text of a schematic comes as one block in no particular order, so match items (equipment, tags, labels) by their tags and numbers, not by position; a tag that is not next to its equipment still counts, and the parser may write the letter O as a zero (LOT0-2104A is the tag LOTO-2104A). Report only violations that the text of the drawing itself shows, and do not report a rule that the drawing does not have an element for (for example a sheet with no exits has nothing to check for the egress rule). Check every rule that applies, and every item the rule covers. A drawing can have several violations, including more than one of the same rule, and a compliant drawing has none.
+<pre>You are a senior piping and facilities engineer checking one engineering drawing of an LNG terminal against the five rules below. The drawing was read from a PDF by a parser: the text of a schematic comes as one block in no particular order, so match items (equipment, tags, labels) by their tags and numbers, not by position; a tag that is not next to its equipment still counts, and the parser may misread a letter as a digit or add a stray character. Report only violations that the text of the drawing itself shows, and do not report a rule that the drawing does not have an element for (for example a sheet with no exits has nothing to check for the egress rule). Check every rule that applies, and every item the rule covers. A drawing can have several violations, including more than one of the same rule, and a compliant drawing has none.
 
-Be exact rather than eager. Before you report a missing item (a LOTO tag, a PSV, a relief schedule entry), search the whole drawing text for the item that would make the drawing comply, for example LOTO-2104A for pump P-2104A or PSV-2102 for vessel V-2102. If it appears anywhere in the text, the item is present and there is no violation. Before you report a number (a flange rating, an exit width, a weld examination), compare the two numbers and report only if the drawing's own figures break the rule. Do not report a doubtful case, a case you could only suspect, or a case whose explanation says the requirement is met: reporting nothing is correct for a compliant drawing.
+Be exact rather than eager. Before you report a missing item (an isolation tag, a relief device), search the whole drawing text for the item that would make the drawing comply. If it appears anywhere in the text, the item is present and there is no violation. Before you report a number (a flange rating, an exit width, an examination level), compare the two numbers and report only if the drawing's own figures break the rule. Do not report a doubtful case, a case you could only suspect, or a case whose explanation says the requirement is met: reporting nothing is correct for a compliant drawing.
 
 RULES
 
 RULE 1. ASME B16.5 §4.2 - Flange pressure rating (usual severity: critical)
-Every flanged joint must use a flange class whose maximum allowable pressure is at least the design pressure of the line it sits on. Use the flange rating table printed on the drawing (class against maximum allowable pressure). Line tags end with a class code that the general notes decode to a flange class, and each line is labelled with its design pressure (DP, PSIG). On a specification sheet, check each row: the rating of the flange class shown must cover the row's design pressure. Violation: a flange class shown (for example CL150) whose table rating is below the design pressure of its line or row.
+A flanged joint must use a pressure class whose rated maximum allowable pressure is at least the design pressure of the line, pipe class or table row it serves. Read the class and the design pressure the drawing states for the item, and the drawing's own rating table (class against maximum allowable pressure), and compare the two numbers. Violation: a stated class whose rating in the table is below the stated design pressure.
 
 RULE 2. OSHA 1910.147 - Lockout/tagout isolation (usual severity: high)
-Every item of powered equipment (pump, compressor, motor-driven machine, electric heater, local control panel) must carry an energy isolation (lockout/tagout) tag, drawn as a LOTO-nnnn label next to the equipment. Compare the list of powered equipment tags (K-, P-, E-, LCP- tags) with the LOTO tags: a LOTO tag carries the number of its equipment tag, including a suffix letter (pump P-2104A has LOTO-2104A, compressor K-2104 has LOTO-2104). The tags may be anywhere in the text, and the circle symbol before a tag, or the letter O of LOTO, may come out as O, 0 or an extra letter. Vessels, drums and tanks are not powered equipment. Violation: a powered equipment item with no LOTO tag of its own.
+Every item of powered or rotating equipment must have an energy-isolation (lockout/tagout) tag or callout of its own, as the drawing's legend and notes define it. Make the list of such equipment from the drawing's tags, make the list of isolation tags, and match them by number: an isolation tag carries the number of its equipment tag, including any suffix letter. The tags may be anywhere in the text, and the parser may misread a letter or a symbol in them. Vessels, drums and tanks are not powered equipment. Violation: a powered or rotating equipment item with no isolation tag of its own.
 
 RULE 3. IBC 1005.1 - Means of egress width (usual severity: high)
-Each exit must provide a clear width at least equal to the width required for the occupant load it serves. Compare, for every exit, the clear width provided (the CLR labels and the PROVIDED column of the egress schedule) with the required clear width in the egress schedule. Violation: an exit whose provided clear width is smaller than its required clear width.
+Each exit must provide a clear width at least equal to the width required for the occupant load it serves. For every exit, compare the clear width provided (on the exit itself and in the egress schedule) with the required clear width the drawing gives for its occupant load. Violation: an exit whose provided clear width is smaller than its required clear width.
 
 RULE 4. ASME B31.3 §341 - Weld joint type and examination (usual severity: medium)
-Weld joints and their examination must follow the piping class requirement the drawing states. For cold (cryogenic) service that requirement is a butt weld (BW) with 100% radiographic examination (RT) in every class. Check every weld label on an isometric (W1, W2, ... with joint type and examination) and every row of a weld requirements table. Violation: a weld or class row with a different joint type (fillet FW or socket SW instead of BW) or with less examination than the requirement (VT only, MT 5%, none).
+Where the drawing or its specification states a required weld joint type or extent of examination for a line, pipe class or service, every weld callout and every table row for that service must meet it. Read the requirement, then check each weld callout and each row against it. Violation: a joint type that differs from the required type, or an examination level that falls short of the required extent.
 
 RULE 5. ASME B31.3 §322 - Pressure relief protection (usual severity: critical)
-Every pressure vessel or drum must be protected by a pressure relief device, shown with a PSV tag and a set pressure. Compare the vessels (V- tags) with the PSV tags and set pressures: the digits of a PSV tag follow its vessel tag (V-2504 is protected by PSV-2504), and the tag may be anywhere in the text. On a schematic the PSV tag and set pressure are enough; only a relief device schedule table also lists an orifice, so check there that every row has all three entries. Violation: a vessel or schedule row without a PSV tag, set pressure or (in a schedule) orifice.
+Every pressure vessel or drum must be protected by a pressure relief device that the drawing shows with its tag and set pressure. Make the list of vessels and the list of relief devices and match them by number: a relief device tag carries the number of its vessel tag, and may be anywhere in the text. On a schematic the tag and set pressure are enough; where the drawing gives a relief device schedule, each of its rows must also be complete (device tag, set pressure and sizing data). Violation: a vessel with no relief device, or an incomplete schedule row.
 
-Answer with JSON only: an object with one key, findings, an array with one entry per violation (an empty array when there is none). Each entry has: expected_item (the tag, label or value whose presence would make the item comply, for example LOTO-2104A, PSV-2102, CLASS 600 or higher, 48 IN), found_in_text (true if you found that expected item anywhere in the drawing text, otherwise false), status (always FAIL), citation (exactly one of the five citations above), severity (critical, high, medium or low), reason (one or two plain sentences a project manager can read, naming the item and the numbers), page_num (the page the item is on, counting from 0, as in the page_num comments in the text) and evidence_text (a short exact quote, 40 characters at most, of the label or table cell in the drawing text that shows the violation, for example FLG CL150 or K-2502).
+Answer with JSON only: an object with one key, findings, an array with one entry per violation (an empty array when there is none). Each entry has: expected_item (the tag, label or value whose presence would make the item comply), found_in_text (true if you found that expected item anywhere in the drawing text, otherwise false), status (always FAIL), citation (exactly one of the five citations above), severity (critical, high, medium or low), reason (one or two plain sentences a project manager can read, naming the item and the numbers), page_num (the page the item is on, counting from 0, as in the page_num comments in the text) and evidence_text (a short verbatim quote, about 3 to 12 words, from the drawing text that shows the violation).
 
 
 --- per drawing, appended after the text above:
@@ -8045,14 +8051,14 @@ DISCIPLINE: &lt;discipline&gt;
 DRAWING TEXT:
 &lt;parsed_markdown&gt;
 
-prompt text before the drawing: 5555 characters; rules: ASME B16.5 §4.2, OSHA 1910.147, IBC 1005.1, ASME B31.3 §341, ASME B31.3 §322
+prompt text before the drawing: 4945 characters; rules: ASME B16.5 §4.2, OSHA 1910.147, IBC 1005.1, ASME B31.3 §341, ASME B31.3 §322
 </pre>
 </div>
 </div>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=de10fddc">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=84197f22">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8062,7 +8068,7 @@ prompt text before the drawing: 5555 characters; rules: ASME B16.5 §4.2, OSHA 1
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=bfa7f4a3">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=c57e09f1">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8071,7 +8077,7 @@ prompt text before the drawing: 5555 characters; rules: ASME B16.5 §4.2, OSHA 1
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
 <div class="highlight hl-python"><pre><span></span><span class="n">FINDING_PROPS</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s2">"expected_item"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"string"</span><span class="p">},</span>   <span class="c1"># what would make the item comply (LOTO-2104A, PSV-2102, ...), written before the verdict</span>
+    <span class="s2">"expected_item"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"string"</span><span class="p">},</span>   <span class="c1"># what would make the item comply, written before the verdict</span>
     <span class="s2">"found_in_text"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"boolean"</span><span class="p">},</span>  <span class="c1"># the judge's own search of the drawing text for it</span>
     <span class="s2">"status"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"string"</span><span class="p">,</span> <span class="s2">"enum"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"FAIL"</span><span class="p">]},</span>
     <span class="s2">"citation"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"string"</span><span class="p">,</span> <span class="s2">"enum"</span><span class="p">:</span> <span class="n">lib</span><span class="o">.</span><span class="n">CITATIONS</span><span class="p">},</span>
@@ -8105,9 +8111,11 @@ prompt text before the drawing: 5555 characters; rules: ASME B16.5 §4.2, OSHA 1
 <span class="s2">    FROM </span><span class="si">{</span><span class="n">PARSED</span><span class="si">}</span><span class="s2"> p JOIN </span><span class="si">{</span><span class="n">EXTRACTED</span><span class="si">}</span><span class="s2"> e USING (drawing_id) WHERE p.drawing_id = '</span><span class="si">{</span><span class="n">SAMPLE_ID</span><span class="si">}</span><span class="s2">'</span>
 <span class="s2">"""</span>
 <span class="n">accepted</span> <span class="o">=</span> <span class="p">{}</span>
+<span class="n">probe_calls_made</span> <span class="o">=</span> <span class="mi">0</span>  <span class="c1"># model calls the probe actually made: a rejected form fails at compile time and bills nothing</span>
 <span class="k">for</span> <span class="n">what</span><span class="p">,</span> <span class="n">args</span> <span class="ow">in</span> <span class="n">SIGNATURES</span><span class="p">:</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="n">answer</span> <span class="o">=</span> <span class="n">spark</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="n">SQL_SAMPLE</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">args</span><span class="o">=</span><span class="n">args</span><span class="p">))</span><span class="o">.</span><span class="n">first</span><span class="p">()</span><span class="o">.</span><span class="n">result</span>
+        <span class="n">probe_calls_made</span> <span class="o">+=</span> <span class="mi">1</span>
         <span class="n">rows</span> <span class="o">=</span> <span class="n">lib</span><span class="o">.</span><span class="n">flatten_judgement</span><span class="p">(</span><span class="n">SAMPLE_ID</span><span class="p">,</span> <span class="n">answer</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
         <span class="n">accepted</span><span class="p">[</span><span class="n">what</span><span class="p">]</span> <span class="o">=</span> <span class="n">answer</span>
         <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"accepted  </span><span class="si">{</span><span class="n">what</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
@@ -8115,6 +8123,9 @@ prompt text before the drawing: 5555 characters; rules: ASME B16.5 §4.2, OSHA 1
     <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
         <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"rejected  </span><span class="si">{</span><span class="n">what</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
         <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"          </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">splitlines</span><span class="p">()[</span><span class="mi">0</span><span class="p">][:</span><span class="mi">260</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"signature probe: </span><span class="si">{</span><span class="n">probe_calls_made</span><span class="si">}</span><span class="s2"> model calls made, </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">SIGNATURES</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">probe_calls_made</span><span class="si">}</span><span class="s2"> form(s) rejected before any call"</span><span class="p">)</span>
+<span class="n">EXPECTED_PROBE_CALLS</span> <span class="o">=</span> <span class="mi">4</span>  <span class="c1"># five forms are tried; the plan's DDL-string form is refused at compile time, the other four are answered</span>
+<span class="k">assert</span> <span class="n">probe_calls_made</span> <span class="o">==</span> <span class="n">EXPECTED_PROBE_CALLS</span><span class="p">,</span> <span class="s2">"the probe made a different number of billable calls than the four expected"</span>
 </pre></div>
 </div>
 </div>
@@ -8130,20 +8141,21 @@ prompt text before the drawing: 5555 characters; rules: ASME B16.5 §4.2, OSHA 1
 <pre>rejected  DDL string, the plan's form
           [AI_FUNCTION_UNSUPPORTED_RESPONSE_FORMAT.DDL_STRING] Found unsupported response format. AI function: "`ai_query`" does not support the following response format: "STRUCT&lt;findings:ARRAY&lt;STRUCT&lt;status:STRING,reason:STRING,citation:STRING,severity:STRING,page_num
 accepted  JSON schema, no strict, no enum
-          -&gt; 4 row(s): FAIL OSHA 1910.147 (K-2502 BOG COMPRESSOR); FAIL OSHA 1910.147 (K-2501 REFRIGERANT COMPRESSOR); FAIL ASME B31.3 §322 (V-2504 SURGE DRUM DP 500 PSIG); FAIL ASME B31.3 §322 (V-2506 KNOCKOUT DRUM DP 500 PSIG)
+          -&gt; 4 row(s): FAIL OSHA 1910.147 (K-2502 BOG COMPRESSOR); FAIL OSHA 1910.147 (P-2505A BOOSTER PUMP O LOTO-2505A); FAIL ASME B16.5 §4.2 (FROM FEED GAS HEADER FLG CL900); FAIL ASME B16.5 §4.2 (FROM REFRIGERANT HEADER FLG CL150)
 accepted  JSON schema, strict, with enums
-          -&gt; 1 row(s): REVIEW Judge output could not be parsed: no findings array
+          -&gt; 2 row(s): FAIL OSHA 1910.147 (K-2502 BOG COMPRESSOR); FAIL ASME B16.5 §4.2 (FROM REFRIGERANT HEADER FLG CL150)
 accepted  JSON schema, strict, with enums + temperature 0
-          -&gt; 3 row(s): FAIL ASME B16.5 §4.2 (FLG CL150); FAIL OSHA 1910.147 (K-2502); FAIL ASME B31.3 §322 (V-2506)
+          -&gt; 3 row(s): FAIL OSHA 1910.147 (K-2502 BOG COMPRESSOR); FAIL OSHA 1910.147 (P-2505A BOOSTER PUMP O LOTO-2505A); FAIL ASME B16.5 §4.2 (FROM REFRIGERANT HEADER FLG CL150 DP 500 PSIG)
 accepted  no responseFormat (JSON asked for in the prompt), temperature 0
-          -&gt; 2 row(s): FAIL OSHA 1910.147 (K-2502 BOG COMPRESSOR); FAIL ASME B31.3 §322 (V-2506 KNOCKOUT DRUM)
+          -&gt; 1 row(s): REVIEW Judge output could not be parsed: JSONDecodeError: Extra data: line 25 column 1 (char 875)
+signature probe: 4 model calls made, 1 form(s) rejected before any call
 </pre>
 </div>
 </div>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=347c86ad">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=3155bbf5">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8154,7 +8166,7 @@ accepted  no responseFormat (JSON asked for in the prompt), temperature 0
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=992e8be2">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=60f9a52c">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8164,7 +8176,7 @@ accepted  no responseFormat (JSON asked for in the prompt), temperature 0
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=60fcaae5">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=81f481b8">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8214,7 +8226,7 @@ accepted  no responseFormat (JSON asked for in the prompt), temperature 0
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=a7394473">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=83634919">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8224,7 +8236,7 @@ accepted  no responseFormat (JSON asked for in the prompt), temperature 0
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=f35826f8">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=f23244ed">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8269,7 +8281,7 @@ review dates run from 2026-06-01 to 2026-11-06
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=ba7e1e8e">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=b54dfb98">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8279,7 +8291,7 @@ review dates run from 2026-06-01 to 2026-11-06
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=db27183d">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=847c541b">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8308,10 +8320,12 @@ review dates run from 2026-06-01 to 2026-11-06
 
 <span class="c1"># Cost guard 1: the number of model calls is the number of drawings, and the full run is the 1,200-drawing corpus.</span>
 <span class="n">expected_calls</span> <span class="o">=</span> <span class="n">n_docs</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"drawings to send to the model: </span><span class="si">{</span><span class="n">n_docs</span><span class="si">}</span><span class="s2">; expected judge calls: </span><span class="si">{</span><span class="n">expected_calls</span><span class="si">}</span><span class="s2"> (one per drawing)"</span><span class="p">)</span>
+<span class="n">expected_total</span> <span class="o">=</span> <span class="n">expected_calls</span> <span class="o">+</span> <span class="n">probe_calls_made</span>  <span class="c1"># this notebook's whole bill: one judge call per drawing, plus the signature probe above</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"drawings to send to the model: </span><span class="si">{</span><span class="n">n_docs</span><span class="si">}</span><span class="s2">; judge calls: </span><span class="si">{</span><span class="n">expected_calls</span><span class="si">}</span><span class="s2"> (one per drawing) + </span><span class="si">{</span><span class="n">probe_calls_made</span><span class="si">}</span><span class="s2"> signature-probe calls already made = </span><span class="si">{</span><span class="n">expected_total</span><span class="si">}</span><span class="s2"> model calls in this run"</span><span class="p">)</span>
 <span class="k">assert</span> <span class="n">expected_calls</span> <span class="o">==</span> <span class="n">n_docs</span>
 <span class="k">if</span> <span class="ow">not</span> <span class="n">MAX_ROWS</span><span class="p">:</span>
     <span class="k">assert</span> <span class="n">n_docs</span> <span class="o">==</span> <span class="mi">1200</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"the corpus has 1,200 drawings, found </span><span class="si">{</span><span class="n">n_docs</span><span class="si">}</span><span class="s2">: refusing to bill an unexpected number of calls"</span>
+    <span class="k">assert</span> <span class="n">expected_total</span> <span class="o">==</span> <span class="mi">1204</span><span class="p">,</span> <span class="s2">"1,200 judge calls + 4 probe calls"</span>
 </pre></div>
 </div>
 </div>
@@ -8325,14 +8339,14 @@ review dates run from 2026-06-01 to 2026-11-06
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
 <pre>drawings parsed ok and extracted: 1200
-drawings to send to the model: 1200; expected judge calls: 1200 (one per drawing)
+drawings to send to the model: 1200; judge calls: 1200 (one per drawing) + 4 signature-probe calls already made = 1204 model calls in this run
 </pre>
 </div>
 </div>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=a454d12a">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=8e667a96">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8342,7 +8356,7 @@ drawings to send to the model: 1200; expected judge calls: 1200 (one per drawing
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=710db6db">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=e60cf630">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8390,18 +8404,18 @@ AI Query steps in the physical plan: 1
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=689720c9">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=049a807e">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
 <h2 id="Send-the-drawings-to-the-model-and-write-its-answers">Send the drawings to the model and write its answers<a class="anchor-link" href="#Send-the-drawings-to-the-model-and-write-its-answers">¶</a></h2><p>The only cell that calls the model. <code>overwrite</code> makes a re-run replace the table instead of appending a second copy of every answer.</p>
-<p><strong>Run record (cost guard).</strong> The run that produced the outputs below (job run 726850339672013) was a one-time <code>jobs submit</code> (<code>run_type</code> SUBMIT_RUN) with <code>"disable_auto_optimization": true</code> on its task, and made a single attempt (<code>attempt_number</code> 0, no retry): 1,200 judge calls, 418 s for the AI step, 576 s for the whole notebook. It is the second full run: the first (job run 880768793395140, 1,200 calls, plainer prompt, see the note under "The rules and the prompt") was kept only as <code>compliance_judge_raw_v1_baseline</code> for comparison, and a 10-drawing trial (<code>max_rows</code> 10, <code>*_dryrun</code> tables, since dropped) came before it. The same flag is set on every task of <code>resources/job-doc-intelligence.yml</code>, which has no <code>max_rows</code> parameter.</p>
+<p><strong>Run record (cost guard).</strong> The run that produced the outputs below (job run 649534681854336, task run 1018163096549127) was a one-time <code>jobs submit</code> (<code>run_type</code> SUBMIT_RUN) that made a single attempt (<code>attempt_number</code> 0, no retry): 1,200 judge calls plus 4 signature-probe calls (1,204 model calls), 409 s for the AI step, 533 s for the whole notebook. <code>disable_auto_optimization: true</code> was set on the task; <code>get-run</code> does not return that flag, so the exact submit request is committed as <code>outputs/submit_payloads/03_compliance_check_v3_submit.json</code>. The earlier runs are v1 (880768793395140) and v2 (726850339672013), see "Prompt lineage"; before this run the v2 answers were copied to <code>compliance_judge_raw_v2_prompt_hints</code>. The same flag is set on every task of <code>resources/job-doc-intelligence.yml</code>, which has no <code>max_rows</code> parameter.</p>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=efe0f7c2">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=01b9f8d1">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8425,14 +8439,14 @@ AI Query steps in the physical plan: 1
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>sent 1200 drawings to databricks-claude-sonnet-4-5 and wrote mfg_mc_se_sa.bluerridge_gold_pm.compliance_judge_raw in 418 s
+<pre>sent 1200 drawings to databricks-claude-sonnet-4-5 and wrote mfg_mc_se_sa.bluerridge_gold_pm.compliance_judge_raw in 409 s
 </pre>
 </div>
 </div>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=de6fafb5">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=c0d14434">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8442,7 +8456,7 @@ AI Query steps in the physical plan: 1
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=5cb55867">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=d7477a81">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8474,19 +8488,19 @@ AI Query steps in the physical plan: 1
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedHTMLCommon jp-RenderedHTML jp-OutputArea-output" data-mime-type="text/html" tabindex="0">
-<table><thead><tr><th>answers</th><th>call_errors</th><th>no_result</th><th>avg_chars</th></tr></thead><tbody><tr><td>1200</td><td>0</td><td>0</td><td>297.0</td></tr></tbody></table>
+<table><thead><tr><th>answers</th><th>call_errors</th><th>no_result</th><th>avg_chars</th></tr></thead><tbody><tr><td>1200</td><td>0</td><td>0</td><td>369.0</td></tr></tbody></table>
 </div>
 </div>
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedHTMLCommon jp-RenderedHTML jp-OutputArea-output" data-mime-type="text/html" tabindex="0">
-<table><thead><tr><th>drawing_id</th><th>result</th><th>error</th><th>judged_at</th></tr></thead><tbody><tr><td>BRL-INS-PID-0707</td><td>{"findings":[{"page_num":0,"reason":"Vessel V-2401 (SEPARATOR) has PSV-2401 tag but the set pressure is 785 PSIG, which is not above the vessel design pressure of 785 PSIG. A relief device must be set above the vessel design pressure to provide protection.","citation":"ASME B31.3 §322","evidence_text":"PSV-2401 SET 785 PSIG","status":"FAIL","found_in_text":true,"severity":"critical","expected_item":"PSV-2401"},{"page_num":0,"reason":"Vessel V-2403 (KNOCKOUT DRUM) has PSV-2403 tag but the set pressure is 785 PSIG, which is not above the vessel design pressure of 785 PSIG. A relief device must be set above the vessel design pressure to provide protection.","citation":"ASME B31.3 §322","evidence_text":"PSV-2403 SET 785 PSIG","status":"FAIL","found_in_text":true,"severity":"critical","expected_item":"PSV-2403"},{"page_num":0,"reason":"Vessel V-2405 (SEPARATOR) has PSV-2405 tag but the set pressure is 1175 PSIG, which is not above the vessel design pressure of 1175 PSIG. A relief device must be set above the vessel design pressure to provide protection.","citation":"ASME B31.3 §322","evidence_text":"PSV-2405 SET 1175 PSIG","status":"FAIL","found_in_text":true,"severity":"critical","expected_item":"PSV-2405"}]}</td><td></td><td>2026-11-07T20:36:47.418Z</td></tr><tr><td>BRL-PIP-ISO-1198</td><td>{"findings":[{"page_num":0,"reason":"Line 8\"-N2-1176-B3S has design pressure 610 PSIG but uses CL300 flanges rated only 720 PSIG maximum. One flange is shown as CL150 (rated 275 PSIG), which is below the 610 PSIG design pressure.","citation":"ASME B16.5 §4.2","evidence_text":"FLG 8\" CL150 RF WN","status":"FAIL","found_in_text":false,"severity":"critical","expected_item":"CLASS 600 or higher"}]}</td><td></td><td>2026-11-07T20:36:47.418Z</td></tr><tr><td>BRL-PIP-PID-0977</td><td>{"findings":[]}</td><td></td><td>2026-11-07T20:36:47.418Z</td></tr></tbody></table>
+<table><thead><tr><th>drawing_id</th><th>result</th><th>error</th><th>judged_at</th></tr></thead><tbody><tr><td>BRL-INS-PID-0669</td><td>{"findings":[]}</td><td></td><td>2026-11-08T15:07:51.749Z</td></tr><tr><td>BRL-PIP-PID-0646</td><td>{"findings":[{"page_num":0,"reason":"Pump P-2601A (REFLUX PUMP) requires an energy isolation tag LOTO-2601A per OSHA 1910.147, but the drawing shows LOTO-2601A associated with a flange, not with the pump equipment.","citation":"OSHA 1910.147","evidence_text":"P-2601A REFLUX PUMP","status":"FAIL","found_in_text":true,"severity":"high","expected_item":"LOTO-2601A"},{"page_num":0,"reason":"Pump P-2602A (REFLUX PUMP) requires an energy isolation tag LOTO-2602A per OSHA 1910.147, but the drawing shows LOTO-2602A associated with a flange, not with the pump equipment.","citation":"OSHA 1910.147","evidence_text":"P-2602A REFLUX PUMP","status":"FAIL","found_in_text":true,"severity":"high","expected_item":"LOTO-2602A"},{"page_num":0,"reason":"Pump P-2603A (REFLUX PUMP) requires an energy isolation tag LOTO-2603A per OSHA 1910.147, but the drawing shows LOTO-2603A associated with a flange, not with the pump equipment.","citation":"OSHA 1910.147","evidence_text":"P-2603A REFLUX PUMP","status":"FAIL","found_in_text":true,"severity":"high","expected_item":"LOTO-2603A"},{"page_num":0,"reason":"Pump P-2605A (LNG TRANSFER PUMP) requires an energy isolation tag LOTO-2605A per OSHA 1910.147, but the drawing shows LOT0-2605A (with zero instead of O) associated with a flange.","citation":"OSHA 1910.147","evidence_text":"P-2605A LNG TRANSFER PUMP","status":"FAIL","found_in_text":true,"severity":"high","expected_item":"LOTO-2605A"},{"page_num":0,"reason":"Pump P-2606A (REFLUX PUMP) requires an energy isolation tag LOTO-2606A per OSHA 1910.147, but the drawing shows LOT0-2606A (with zero instead of O) associated with a flange.","citation":"OSHA 1910.147","evidence_text":"P-2606A REFLUX PUMP","status":"FAIL","found_in_text":true,"severity":"high","expected_item":"LOTO-2606A"}]}</td><td></td><td>2026-11-08T15:07:51.749Z</td></tr><tr><td>BRL-PIP-PID-0891</td><td>{"findings":[{"page_num":0,"reason":"Pump P-2701A (REFLUX PUMP) is powered equipment but has no LOTO energy isolation tag. The drawing shows LOTO-2702, LOTO-2703A, LOTO-2704A, LOTO-2705, and LOTO-2706A, but no LOTO-2701A.","citation":"OSHA 1910.147","evidence_text":"P-2701A REFLUX PUMP DP 430 PSIG","status":"FAIL","found_in_text":false,"severity":"high","expected_item":"LOTO-2701A"},{"page_num":0,"reason":"Vessel V-2707 (SEPARATOR) requires pressure relief protection per note 4, but the relief device PSV-2707 shown in the drawing does not appear to be associated with vessel V-2707 by tag numbering convention (PSV-2707 would protect V-2707, but its location and piping context suggest it may protect a different system component).","citation":"ASME B31.3 §322","evidence_text":"V-2707 SEPARATOR DP 535 PSIG","status":"FAIL","found_in_text":true,"severity":"critical","expected_item":"PSV-2707 or relief device for V-2707"}]}</td><td></td><td>2026-11-08T15:07:51.749Z</td></tr></tbody></table>
 </div>
 </div>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=fae90420">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=7e4e5e73">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8495,14 +8509,14 @@ AI Query steps in the physical plan: 1
 <h2 id="Flatten-the-answers-into-findings">Flatten the answers into findings<a class="anchor-link" href="#Flatten-the-answers-into-findings">¶</a></h2><p><code>compliance_lib.flatten_judgement</code> turns one answer into rows, and never raises, because one odd answer must not fail a run that has already paid for all the others:</p>
 <ul>
 <li>an <code>errorMessage</code>, an empty answer, or text that is not the expected JSON becomes <strong>one <code>REVIEW</code> row</strong> with the reason <code>Judge output could not be parsed: ...</code>;</li>
-<li>an empty <code>findings</code> array becomes <strong>one <code>PASS</code> row</strong>; so does an array whose every entry the judge itself marked <code>found_in_text: true</code> (see below);</li>
-<li>each finding becomes a <strong><code>FAIL</code> row</strong> unless the judge's own search found the item that makes the drawing comply (<code>found_in_text</code> true: the judge wrote down what it expected to find, searched the text, and found it, so the entry is not a violation): the citation is matched to one of the five rules (a finding that cites anything else is not kept; if that leaves nothing, the drawing gets a <code>REVIEW</code> row rather than a silent PASS), the severity is coerced to <code>critical</code>, <code>high</code>, <code>medium</code> or <code>low</code> (anything else becomes <code>medium</code>), and <code>finding_id</code> is <code>&lt;drawing_id&gt;-C01</code>, <code>-C02</code>, ...</li>
+<li>an empty <code>findings</code> array becomes <strong>one <code>PASS</code> row</strong>; so does an array whose every entry the judge itself cleared (see below);</li>
+<li>each finding becomes a <strong><code>FAIL</code> row</strong> unless the judge itself cleared it. The judge writes down the item that would make the drawing comply (<code>expected_item</code>) and whether it found it in the text (<code>found_in_text</code>). Finding the item means compliance <strong>only for the two presence rules</strong> (lockout/tagout and relief device), which ask "is the item there?". For the threshold rules (flange rating, exit width, weld requirement) the required value is printed in the drawing whether or not the item meets it ("provides 36 in, requires 44 in" has 44 in the schedule), so <code>found_in_text</code> is ignored there. A review of the first version, which applied the self-check to every rule, noticed it was dropping correct numeric findings that happened to be planted flaws; the scoping is a logical correction (the reasoning above holds without the ground truth), but it was found by looking at the ground truth, and is disclosed as such: the citation is matched to one of the five rules (a finding that cites anything else is not kept; if that leaves nothing, the drawing gets a <code>REVIEW</code> row rather than a silent PASS), the severity is coerced to <code>critical</code>, <code>high</code>, <code>medium</code> or <code>low</code> (anything else becomes <code>medium</code>), and <code>finding_id</code> is <code>&lt;drawing_id&gt;-C01</code>, <code>-C02</code>, ...</li>
 </ul>
 <p>It is tried on hand-made answers first, including the bad ones (the same cases as the local unit tests).</p>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=b75ef0bf">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=371560dc">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8511,8 +8525,8 @@ AI Query steps in the physical plan: 1
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
 <div class="highlight hl-python"><pre><span></span><span class="n">good</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">({</span><span class="s2">"findings"</span><span class="p">:</span> <span class="p">[</span>
-    <span class="p">{</span><span class="s2">"status"</span><span class="p">:</span> <span class="s2">"FAIL"</span><span class="p">,</span> <span class="s2">"citation"</span><span class="p">:</span> <span class="s2">"ASME B16.5 §4.2"</span><span class="p">,</span> <span class="s2">"severity"</span><span class="p">:</span> <span class="s2">"critical"</span><span class="p">,</span> <span class="s2">"reason"</span><span class="p">:</span> <span class="s2">"CL150 on a 500 PSIG line."</span><span class="p">,</span> <span class="s2">"page_num"</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">"evidence_text"</span><span class="p">:</span> <span class="s2">"FLG CL150"</span><span class="p">},</span>
-    <span class="p">{</span><span class="s2">"status"</span><span class="p">:</span> <span class="s2">"FAIL"</span><span class="p">,</span> <span class="s2">"citation"</span><span class="p">:</span> <span class="s2">"OSHA 1910.147"</span><span class="p">,</span> <span class="s2">"severity"</span><span class="p">:</span> <span class="s2">"SEVERE"</span><span class="p">,</span> <span class="s2">"reason"</span><span class="p">:</span> <span class="s2">"K-2502 has no LOTO tag."</span><span class="p">,</span> <span class="s2">"page_num"</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">"evidence_text"</span><span class="p">:</span> <span class="s2">"K-2502"</span><span class="p">}]})</span>
+    <span class="p">{</span><span class="s2">"status"</span><span class="p">:</span> <span class="s2">"FAIL"</span><span class="p">,</span> <span class="s2">"citation"</span><span class="p">:</span> <span class="s2">"ASME B16.5 §4.2"</span><span class="p">,</span> <span class="s2">"severity"</span><span class="p">:</span> <span class="s2">"critical"</span><span class="p">,</span> <span class="s2">"reason"</span><span class="p">:</span> <span class="s2">"Class AA rated below the line design pressure."</span><span class="p">,</span> <span class="s2">"page_num"</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">"evidence_text"</span><span class="p">:</span> <span class="s2">"a made-up quote"</span><span class="p">},</span>
+    <span class="p">{</span><span class="s2">"status"</span><span class="p">:</span> <span class="s2">"FAIL"</span><span class="p">,</span> <span class="s2">"citation"</span><span class="p">:</span> <span class="s2">"OSHA 1910.147"</span><span class="p">,</span> <span class="s2">"severity"</span><span class="p">:</span> <span class="s2">"SEVERE"</span><span class="p">,</span> <span class="s2">"reason"</span><span class="p">:</span> <span class="s2">"Item ZZ-0001 has no isolation tag."</span><span class="p">,</span> <span class="s2">"page_num"</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">"evidence_text"</span><span class="p">:</span> <span class="s2">"ZZ-0001"</span><span class="p">}]})</span>
 <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">response</span><span class="p">,</span> <span class="n">error</span> <span class="ow">in</span> <span class="p">((</span><span class="s2">"two findings"</span><span class="p">,</span> <span class="n">good</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span> <span class="p">(</span><span class="s2">"no findings"</span><span class="p">,</span> <span class="s1">'{"findings": []}'</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span> <span class="p">(</span><span class="s2">"code fences"</span><span class="p">,</span> <span class="s2">"```json</span><span class="se">\n</span><span class="s2">"</span> <span class="o">+</span> <span class="n">good</span> <span class="o">+</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">```"</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
                               <span class="p">(</span><span class="s2">"not JSON"</span><span class="p">,</span> <span class="s2">"I could not read this drawing."</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span> <span class="p">(</span><span class="s2">"empty"</span><span class="p">,</span> <span class="s2">""</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span> <span class="p">(</span><span class="s2">"call failed"</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">"REQUEST_LIMIT_EXCEEDED"</span><span class="p">)):</span>
     <span class="n">rows</span> <span class="o">=</span> <span class="n">lib</span><span class="o">.</span><span class="n">flatten_judgement</span><span class="p">(</span><span class="s2">"D-TEST"</span><span class="p">,</span> <span class="n">response</span><span class="p">,</span> <span class="n">error</span><span class="p">)</span>
@@ -8545,7 +8559,7 @@ call failed   -&gt; [('REVIEW', 'D-TEST-REVIEW', None, None)]
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=57116d32">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=4e3fe67b">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8580,13 +8594,13 @@ call failed   -&gt; [('REVIEW', 'D-TEST-REVIEW', None, None)]
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedHTMLCommon jp-RenderedHTML jp-OutputArea-output" data-mime-type="text/html" tabindex="0">
-<table><thead><tr><th>status</th><th>rows</th><th>drawings</th></tr></thead><tbody><tr><td>FAIL</td><td>627</td><td>377</td></tr><tr><td>PASS</td><td>822</td><td>822</td></tr><tr><td>REVIEW</td><td>1</td><td>1</td></tr></tbody></table>
+<table><thead><tr><th>status</th><th>rows</th><th>drawings</th></tr></thead><tbody><tr><td>FAIL</td><td>704</td><td>373</td></tr><tr><td>PASS</td><td>824</td><td>824</td></tr><tr><td>REVIEW</td><td>3</td><td>3</td></tr></tbody></table>
 </div>
 </div>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=33c21ddd">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=74384b45">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8602,7 +8616,7 @@ call failed   -&gt; [('REVIEW', 'D-TEST-REVIEW', None, None)]
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=5c4f0586">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=b2dbd500">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8640,7 +8654,7 @@ call failed   -&gt; [('REVIEW', 'D-TEST-REVIEW', None, None)]
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=edc48dc2">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=d814677f">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8650,7 +8664,7 @@ call failed   -&gt; [('REVIEW', 'D-TEST-REVIEW', None, None)]
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=f34f2719">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=2e6a3ec0">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8706,14 +8720,14 @@ call failed   -&gt; [('REVIEW', 'D-TEST-REVIEW', None, None)]
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>380 FAIL rows without a planted box; a parse element was found for 335
+<pre>480 FAIL rows without a planted box; a parse element was found for 305
 columns: ['drawing_id', 'finding_id', 'volume_path', 'page_num', 'bbox', 'bbox_source', 'discipline', 'revision', 'drawing_type', 'status', 'severity', 'reason', 'citation', 'evidence_text', 'matched_ground_truth', 'review_date', 'generated_at']
 </pre>
 </div>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=1015aee7">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=28ed0886">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8767,7 +8781,7 @@ columns: ['drawing_id', 'finding_id', 'volume_path', 'page_num', 'bbox', 'bbox_s
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>wrote mfg_mc_se_sa.bluerridge_gold_pm.compliance_findings in 4 s
+<pre>wrote mfg_mc_se_sa.bluerridge_gold_pm.compliance_findings in 3 s
 </pre>
 </div>
 </div>
@@ -8780,7 +8794,7 @@ columns: ['drawing_id', 'finding_id', 'volume_path', 'page_num', 'bbox', 'bbox_s
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=cc103b13">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=0def46db">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8790,7 +8804,7 @@ columns: ['drawing_id', 'finding_id', 'volume_path', 'page_num', 'bbox', 'bbox_s
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=1596e456">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=550ffcdf">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8859,13 +8873,13 @@ columns: ['drawing_id', 'finding_id', 'volume_path', 'page_num', 'bbox', 'bbox_s
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedHTMLCommon jp-RenderedHTML jp-OutputArea-output" data-mime-type="text/html" tabindex="0">
-<table><thead><tr><th>rows</th><th>distinct_keys</th><th>drawings</th><th>bad_status</th><th>fail_bad_box</th><th>bad_source</th><th>fail_bad_citation</th><th>fail_bad_severity</th><th>fail_missing_text</th><th>sentinel_not_null</th><th>review_no_reason</th><th>missing_context</th></tr></thead><tbody><tr><td>1450</td><td>1450</td><td>1200</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr></tbody></table>
+<table><thead><tr><th>rows</th><th>distinct_keys</th><th>drawings</th><th>bad_status</th><th>fail_bad_box</th><th>bad_source</th><th>fail_bad_citation</th><th>fail_bad_severity</th><th>fail_missing_text</th><th>sentinel_not_null</th><th>review_no_reason</th><th>missing_context</th></tr></thead><tbody><tr><td>1531</td><td>1531</td><td>1200</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr></tbody></table>
 </div>
 </div>
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>1450 rows, 1450 distinct (drawing_id, finding_id), 1200 drawings; 0 drawings with a wrong mix of statuses; 0 rows without a drawings_extracted row; 0 drawings sent but without a row
+<pre>1531 rows, 1531 distinct (drawing_id, finding_id), 1200 drawings; 0 drawings with a wrong mix of statuses; 0 rows without a drawings_extracted row; 0 drawings sent but without a row
 all checks passed
 </pre>
 </div>
@@ -8873,7 +8887,7 @@ all checks passed
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=b6daad85">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=2bab7b04">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8883,7 +8897,7 @@ all checks passed
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=9e6eb525">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=9a5fb893">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8939,7 +8953,7 @@ all checks passed
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedHTMLCommon jp-RenderedHTML jp-OutputArea-output" data-mime-type="text/html" tabindex="0">
-<table><thead><tr><th>drawings_reviewed</th><th>passed</th><th>failed</th><th>needs_review</th><th>fail_rows</th></tr></thead><tbody><tr><td>1200</td><td>822</td><td>377</td><td>1</td><td>627</td></tr></tbody></table>
+<table><thead><tr><th>drawings_reviewed</th><th>passed</th><th>failed</th><th>needs_review</th><th>fail_rows</th></tr></thead><tbody><tr><td>1200</td><td>824</td><td>373</td><td>3</td><td>704</td></tr></tbody></table>
 </div>
 </div>
 <div class="jp-OutputArea-child">
@@ -8952,7 +8966,7 @@ all checks passed
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedHTMLCommon jp-RenderedHTML jp-OutputArea-output" data-mime-type="text/html" tabindex="0">
-<table><thead><tr><th>citation</th><th>fail_rows</th><th>drawings</th><th>matched_ground_truth</th><th>critical</th><th>high</th><th>medium</th><th>low</th></tr></thead><tbody><tr><td>OSHA 1910.147</td><td>323</td><td>189</td><td>69</td><td>0</td><td>323</td><td>0</td><td>0</td></tr><tr><td>ASME B31.3 §322</td><td>110</td><td>85</td><td>70</td><td>110</td><td>0</td><td>0</td><td>0</td></tr><tr><td>ASME B16.5 §4.2</td><td>99</td><td>82</td><td>54</td><td>99</td><td>0</td><td>0</td><td>0</td></tr><tr><td>ASME B31.3 §341</td><td>50</td><td>49</td><td>50</td><td>0</td><td>0</td><td>50</td><td>0</td></tr><tr><td>IBC 1005.1</td><td>45</td><td>45</td><td>42</td><td>0</td><td>45</td><td>0</td><td>0</td></tr></tbody></table>
+<table><thead><tr><th>citation</th><th>fail_rows</th><th>drawings</th><th>matched_ground_truth</th><th>critical</th><th>high</th><th>medium</th><th>low</th></tr></thead><tbody><tr><td>OSHA 1910.147</td><td>329</td><td>179</td><td>54</td><td>0</td><td>329</td><td>0</td><td>0</td></tr><tr><td>ASME B16.5 §4.2</td><td>146</td><td>112</td><td>59</td><td>146</td><td>0</td><td>0</td><td>0</td></tr><tr><td>ASME B31.3 §322</td><td>129</td><td>98</td><td>55</td><td>129</td><td>0</td><td>0</td><td>0</td></tr><tr><td>IBC 1005.1</td><td>51</td><td>50</td><td>46</td><td>0</td><td>51</td><td>0</td><td>0</td></tr><tr><td>ASME B31.3 §341</td><td>49</td><td>43</td><td>49</td><td>0</td><td>0</td><td>49</td><td>0</td></tr></tbody></table>
 </div>
 </div>
 <div class="jp-OutputArea-child">
@@ -8965,13 +8979,13 @@ all checks passed
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedHTMLCommon jp-RenderedHTML jp-OutputArea-output" data-mime-type="text/html" tabindex="0">
-<table><thead><tr><th>bbox_source</th><th>fail_rows</th><th>pct</th></tr></thead><tbody><tr><td>parse_element</td><td>335</td><td>53.4</td></tr><tr><td>ground_truth</td><td>247</td><td>39.4</td></tr><tr><td>page</td><td>45</td><td>7.2</td></tr></tbody></table>
+<table><thead><tr><th>bbox_source</th><th>fail_rows</th><th>pct</th></tr></thead><tbody><tr><td>parse_element</td><td>305</td><td>43.3</td></tr><tr><td>ground_truth</td><td>224</td><td>31.8</td></tr><tr><td>page</td><td>175</td><td>24.9</td></tr></tbody></table>
 </div>
 </div>
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>matched_ground_truth on FAIL rows: 285 of 627 (45.5%)
+<pre>matched_ground_truth on FAIL rows: 263 of 704 (37.4%)
 as-of week 2026-10-31..2026-11-06 (review_date), the demo's "reviewed / passed / failed this week":
 </pre>
 </div>
@@ -8979,7 +8993,7 @@ as-of week 2026-10-31..2026-11-06 (review_date), the demo's "reviewed / passed /
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedHTMLCommon jp-RenderedHTML jp-OutputArea-output" data-mime-type="text/html" tabindex="0">
-<table><thead><tr><th>reviewed</th><th>passed</th><th>failed</th><th>needs_review</th></tr></thead><tbody><tr><td>238</td><td>186</td><td>52</td><td>0</td></tr></tbody></table>
+<table><thead><tr><th>reviewed</th><th>passed</th><th>failed</th><th>needs_review</th></tr></thead><tbody><tr><td>238</td><td>175</td><td>63</td><td>0</td></tr></tbody></table>
 </div>
 </div>
 <div class="jp-OutputArea-child">
@@ -8992,13 +9006,13 @@ as-of week 2026-10-31..2026-11-06 (review_date), the demo's "reviewed / passed /
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedHTMLCommon jp-RenderedHTML jp-OutputArea-output" data-mime-type="text/html" tabindex="0">
-<table><thead><tr><th>drawing_type</th><th>drawings</th><th>failed</th></tr></thead><tbody><tr><td>ISO</td><td>397</td><td>91</td></tr><tr><td>PID</td><td>373</td><td>169</td></tr><tr><td>GA</td><td>269</td><td>64</td></tr><tr><td>SPEC</td><td>135</td><td>53</td></tr><tr><td>OTHER</td><td>26</td><td>0</td></tr></tbody></table>
+<table><thead><tr><th>drawing_type</th><th>drawings</th><th>failed</th></tr></thead><tbody><tr><td>ISO</td><td>397</td><td>55</td></tr><tr><td>PID</td><td>373</td><td>194</td></tr><tr><td>GA</td><td>269</td><td>63</td></tr><tr><td>SPEC</td><td>135</td><td>61</td></tr><tr><td>OTHER</td><td>26</td><td>0</td></tr></tbody></table>
 </div>
 </div>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=ba569517">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=7fbb1d6d">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -9008,7 +9022,7 @@ as-of week 2026-10-31..2026-11-06 (review_date), the demo's "reviewed / passed /
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=a8b17ab3">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=46b7de7e">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -9053,15 +9067,15 @@ as-of week 2026-10-31..2026-11-06 (review_date), the demo's "reviewed / passed /
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>planted flaws on the drawings sent: 274; distinct judged findings: 450; found correctly: 247
-recall 90.1%, precision 54.9%
+<pre>planted flaws on the drawings sent: 274; distinct judged findings: 482; found correctly: 224
+recall 81.8%, precision 46.5%
 </pre>
 </div>
 </div>
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedHTMLCommon jp-RenderedHTML jp-OutputArea-output" data-mime-type="text/html" tabindex="0">
-<table><thead><tr><th>citation</th><th>planted</th><th>judged</th><th>found</th><th>false_alarms</th><th>missed</th></tr></thead><tbody><tr><td>ASME B16.5 §4.2</td><td>63</td><td>82</td><td>52</td><td>30</td><td>11</td></tr><tr><td>ASME B31.3 §322</td><td>58</td><td>85</td><td>53</td><td>32</td><td>5</td></tr><tr><td>ASME B31.3 §341</td><td>49</td><td>49</td><td>49</td><td>0</td><td>0</td></tr><tr><td>IBC 1005.1</td><td>45</td><td>45</td><td>42</td><td>3</td><td>3</td></tr><tr><td>OSHA 1910.147</td><td>59</td><td>189</td><td>51</td><td>138</td><td>8</td></tr></tbody></table>
+<table><thead><tr><th>citation</th><th>planted</th><th>judged</th><th>found</th><th>false_alarms</th><th>missed</th></tr></thead><tbody><tr><td>ASME B16.5 §4.2</td><td>63</td><td>112</td><td>55</td><td>57</td><td>8</td></tr><tr><td>ASME B31.3 §322</td><td>58</td><td>98</td><td>48</td><td>50</td><td>10</td></tr><tr><td>ASME B31.3 §341</td><td>49</td><td>43</td><td>43</td><td>0</td><td>6</td></tr><tr><td>IBC 1005.1</td><td>45</td><td>50</td><td>45</td><td>5</td><td>0</td></tr><tr><td>OSHA 1910.147</td><td>59</td><td>179</td><td>33</td><td>146</td><td>26</td></tr></tbody></table>
 </div>
 </div>
 <div class="jp-OutputArea-child">
@@ -9074,13 +9088,13 @@ recall 90.1%, precision 54.9%
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedHTMLCommon jp-RenderedHTML jp-OutputArea-output" data-mime-type="text/html" tabindex="0">
-<table><thead><tr><th>drawing_type</th><th>found</th><th>false_alarms</th><th>missed</th></tr></thead><tbody><tr><td>GA</td><td>59</td><td>12</td><td>8</td></tr><tr><td>ISO</td><td>59</td><td>45</td><td>1</td></tr><tr><td>PID</td><td>92</td><td>121</td><td>18</td></tr><tr><td>SPEC</td><td>37</td><td>25</td><td>0</td></tr></tbody></table>
+<table><thead><tr><th>drawing_type</th><th>found</th><th>false_alarms</th><th>missed</th></tr></thead><tbody><tr><td>GA</td><td>51</td><td>18</td><td>16</td></tr><tr><td>ISO</td><td>58</td><td>3</td><td>2</td></tr><tr><td>PID</td><td>82</td><td>199</td><td>28</td></tr><tr><td>SPEC</td><td>33</td><td>38</td><td>4</td></tr></tbody></table>
 </div>
 </div>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=f60425cd">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=f638f589">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -9090,7 +9104,7 @@ recall 90.1%, precision 54.9%
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=c2b867d5">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=19dace86">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -9132,20 +9146,20 @@ recall 90.1%, precision 54.9%
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedHTMLCommon jp-RenderedHTML jp-OutputArea-output" data-mime-type="text/html" tabindex="0">
-<table><thead><tr><th>drawing_type</th><th>matched_findings</th><th>element_found</th><th>element_contains_planted_box</th><th>median_area_vs_planted</th></tr></thead><tbody><tr><td>GA</td><td>59</td><td>33</td><td>33</td><td>93.0</td></tr><tr><td>ISO</td><td>59</td><td>59</td><td>59</td><td>140.6</td></tr><tr><td>PID</td><td>92</td><td>90</td><td>40</td><td>6.5</td></tr><tr><td>SPEC</td><td>37</td><td>11</td><td>5</td><td>6.3</td></tr></tbody></table>
+<table><thead><tr><th>drawing_type</th><th>matched_findings</th><th>element_found</th><th>element_contains_planted_box</th><th>median_area_vs_planted</th></tr></thead><tbody><tr><td>GA</td><td>51</td><td>9</td><td>9</td><td>87.9</td></tr><tr><td>ISO</td><td>58</td><td>48</td><td>48</td><td>126.4</td></tr><tr><td>PID</td><td>82</td><td>63</td><td>30</td><td>8.5</td></tr><tr><td>SPEC</td><td>33</td><td>0</td><td>0</td><td></td></tr></tbody></table>
 </div>
 </div>
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>247 matched findings: a parse element holds the evidence text for 193, and its box contains the planted box for 137
+<pre>224 matched findings: a parse element holds the evidence text for 120, and its box contains the planted box for 87
 </pre>
 </div>
 </div>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=3939d5eb">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=f316aa56">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -9155,7 +9169,7 @@ recall 90.1%, precision 54.9%
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=99d5fafa">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=92c2966d">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -9207,14 +9221,14 @@ recall 90.1%, precision 54.9%
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>wrote outputs/sample_findings.jsonl: 20 rows (11 FAIL, 8 PASS, 1 REVIEW)
+<pre>wrote outputs/sample_findings.jsonl: 20 rows (10 FAIL, 7 PASS, 3 REVIEW)
 
-{"drawing_id": "BRL-INS-PID-0052", "finding_id": "BRL-INS-PID-0052-C01", "volume_path": "/Volumes/mfg_mc_se_sa/bluerridge_landing/drawings/BRL-INS-PID-0052.pdf", "page_num": 0, "bbox": [0.235, 0.5532, 0.0334, 0.0365], "bbox_source": "ground_truth", "discipline": "instr", "revision": "B", "drawing_type": "PID", "status": "FAIL", "severity": "critical", "reason": "Line 10-BOG-2551-B3S has design pressure 500 PSIG and uses flange class CL150, whose maximum allowable pressure is 275 PSIG, below the design pressure.", "citation": "ASME B16.5 §4.2", "evidence_text": "FLG CL150", "matched_ground_truth": true, "review_date": "2026-07-12", "generated_at": "2026-11-07T20:36:47Z"}
-{"drawing_id": "BRL-INS-PID-0055", "finding_id": "BRL-INS-PID-0055-C01", "volume_path": "/Volumes/mfg_mc_se_sa/bluerridge_landing/drawings/BRL-INS-PID-0055.pdf", "page_num": 0, "bbox": [0.2299, 0.2501, 0.0334, 0.0365], "bbox_source": "ground_truth", "discipline": "instr", "revision": "B", "drawing_type": "PID", "status": "FAIL", "severity": "critical", "reason": "Flanged joint FLG CL150 on line 6\"-FG-2250-C6S has design pressure 1230 PSIG, but CLASS 150 is rated only to 275 PSIG maximum allowable pressure.", "citation": "ASME B16.5 §4.2", "evidence_text": "FLG CL150", "matched_ground_truth": true, "review_date": "2026-09-14", "generated_at": "2026-11-07T20:36:47Z"}
-{"drawing_id": "BRL-ELE-GA-0328", "finding_id": "BRL-ELE-GA-0328-C01", "volume_path": "/Volumes/mfg_mc_se_sa/bluerridge_landing/drawings/BRL-ELE-GA-0328.pdf", "page_num": 0, "bbox": [0.2666, 0.4821, 0.0557, 0.0962], "bbox_source": "ground_truth", "discipline": "electrical", "revision": "C", "drawing_type": "GA", "status": "FAIL", "severity": "high", "reason": "Local control panel LCP-3103 is powered equipment but has no LOTO isolation tag. Every item of powered equipment must carry a LOTO tag.", "citation": "OSHA 1910.147", "evidence_text": "LCP-3103", "matched_ground_truth": true, "review_date": "2026-07-14", "generated_at": "2026-11-07T20:36:47Z"}
-{"drawing_id": "BRL-ELE-GA-0024", "finding_id": "BRL-ELE-GA-0024-C01", "volume_path": "/Volumes/mfg_mc_se_sa/bluerridge_landing/drawings/BRL-ELE-GA-0024.pdf", "page_num": 0, "bbox": [0.0526, 0.0689, 0.5576, 0.6221], "bbox_source": "parse_element", "discipline": "electrical", "revision": "C", "drawing_type": "GA", "status": "FAIL", "severity": "high", "reason": "Local control panel LCP-3602 is powered equipment but has no LOTO isolation tag. OSHA 1910.147 requires every item of powered equipment to carry a LOTO tag.", "citation": "OSHA 1910.147", "evidence_text": "LCP-3602", "matched_ground_truth": false, "review_date": "2026-06-07", "generated_at": "2026-11-07T20:36:47Z"}
-{"drawing_id": "BRL-ELE-GA-0024", "finding_id": "BRL-ELE-GA-0024-C02", "volume_path": "/Volumes/mfg_mc_se_sa/bluerridge_landing/drawings/BRL-ELE-GA-0024.pdf", "page_num": 0, "bbox": [0.0664, 0.399, 0.0529, 0.0284], "bbox_source": "ground_truth", "discipline": "electrical", "revision": "C", "drawing_type": "GA", "status": "FAIL", "severity": "high", "reason": "EXIT 2 provides only 32 inches clear width but requires 44 inches for its occupant load. The provided width is less than required.", "citation": "IBC 1005.1", "evidence_text": "EXIT 2 CLR 32 IN", "matched_ground_truth": true, "review_date": "2026-06-07", "generated_at": "2026-11-07T20:36:47Z"}
-{"drawing_id": "BRL-ELE-GA-0069", "finding_id": "BRL-ELE-GA-0069-C01", "volume_path": "/Volumes/mfg_mc_se_sa/bluerridge_landing/drawings/BRL-ELE-GA-0069.pdf", "page_num": 0, "bbox": [0.0627, 0.0689, 0.5939, 0.6625], "bbox_source": "parse_element", "discipline": "electrical", "revision": "C", "drawing_type": "GA", "status": "FAIL", "severity": "high", "reason": "EXIT 4 has a provided clear width of 68 IN but requires 60 IN according to the egress schedule. The provided width (68 IN) is less than the required width shown in the drawing.", "citation": "IBC 1005.1", "evidence_text": "EXIT 4 CLR 68 IN", "matched_ground_truth": false, "review_date": "2026-09-06", "generated_at": "2026-11-07T20:36:47Z"}
+{"drawing_id": "BRL-INS-PID-0199", "finding_id": "BRL-INS-PID-0199-C01", "volume_path": "/Volumes/mfg_mc_se_sa/bluerridge_landing/drawings/BRL-INS-PID-0199.pdf", "page_num": 0, "bbox": [0.4022, 0.2501, 0.0334, 0.0365], "bbox_source": "ground_truth", "discipline": "instr", "revision": "C", "drawing_type": "PID", "status": "FAIL", "severity": "critical", "reason": "Flange LOT0-2402 is marked CL150 (rated 275 PSIG per the drawing's table) but serves line 8\"-N2-2450-B3S with design pressure 580 PSIG. The flange rating is below the line design pressure.", "citation": "ASME B16.5 §4.2", "evidence_text": "LOT0-2402 FLG CL150 8\"-N2-2450-B3S DP 580 PSIG", "matched_ground_truth": true, "review_date": "2026-09-08", "generated_at": "2026-11-08T15:07:51Z"}
+{"drawing_id": "BRL-INS-PID-0090", "finding_id": "BRL-INS-PID-0090-C01", "volume_path": "/Volumes/mfg_mc_se_sa/bluerridge_landing/drawings/BRL-INS-PID-0090.pdf", "page_num": 0, "bbox": [0.0, 0.0, 1.0, 1.0], "bbox_source": "page", "discipline": "instr", "revision": "C", "drawing_type": "PID", "status": "FAIL", "severity": "critical", "reason": "Flanged joint on line 10\"-MR-2150-B3S is marked FLG CL300, but the line design pressure is 370 PSIG. The flange rating table shows CLASS 300 has a maximum allowable pressure of 720 PSIG, which exceeds 370 PSIG, so this is compliant. However, the upstream flange from LNG rundown header is also marked FLG CL300 and serves the same 370 PSIG line, which is also compliant.", "citation": "ASME B16.5 §4.2", "evidence_text": "FLG CL300 ... DP 370 PSIG", "matched_ground_truth": false, "review_date": "2026-09-07", "generated_at": "2026-11-08T15:07:51Z"}
+{"drawing_id": "BRL-ELE-GA-0630", "finding_id": "BRL-ELE-GA-0630-C01", "volume_path": "/Volumes/mfg_mc_se_sa/bluerridge_landing/drawings/BRL-ELE-GA-0630.pdf", "page_num": 0, "bbox": [0.144, 0.2763, 0.0804, 0.0962], "bbox_source": "ground_truth", "discipline": "electrical", "revision": "A", "drawing_type": "GA", "status": "FAIL", "severity": "high", "reason": "Refrigerant compressor K-3702 is powered equipment but has no LOTO isolation tag. The drawing shows LOTO-3701, LOTO-3703, and LOTO-3704A for other equipment, but no LOTO-3702 tag appears anywhere in the text.", "citation": "OSHA 1910.147", "evidence_text": "K-3702 REFRIGERANT COMPRESSOR", "matched_ground_truth": true, "review_date": "2026-10-04", "generated_at": "2026-11-08T15:07:51Z"}
+{"drawing_id": "BRL-ELE-GA-0585", "finding_id": "BRL-ELE-GA-0585-C01", "volume_path": "/Volumes/mfg_mc_se_sa/bluerridge_landing/drawings/BRL-ELE-GA-0585.pdf", "page_num": 1, "bbox": [0.0636, 0.0666, 0.5909, 0.6244], "bbox_source": "parse_element", "discipline": "electrical", "revision": "D", "drawing_type": "GA", "status": "FAIL", "severity": "high", "reason": "Powered equipment P-3503A (LNG PUMP) on page 1 has no matching LOTO isolation tag LOTO-3503A in the drawing text.", "citation": "OSHA 1910.147", "evidence_text": "P-3503A LNG PUMP", "matched_ground_truth": false, "review_date": "2026-09-07", "generated_at": "2026-11-08T15:07:51Z"}
+{"drawing_id": "BRL-ELE-GA-0024", "finding_id": "BRL-ELE-GA-0024-C01", "volume_path": "/Volumes/mfg_mc_se_sa/bluerridge_landing/drawings/BRL-ELE-GA-0024.pdf", "page_num": 0, "bbox": [0.0664, 0.399, 0.0529, 0.0284], "bbox_source": "ground_truth", "discipline": "electrical", "revision": "C", "drawing_type": "GA", "status": "FAIL", "severity": "high", "reason": "EXIT 2 provides only 32 inches clear width but requires 44 inches for its occupant load of 102. The egress schedule shows provided width (32 IN) is less than required width (44 IN).", "citation": "IBC 1005.1", "evidence_text": "EXIT 2 REQ'D CLR WIDTH (IN) 44 PROVIDED (IN) 32", "matched_ground_truth": true, "review_date": "2026-06-07", "generated_at": "2026-11-08T15:07:51Z"}
+{"drawing_id": "BRL-ELE-GA-0120", "finding_id": "BRL-ELE-GA-0120-C01", "volume_path": "/Volumes/mfg_mc_se_sa/bluerridge_landing/drawings/BRL-ELE-GA-0120.pdf", "page_num": 0, "bbox": [0.3947, 0.6515, 0.0308, 0.0726], "bbox_source": "ground_truth", "discipline": "electrical", "revision": "D", "drawing_type": "GA", "status": "FAIL", "severity": "high", "reason": "EXIT 1 requires a clear width of 60 inches for its occupant load of 221, but only provides 48 inches.", "citation": "IBC 1005.1", "evidence_text": "EXIT 1 REQ'D CLR WIDTH (IN) 60 PROVIDED (IN) 48", "matched_ground_truth": true, "review_date": "2026-09-16", "generated_at": "2026-11-08T15:07:51Z"}
 </pre>
 </div>
 </div>

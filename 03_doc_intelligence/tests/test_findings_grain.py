@@ -80,12 +80,19 @@ def test_severity_and_citation_are_normalised():
     assert len(rows) == 2                            # a citation outside the five rules is not a finding
 
 
-def test_finding_the_judge_itself_cleared_is_not_a_violation():
-    # found_in_text true: the judge's own search found the item that makes the drawing comply
-    rows = lib.flatten_judgement("D1", answer(finding(found_in_text=True), finding(citation="OSHA 1910.147", found_in_text=False)), None)
-    assert [r["status"] for r in rows] == ["FAIL"] and rows[0]["citation"] == "OSHA 1910.147"
-    rows = lib.flatten_judgement("D1", answer(finding(found_in_text=True)), None)
+def test_presence_rule_the_judge_itself_cleared_is_not_a_violation():
+    # found_in_text true on a rule that asks "is the item there?": the judge's own search found it
+    rows = lib.flatten_judgement("D1", answer(finding(citation="OSHA 1910.147", found_in_text=True), finding(citation="ASME B31.3 §322", found_in_text=False)), None)
+    assert [r["status"] for r in rows] == ["FAIL"] and rows[0]["citation"] == "ASME B31.3 §322"
+    rows = lib.flatten_judgement("D1", answer(finding(citation="ASME B31.3 §322", found_in_text=True)), None)
     assert [r["status"] for r in rows] == ["PASS"]
+
+
+def test_threshold_rule_found_in_text_is_kept():
+    # an exit that provides 36 but requires 44 has "44" printed in the schedule: found_in_text says nothing about compliance there
+    for citation in ("IBC 1005.1", "ASME B16.5 §4.2", "ASME B31.3 §341"):
+        rows = lib.flatten_judgement("D1", answer(finding(citation=citation, found_in_text=True, expected_item="44 IN")), None)
+        assert [r["status"] for r in rows] == ["FAIL"] and rows[0]["citation"] == citation
 
 
 def test_only_unknown_citations_is_review_not_pass():
@@ -129,23 +136,31 @@ def test_findings_grain_is_one_row_per_finding():
     three = sorted(d for d, n in planted.items() if n == 3)
     assert len(three) == 10
     ids = ", ".join(f"'{d}'" for d in three)
-    rows = sql(f"SELECT drawing_id, finding_id, status, bbox, bbox_source, citation, severity FROM "
-               f"mfg_mc_se_sa.bluerridge_gold_pm.compliance_findings WHERE drawing_id IN ({ids})")
+    T = "mfg_mc_se_sa.bluerridge_gold_pm.compliance_findings"
+    rows = sql(f"SELECT drawing_id, finding_id, status, bbox, bbox_source, citation, severity FROM {T} WHERE drawing_id IN ({ids})")
     by_drawing = {d: [r for r in rows if r["drawing_id"] == d] for d in three}
-    # pick the drawing where the judge found the most of the 3 planted flaws
-    best = max(three, key=lambda d: sum(r["status"] == "FAIL" for r in by_drawing[d]))
-    mine = by_drawing[best]
+    # Any drawing but the notebook's showcase drawing: the one with the most FAIL rows among the rest.
+    chosen = max((d for d in three if d != "BRL-INS-PID-0052"), key=lambda d: sum(r["status"] == "FAIL" for r in by_drawing[d]))
+    mine = by_drawing[chosen]
     fails = [r for r in mine if r["status"] == "FAIL"]
-    print(f"{best}: {len(fails)} FAIL rows of 3 planted")
-    assert fails, "the judge found nothing on any of the ten 3-flaw drawings"
-    assert len(mine) == len(fails), "a drawing with violations has FAIL rows only (no PASS/REVIEW sentinel)"
+    # N kept judge entries -> N FAIL rows: recompute the kept entries of that drawing from the saved judge answer with the library.
+    raw = sql(f"SELECT r.result, r.error, e.drawing_type, p.parsed_markdown FROM mfg_mc_se_sa.bluerridge_gold_pm.compliance_judge_raw r "
+              f"JOIN mfg_mc_se_sa.bluerridge_silver_engineering.drawings_parsed p USING (drawing_id) "
+              f"JOIN mfg_mc_se_sa.bluerridge_silver_engineering.drawings_extracted e USING (drawing_id) WHERE drawing_id = '{chosen}'")[0]
+    kept, _ = lib.judge_with_guardrails(chosen, raw["drawing_type"], raw["parsed_markdown"], raw["result"], raw["error"])
+    kept_fails = [k for k in kept if k["status"] == "FAIL"]
+    print(f"{chosen}: {len(kept_fails)} kept judge entries -> {len(fails)} FAIL rows ({len(planted_for(chosen))} planted)")
+    assert len(fails) == len(kept_fails), "N kept judge entries must be N FAIL rows"
+    assert len(mine) == len(fails) or (not fails and len(mine) == 1), "FAIL rows only, or one sentinel row"
     assert len({r["finding_id"] for r in mine}) == len(mine), "finding_id is distinct per row"
     for r in fails:
         bbox = json.loads(r["bbox"]) if isinstance(r["bbox"], str) else r["bbox"]
         assert bbox is not None and len(bbox) == 4 and all(0 <= float(v) <= 1 for v in bbox)
         assert not isinstance(bbox[0], (list, dict)), "no nested arrays"
         assert r["citation"] in CITATIONS and r["severity"] in {"critical", "high", "medium", "low"}
-    # the grain holds across the whole table
-    dup = sql("SELECT COUNT(*) AS n FROM (SELECT drawing_id, finding_id FROM mfg_mc_se_sa.bluerridge_gold_pm.compliance_findings "
-              "GROUP BY 1, 2 HAVING COUNT(*) > 1)")
+    dup = sql(f"SELECT COUNT(*) AS n FROM (SELECT drawing_id, finding_id FROM {T} GROUP BY 1, 2 HAVING COUNT(*) > 1)")
     assert int(dup[0]["n"]) == 0
+
+
+def planted_for(drawing_id):
+    return [json.loads(l) for l in GROUND_TRUTH.read_text().splitlines() if json.loads(l)["drawing_id"] == drawing_id]

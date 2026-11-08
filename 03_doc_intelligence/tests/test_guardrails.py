@@ -3,6 +3,7 @@
     pytest 03_doc_intelligence/tests/test_guardrails.py -v
 """
 import json
+from pathlib import Path
 
 import pytest
 
@@ -98,6 +99,38 @@ def test_reason_that_states_a_violation_is_kept(reason):
     assert rows[0]["status"] == "FAIL" and not suppressed, reason
 
 
+def test_reason_sentence_scope_the_conclusion_decides():
+    # a premise that admits something in an earlier sentence does not make the conclusion a non-violation
+    reason = "A vessel is not powered equipment. Compressor K-2601 has no LOTO tag."
+    rows, suppressed = run("PID", entry(reason=reason, evidence_text="K-2601"))
+    assert rows[0]["status"] == "FAIL" and not suppressed
+    rows, suppressed = run("PID", entry(reason="Compressor K-2601 has no LOTO tag. However, vessels are not powered equipment.", evidence_text="K-2601"))
+    assert rows[0]["status"] == "PASS"  # the conclusion itself admits it
+
+
+def test_found_in_text_only_clears_presence_rules():
+    rows, suppressed = run("GA", entry(citation=IBC, found_in_text=True, expected_item="44 IN", reason="Exit 3 provides 36 in but requires 44 in."))
+    assert rows[0]["status"] == "FAIL" and not suppressed
+    rows, suppressed = run("SPEC", entry(citation=FLANGE, found_in_text=True, expected_item="CLASS 600", reason="Class 300 rating is below the design pressure."))
+    assert rows[0]["status"] == "FAIL" and not suppressed
+    rows, suppressed = run("PID", entry(citation=RELIEF, found_in_text=True, evidence_text="V-2102", reason="Vessel has no PSV."))
+    assert rows[0]["status"] == "PASS" and "judge's self-check" in suppressed[0]["suppression_detail"]
+
+
+def test_pass_reason_counts_the_suppressed_entries():
+    rows, suppressed = run("ISO", entry(citation=LOTO), entry(citation=RELIEF, evidence_text="V-1"))
+    assert rows[0]["status"] == "PASS" and "2 judge entries suppressed" in rows[0]["reason"] and "compliance_suppressed" in rows[0]["reason"]
+    assert run("PID")[0][0]["reason"] == "No violation of the five checked rules found."
+
+
+def test_every_raw_entry_is_kept_or_suppressed():
+    entries = [entry(citation=LOTO), entry(citation=IBC, evidence_text="EXIT 1"), entry(found_in_text=True), entry(citation=FLANGE, evidence_text="FLG"),
+               entry(reason="Vessel V-1 has PSV-1, so it is protected.", citation=RELIEF)]
+    response = json.dumps({"findings": entries})
+    kept, suppressed = lib.judge_with_guardrails("D1", "PID", "text", response, None)
+    assert len(lib.raw_entries(response)) == len(entries) == len([k for k in kept if k["status"] == "FAIL"]) + len(suppressed)
+
+
 def test_loto_rule_applied_to_a_vessel_contradicts_the_rule_itself():
     rows, suppressed = run("PID", entry(evidence_text="V-2505", reason="Vessel V-2505 has no LOTO tag."))
     assert rows[0]["status"] == "PASS" and suppressed[0]["suppressed_by"] == "self_contradiction"
@@ -113,3 +146,52 @@ def test_error_and_malformed_stay_review_and_nothing_is_suppressed():
 def test_empty_findings_pass_and_unknown_citation_only_is_review():
     assert run("PID")[0][0]["status"] == "PASS"
     assert run("PID", entry(citation="NFPA 59A"))[0][0]["status"] == "REVIEW"
+
+
+# ---- the prompt must not carry generator knowledge
+GENERATOR = Path(__file__).resolve().parents[2] / "01_synthetic_data" / "02_generate_drawings.py"
+VARIANT_LITERALS = ["FW", "SW", "BW", "VT ONLY", "MT 5%", "RT", "100% RT", "RT 100%", "fillet", "socket", "butt", "NONE", "CL150", "FLG CL", "LOTO-0000"]
+
+
+def _generator_constants():
+    import ast
+    tree = ast.parse(GENERATOR.read_text())
+    wanted = {"RATING_PSIG", "CLASSES", "CLASS_CODE", "CLASS_SERVICE", "FLAW_TYPES"}
+    out = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Assign) and any(isinstance(t, ast.Name) and t.id in wanted for t in node.targets):
+            out.append(ast.literal_eval(node.value))
+    return out
+
+
+def _flatten(value):
+    if isinstance(value, dict):
+        for k, v in value.items():
+            yield from _flatten(k); yield from _flatten(v)
+    elif isinstance(value, (tuple, list)):
+        for v in value:
+            yield from _flatten(v)
+    else:
+        yield value
+
+
+def test_prompt_has_no_generator_literals():
+    import re
+    prompt = lib.build_prompt_prefix()
+    for lit in VARIANT_LITERALS:
+        assert not re.search(r"(?<![A-Za-z0-9])" + re.escape(lit) + r"(?![A-Za-z0-9])", prompt), f"corruption/value literal {lit!r} is in the prompt"
+    # no drawing-tag-shaped token (K-2502, LOTO-2104A, PSV-2102, V-2504 ...)
+    assert not re.findall(r"\b[A-Za-z]{1,4}-\d{3,4}[A-Za-z]?\b", prompt)
+    # none of the class numbers, ratings, class codes or service words the generator draws, and not the flaw type names
+    consts = _generator_constants()
+    assert len(consts) == 5, "the generator constants moved: update this test"
+    for const in consts:
+        for v in _flatten(const):
+            token = str(v)
+            if len(token) < 2 and not token.isdigit():
+                continue
+            if token in set(lib.CITATIONS) | set(lib.SEVERITIES):
+                continue  # the citations and the severity scale are the fixed output vocabulary
+            assert not re.search(r"(?<![A-Za-z0-9])" + re.escape(token) + r"(?![A-Za-z0-9])", prompt), f"generator literal {token!r} is in the prompt"
+    # the answer-format examples are gone
+    assert "for example" not in lib.OUTPUT_FORMAT

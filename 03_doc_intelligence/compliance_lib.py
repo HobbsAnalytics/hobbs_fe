@@ -1,10 +1,15 @@
-"""Pure functions for the compliance judge (03_compliance_check.ipynb). No Spark, no AI call: unit-tested locally.
+"""Pure functions for the compliance judge (03_compliance_check.ipynb, 03b_compliance_guardrails.ipynb). No Spark, no AI call: unit-tested locally.
 
 * RULES / build_prompt: the fixed, paraphrased rule set and the prompt text the judge sees. The only per-drawing inputs are
-  the drawing type, the discipline and the parsed markdown; nothing from the generator's ground truth reaches the prompt.
+  the drawing type, the discipline and the parsed markdown; nothing from the generator's ground truth reaches the prompt, and the
+  rules name no value, tag or example that the synthetic generator draws (tests/test_guardrails.py::test_prompt_has_no_generator_literals).
 * flatten_judgement: one raw judge answer -> the finding rows (FAIL), a PASS sentinel, or one REVIEW row.
+* judge_with_guardrails: the same, plus a rule-applicability matrix and a self-consistency filter (no AI call); returns the suppressed entries too.
 * assign_review_dates: the simulated review date of each drawing.
 * resolve_parse_bbox: a normalised box from the parser's element boxes, for a finding that has no ground-truth box.
+
+The five citations are fixed, illustrative labels for this synthetic demo (the ground truth and every table use them); the clause numbers are
+not authoritative. Verify any clause against the licensed standard.
 """
 from __future__ import annotations
 
@@ -14,8 +19,9 @@ import re
 from datetime import date, timedelta
 
 # --------------------------------------------------------------------------------------------------
-# The rule set. ASME and IBC are copyrighted, so each rule is a paraphrased engineering requirement plus its clause number;
-# the OSHA rule paraphrases a public-domain regulation. One rule per citation.
+# The rule set. ASME and IBC are copyrighted, so each rule is a general, paraphrased engineering requirement plus its clause number;
+# the OSHA rule paraphrases a public-domain regulation. One rule per citation. A rule says what to compare against what, never which
+# values or labels are wrong.
 # --------------------------------------------------------------------------------------------------
 
 RULES = [
@@ -24,11 +30,10 @@ RULES = [
         "severity": "critical",
         "title": "Flange pressure rating",
         "text": (
-            "Every flanged joint must use a flange class whose maximum allowable pressure is at least the design pressure of the line "
-            "it sits on. Use the flange rating table printed on the drawing (class against maximum allowable pressure). Line tags end "
-            "with a class code that the general notes decode to a flange class, and each line is labelled with its design pressure (DP, PSIG). "
-            "On a specification sheet, check each row: the rating of the flange class shown must cover the row's design pressure. "
-            "Violation: a flange class shown (for example CL150) whose table rating is below the design pressure of its line or row."
+            "A flanged joint must use a pressure class whose rated maximum allowable pressure is at least the design pressure of the line, "
+            "pipe class or table row it serves. Read the class and the design pressure the drawing states for the item, and the drawing's own "
+            "rating table (class against maximum allowable pressure), and compare the two numbers. "
+            "Violation: a stated class whose rating in the table is below the stated design pressure."
         ),
     },
     {
@@ -36,12 +41,11 @@ RULES = [
         "severity": "high",
         "title": "Lockout/tagout isolation",
         "text": (
-            "Every item of powered equipment (pump, compressor, motor-driven machine, electric heater, local control panel) must carry an "
-            "energy isolation (lockout/tagout) tag, drawn as a LOTO-nnnn label next to the equipment. Compare the list of powered "
-            "equipment tags (K-, P-, E-, LCP- tags) with the LOTO tags: a LOTO tag carries the number of its equipment tag, including a suffix "
-            "letter (pump P-2104A has LOTO-2104A, compressor K-2104 has LOTO-2104). The tags may be anywhere in the text, and the circle symbol "
-            "before a tag, or the letter O of LOTO, may come out as O, 0 or an extra letter. Vessels, drums and tanks are not powered equipment. "
-            "Violation: a powered equipment item with no LOTO tag of its own."
+            "Every item of powered or rotating equipment must have an energy-isolation (lockout/tagout) tag or callout of its own, as the "
+            "drawing's legend and notes define it. Make the list of such equipment from the drawing's tags, make the list of isolation tags, and "
+            "match them by number: an isolation tag carries the number of its equipment tag, including any suffix letter. The tags may be "
+            "anywhere in the text, and the parser may misread a letter or a symbol in them. Vessels, drums and tanks are not powered equipment. "
+            "Violation: a powered or rotating equipment item with no isolation tag of its own."
         ),
     },
     {
@@ -49,9 +53,9 @@ RULES = [
         "severity": "high",
         "title": "Means of egress width",
         "text": (
-            "Each exit must provide a clear width at least equal to the width required for the occupant load it serves. Compare, for every "
-            "exit, the clear width provided (the CLR labels and the PROVIDED column of the egress schedule) with the required clear width "
-            "in the egress schedule. Violation: an exit whose provided clear width is smaller than its required clear width."
+            "Each exit must provide a clear width at least equal to the width required for the occupant load it serves. For every exit, "
+            "compare the clear width provided (on the exit itself and in the egress schedule) with the required clear width the drawing gives "
+            "for its occupant load. Violation: an exit whose provided clear width is smaller than its required clear width."
         ),
     },
     {
@@ -59,10 +63,10 @@ RULES = [
         "severity": "medium",
         "title": "Weld joint type and examination",
         "text": (
-            "Weld joints and their examination must follow the piping class requirement the drawing states. For cold (cryogenic) service "
-            "that requirement is a butt weld (BW) with 100% radiographic examination (RT) in every class. Check every weld label on an isometric "
-            "(W1, W2, ... with joint type and examination) and every row of a weld requirements table. Violation: a weld or class row with a "
-            "different joint type (fillet FW or socket SW instead of BW) or with less examination than the requirement (VT only, MT 5%, none)."
+            "Where the drawing or its specification states a required weld joint type or extent of examination for a line, pipe class or "
+            "service, every weld callout and every table row for that service must meet it. Read the requirement, then check each weld callout "
+            "and each row against it. Violation: a joint type that differs from the required type, or an examination level that falls short "
+            "of the required extent."
         ),
     },
     {
@@ -70,39 +74,41 @@ RULES = [
         "severity": "critical",
         "title": "Pressure relief protection",
         "text": (
-            "Every pressure vessel or drum must be protected by a pressure relief device, shown with a PSV tag and a set pressure. "
-            "Compare the vessels (V- tags) with the PSV tags and set pressures: the digits of a PSV tag follow its vessel tag (V-2504 is "
-            "protected by PSV-2504), and the tag may be anywhere in the text. On a schematic the PSV tag and set pressure are enough; only a "
-            "relief device schedule table also lists an orifice, so check there that every row has all three entries. "
-            "Violation: a vessel or schedule row without a PSV tag, set pressure or (in a schedule) orifice."
+            "Every pressure vessel or drum must be protected by a pressure relief device that the drawing shows with its tag and set pressure. "
+            "Make the list of vessels and the list of relief devices and match them by number: a relief device tag carries the number of "
+            "its vessel tag, and may be anywhere in the text. On a schematic the tag and set pressure are enough; where the drawing gives a "
+            "relief device schedule, each of its rows must also be complete (device tag, set pressure and sizing data). "
+            "Violation: a vessel with no relief device, or an incomplete schedule row."
         ),
     },
 ]
 CITATIONS = [r["citation"] for r in RULES]
 SEVERITIES = ("critical", "high", "medium", "low")
+LOTO_RULE, RELIEF_RULE = CITATIONS[1], CITATIONS[4]
+PRESENCE_RULES = (LOTO_RULE, RELIEF_RULE)  # rules that ask "is the required item there?": finding it in the text means the drawing complies
 
 INSTRUCTIONS = (
     "You are a senior piping and facilities engineer checking one engineering drawing of an LNG terminal against the five rules below. "
     "The drawing was read from a PDF by a parser: the text of a schematic comes as one block in no particular order, so match items "
     "(equipment, tags, labels) by their tags and numbers, not by position; a tag that is not next to its equipment still counts, and the parser "
-    "may write the letter O as a zero (LOT0-2104A is the tag LOTO-2104A). Report only violations that the text of the drawing itself "
+    "may misread a letter as a digit or add a stray character. Report only violations that the text of the drawing itself "
     "shows, and do not report a rule that the drawing does not have an element for (for example a sheet with no exits has nothing to "
     "check for the egress rule). Check every rule that applies, and every item the rule covers. A drawing can have several violations, "
     "including more than one of the same rule, and a compliant drawing has none.\n\n"
-    "Be exact rather than eager. Before you report a missing item (a LOTO tag, a PSV, a relief schedule entry), search the whole drawing text "
-    "for the item that would make the drawing comply, for example LOTO-2104A for pump P-2104A or PSV-2102 for vessel V-2102. If it appears "
-    "anywhere in the text, the item is present and there is no violation. Before you report a number (a flange rating, an exit width, a weld "
-    "examination), compare the two numbers and report only if the drawing's own figures break the rule. Do not report a doubtful case, a case "
+    "Be exact rather than eager. Before you report a missing item (an isolation tag, a relief device), search the whole drawing text "
+    "for the item that would make the drawing comply. If it appears anywhere in the text, the item is present and there is no violation. "
+    "Before you report a number (a flange rating, an exit width, an examination level), compare the two numbers and report only if the "
+    "drawing's own figures break the rule. Do not report a doubtful case, a case "
     "you could only suspect, or a case whose explanation says the requirement is met: reporting nothing is correct for a compliant drawing."
 )
 OUTPUT_FORMAT = (
     "Answer with JSON only: an object with one key, findings, an array with one entry per violation (an empty array when there is none). "
-    "Each entry has: expected_item (the tag, label or value whose presence would make the item comply, for example LOTO-2104A, PSV-2102, "
-    "CLASS 600 or higher, 48 IN), found_in_text (true if you found that expected item anywhere in the drawing text, otherwise false), "
+    "Each entry has: expected_item (the tag, label or value whose presence would make the item comply), found_in_text (true if you found "
+    "that expected item anywhere in the drawing text, otherwise false), "
     "status (always FAIL), citation (exactly one of the five citations above), severity (critical, high, medium or low), "
     "reason (one or two plain sentences a project manager can read, naming the item and the numbers), page_num (the page the item is on, "
-    "counting from 0, as in the page_num comments in the text) and evidence_text (a short exact quote, 40 characters at most, of the label "
-    "or table cell in the drawing text that shows the violation, for example FLG CL150 or K-2502)."
+    "counting from 0, as in the page_num comments in the text) and evidence_text (a short verbatim quote, about 3 to 12 words, from the "
+    "drawing text that shows the violation)."
 )
 
 
@@ -163,53 +169,75 @@ def _review(drawing_id, why):
     return [_row(drawing_id, f"{drawing_id}-REVIEW", "REVIEW", f"Judge output could not be parsed: {why}"[:300])]
 
 
+def _pass(drawing_id, reason="No violation of the five checked rules found."):
+    return [_row(drawing_id, f"{drawing_id}-PASS", "PASS", reason)]
+
+
+def parse_answer(response, error):
+    """('review', why) | ('entries', [entry, ...]) for one raw judge answer. An entry is a finding with a recognised citation that is
+    not marked PASS, normalised: citation, severity, reason, page_num, evidence_text, plus the judge's expected_item and found_in_text.
+    An empty list means the judge found nothing. Never raises."""
+    try:
+        if error:
+            return "review", " ".join(str(error).split())[:200]
+        if not isinstance(response, str) or not response.strip():
+            return "review", "empty response"
+        parsed = json.loads(re.sub(r"^```(?:json)?\s*|\s*```$", "", response.strip()))
+        found = parsed.get("findings") if isinstance(parsed, dict) else None
+        if not isinstance(found, list):
+            return "review", "no findings array"
+        if not all(isinstance(f, dict) for f in found):
+            return "review", "a finding is not an object"
+        live = [f for f in found if str(f.get("status", "FAIL")).strip().upper() != "PASS"]
+        entries = []
+        for f in live:
+            citation = normalize_citation(f.get("citation"))
+            if citation is None:
+                continue
+            page = f.get("page_num")
+            page = int(page) if isinstance(page, (int, float)) and not isinstance(page, bool) and page >= 0 else 0
+            entries.append({"citation": citation, "severity": normalize_severity(f.get("severity")),
+                            "reason": _one_line(f.get("reason"), 400) or f"Violation of {citation}.", "page_num": page,
+                            "evidence_text": _one_line(f.get("evidence_text"), 120), "expected_item": f.get("expected_item"),
+                            "found_in_text": f.get("found_in_text")})
+        if live and not entries:
+            return "review", "findings cite no rule from the rule set"
+        return "entries", entries
+    except Exception as e:  # a malformed answer must never fail the run
+        return "review", f"{type(e).__name__}: {str(e)[:120]}"
+
+
+def raw_entries(response, error=None):
+    # Every FAIL entry of the judge's answer, before any self-check or guardrail (empty for an answer that is an error or unreadable).
+    kind, payload = parse_answer(response, error)
+    return payload if kind == "entries" else []
+
+
+def judge_cleared(entry):
+    # The judge's own self-check: it searched the drawing text for the item that would make the drawing comply, and found it. That means
+    # compliance only for a rule that asks whether an item is PRESENT (lockout/tagout, relief device). For a threshold rule (flange rating,
+    # exit width, weld requirement) the required value is printed in the drawing whether or not the item meets it, so it says nothing.
+    return entry.get("found_in_text") is True and entry["citation"] in PRESENCE_RULES
+
+
 def flatten_judgement(drawing_id, response, error):
     """The rows for one drawing from the judge's raw answer (`response` text, `error` text or None). Never raises.
 
     * error set, or the answer is not the expected JSON  -> one REVIEW row with a reason.
     * no findings                                        -> one PASS row (citation, page, severity, evidence are None).
     * findings                                           -> one FAIL row per finding with a recognised citation, finding_id
-                                                             <drawing_id>-C01, -C02, ...; if none of them has a recognised
+                                                             <drawing_id>-C01, -C02, ..., except that an entry the judge itself cleared
+                                                             (judge_cleared) is not a violation; if none of them has a recognised
                                                              citation the drawing gets one REVIEW row instead.
     """
-    try:
-        if error:
-            return _review(drawing_id, " ".join(str(error).split())[:200])
-        if not isinstance(response, str) or not response.strip():
-            return _review(drawing_id, "empty response")
-        body = response.strip()
-        body = re.sub(r"^```(?:json)?\s*|\s*```$", "", body)
-        parsed = json.loads(body)
-        found = parsed.get("findings") if isinstance(parsed, dict) else None
-        if not isinstance(found, list):
-            return _review(drawing_id, "no findings array")
-        if not all(isinstance(f, dict) for f in found):
-            return _review(drawing_id, "a finding is not an object")
-        if not found:
-            return [_row(drawing_id, f"{drawing_id}-PASS", "PASS", "No violation of the five checked rules found.")]
-        rows, cleared = [], 0
-        for f in found:
-            if str(f.get("status", "FAIL")).strip().upper() == "PASS":
-                continue
-            citation = normalize_citation(f.get("citation"))
-            if citation is None:
-                continue
-            if f.get("found_in_text") is True:  # the judge's own check found the item that makes the drawing comply: not a violation
-                cleared += 1
-                continue
-            page = f.get("page_num")
-            page = int(page) if isinstance(page, (int, float)) and not isinstance(page, bool) and page >= 0 else 0
-            rows.append(_row(drawing_id, f"{drawing_id}-C{len(rows) + 1:02d}", "FAIL",
-                             _one_line(f.get("reason"), 400) or f"Violation of {citation}.", citation,
-                             normalize_severity(f.get("severity")), page, _one_line(f.get("evidence_text"), 80)))
-        if rows:
-            return rows
-        if all(str(f.get("status", "FAIL")).strip().upper() == "PASS" for f in found) or (
-                cleared and cleared + sum(str(f.get("status", "FAIL")).strip().upper() == "PASS" for f in found) >= len(found)):
-            return [_row(drawing_id, f"{drawing_id}-PASS", "PASS", "No violation of the five checked rules found.")]
-        return _review(drawing_id, "findings cite no rule from the rule set")
-    except Exception as e:  # a malformed answer must never fail the run
-        return _review(drawing_id, f"{type(e).__name__}: {str(e)[:120]}")
+    kind, payload = parse_answer(response, error)
+    if kind == "review":
+        return _review(drawing_id, payload)
+    rows = [e for e in payload if not judge_cleared(e)]
+    if not rows:
+        return _pass(drawing_id)
+    return [_row(drawing_id, f"{drawing_id}-C{n:02d}", "FAIL", e["reason"], e["citation"], e["severity"], e["page_num"], e["evidence_text"])
+            for n, e in enumerate(rows, 1)]
 
 
 # --------------------------------------------------------------------------------------------------
@@ -218,7 +246,12 @@ def flatten_judgement(drawing_id, response, error):
 
 _FL, _LO, _IB, _WE, _RE = CITATIONS
 _YES, _NO = True, False
-APPLICABILITY = {  # drawing_type -> citation -> (applies, one-line engineering rationale). The routing a rule engine does before calling a model.
+# drawing_type -> citation -> (applies, one-line engineering rationale). The routing a rule engine does before calling a model.
+# DISCLOSURE: this matrix mirrors which items this project's synthetic drawing set depicts on each sheet type, and it equals the synthetic
+# generator's sheet-content table (SUPPORTS in 01_synthetic_data/02_generate_drawings.py) in all 25 cells, by design. A real deployment
+# would derive it from the project's drawing index and standards. Only the ISO cells ever suppressed anything in the recorded run, so
+# "no planted flaw lost to rule_applicability" holds by construction.
+APPLICABILITY = {
     "ISO": {
         _FL: (_YES, "An isometric shows one line with its flanged joints and the line's design pressure, so flange ratings can be checked."),
         _LO: (_NO, "An isometric shows pipe, fittings and nozzle tie-ins only; the powered equipment and its isolation tags are on the P&ID and the plan."),
@@ -235,7 +268,7 @@ APPLICABILITY = {  # drawing_type -> citation -> (applies, one-line engineering 
     },
     "GA": {
         _FL: (_NO, "A general arrangement plan locates equipment and rooms; line flange classes are not on it."),
-        _LO: (_YES, "The plan shows where powered equipment sits and where its isolation tags are provided."),
+        _LO: (_YES, "This project's general arrangement sheets carry equipment isolation (LOTO) callouts next to the equipment."),
         _IB: (_YES, "The plan with its egress schedule is where exit widths against occupant load are shown."),
         _WE: (_NO, "Weld joints are not shown on an arrangement plan."),
         _RE: (_NO, "Relief devices and their set pressures are on the P&ID and the relief schedule, not on the arrangement plan."),
@@ -245,7 +278,7 @@ APPLICABILITY = {  # drawing_type -> citation -> (applies, one-line engineering 
         _LO: (_NO, "A specification sheet has tables only; there is no equipment to isolate."),
         _IB: (_NO, "A piping or relief specification has no exits or occupant load."),
         _WE: (_YES, "The piping class specification states the weld joint type and examination for each class."),
-        _RE: (_YES, "The relief device schedule lists each vessel with its PSV tag, set pressure and orifice."),
+        _RE: (_YES, "This project's piping specification sheets include a relief-device schedule listing each vessel with its PSV."),
     },
     "OTHER": {c: (_NO, "A symbols/legend or typical-detail sheet defines notation; it describes no installed item to check against this rule.") for c in CITATIONS},
 }
@@ -266,20 +299,22 @@ _ADMITS_COMPLIANCE = [  # conservative: phrases with which a judge says, in the 
     re.compile(r"\b(?:is|are) not powered equipment\b", re.I),
     re.compile(r"\bno violation\b", re.I),
 ]
-
-
 _NEGATED = re.compile(r"\b(?:no|not|only|none|without|missing|isn't|aren't)\b", re.I)
 _NEEDS_AFFIRMATIVE_SENTENCE = (1, 2, 4)  # indexes in _ADMITS_COMPLIANCE: "X is present", "so it is protected", "is adequate/compliant"
 
 
 def _admits(reason):
-    # The first phrase by which the reason admits compliance, or None. "is present" / "is compliant" only count in a sentence
-    # that is not negated ("No LOTO-2702 tag is present in the drawing" and "Only LOTO-2101A is present" state a violation).
+    # The phrase by which the reason's CONCLUSION (its last sentence) admits compliance, or None. Earlier sentences are premises: "A vessel
+    # is not powered equipment. Compressor K-1 has no LOTO tag." concludes with a violation. "is present" / "is compliant" phrases do not count
+    # in a negated sentence ("No isolation tag is present" states a violation).
+    sentences = [x for x in re.split(r"(?<=[.;!?])\s+", reason.strip()) if x]
+    if not sentences:
+        return None
+    last = sentences[-1]
     for k, pattern in enumerate(_ADMITS_COMPLIANCE):
-        for sentence in re.split(r"(?<=[.;!?])\s+", reason):
-            m = pattern.search(sentence)
-            if m and not (k in _NEEDS_AFFIRMATIVE_SENTENCE and _NEGATED.search(sentence)):
-                return m.group(0)
+        m = pattern.search(last)
+        if m and not (k in _NEEDS_AFFIRMATIVE_SENTENCE and _NEGATED.search(last)):
+            return m.group(0)
     return None
 
 
@@ -288,15 +323,17 @@ def _squash_tag(text):
 
 
 def contradiction(entry, markdown):
-    """Why this FAIL entry contradicts itself or the drawing text, or None. Uses the judge's structured fields first
-    (found_in_text, expected_item against the drawing text), then a vessel check, then conservative phrases in the reason."""
-    if entry.get("found_in_text") is True:
-        return "found_in_text is true: the judge's own search found the item that makes the drawing comply"
+    """Why this FAIL entry contradicts itself or the drawing text, or None. Structured fields first: found_in_text (presence rules only, see
+    judge_cleared) and expected_item against the drawing text (a tag, presence rules only); then a vessel check; then, as the fallback,
+    conservative phrases in the conclusion of the reason."""
+    citation = entry["citation"] if "citation" in entry and entry["citation"] in CITATIONS else normalize_citation(entry.get("citation"))
+    presence = citation in PRESENCE_RULES
+    if presence and entry.get("found_in_text") is True:
+        return "found_in_text is true: the judge's own search found the item that makes the drawing comply (carried over from the judge's self-check)"
     expected = _squash_tag(entry.get("expected_item") or "")
-    # only for a tag-like item (LOTO-2505A, PSV-2102): a requirement such as "BW with 100% RT" is quoted in the drawing's notes whether or not the weld complies
-    if re.fullmatch(r"[A-Za-z0-9]{2,6}-\d{3,5}[A-Za-z]?", str(entry.get("expected_item") or "").strip()) and expected in _squash_tag(markdown or ""):
+    # only for a tag-like item on a presence rule: a requirement or threshold quoted in the notes is there whether or not the item meets it
+    if presence and re.fullmatch(r"[A-Za-z0-9]{2,6}-\d{3,5}[A-Za-z]?", str(entry.get("expected_item") or "").strip()) and expected in _squash_tag(markdown or ""):
         return f"expected_item {str(entry.get('expected_item'))[:60]!r} is in the drawing text although found_in_text is false"
-    citation = normalize_citation(entry.get("citation"))
     if citation == _LO and re.match(r"\s*V-\d", str(entry.get("evidence_text") or ""), re.I):
         return "the lockout/tagout rule was applied to a vessel, which the rule itself excludes (vessels are not powered equipment)"
     phrase = _admits(str(entry.get("reason") or ""))
@@ -304,38 +341,31 @@ def contradiction(entry, markdown):
 
 
 def judge_with_guardrails(drawing_id, drawing_type, markdown, response, error):
-    """(rows, suppressed) for one drawing. `rows` as flatten_judgement (FAIL rows, or one PASS, or one REVIEW), but a FAIL entry is
-    taken out when its citation does not apply to the drawing type (suppressed_by 'rule_applicability') or when it contradicts itself
-    (suppressed_by 'self_contradiction'). A drawing whose entries are all suppressed gets the PASS row. Never raises."""
-    base = flatten_judgement(drawing_id, response, error)
-    if base[0]["status"] == "REVIEW":  # an error, an answer that is not the expected JSON, or findings citing no rule: unchanged
-        return base, []
-    try:
-        body = re.sub(r"^```(?:json)?\s*|\s*```$", "", response.strip())
-        entries = [f for f in json.loads(body)["findings"] if isinstance(f, dict) and normalize_citation(f.get("citation")) and str(f.get("status", "FAIL")).strip().upper() != "PASS"]
-        if not entries:
-            return base, []
-        kept, suppressed = [], []
-        for f in entries:
-            citation = normalize_citation(f["citation"])
-            if not applies(drawing_type, citation):
-                by, detail = "rule_applicability", f"{citation} does not apply to a {drawing_type} drawing: {APPLICABILITY[drawing_type][citation][1]}"
-            else:
-                detail = contradiction(f, markdown)
-                by = "self_contradiction" if detail else None
-            page = f.get("page_num")
-            page = int(page) if isinstance(page, (int, float)) and not isinstance(page, bool) and page >= 0 else 0
-            common = dict(drawing_id=drawing_id, status="FAIL", reason=_one_line(f.get("reason"), 400) or f"Violation of {citation}.", citation=citation,
-                          severity=normalize_severity(f.get("severity")), page_num=page, evidence_text=_one_line(f.get("evidence_text"), 80))
-            if by:
-                suppressed.append({**common, "finding_id": f"{drawing_id}-S{len(suppressed) + 1:02d}", "suppressed_by": by, "suppression_detail": detail[:400]})
-            else:
-                kept.append({**common, "finding_id": f"{drawing_id}-C{len(kept) + 1:02d}"})
-        if kept:
-            return kept, suppressed
-        return [_row(drawing_id, f"{drawing_id}-PASS", "PASS", "No violation of the five checked rules found.")], suppressed
-    except Exception as e:
-        return _review(drawing_id, f"{type(e).__name__}: {str(e)[:120]}"), []
+    """(rows, suppressed) for one drawing. `rows` as flatten_judgement (FAIL rows, or one PASS, or one REVIEW), but a FAIL entry is taken
+    out when its citation does not apply to the drawing type (suppressed_by 'rule_applicability') or when it contradicts itself
+    (suppressed_by 'self_contradiction', which includes the judge's own found_in_text self-check on the presence rules). A drawing whose
+    entries are all suppressed gets the PASS row, its reason saying how many were suppressed. Never raises."""
+    kind, payload = parse_answer(response, error)
+    if kind == "review":
+        return _review(drawing_id, payload), []
+    kept, suppressed = [], []
+    for e in payload:
+        if not applies(drawing_type, e["citation"]):
+            by, detail = "rule_applicability", f"{e['citation']} does not apply to a {drawing_type} drawing: {APPLICABILITY[drawing_type][e['citation']][1]}"
+        else:
+            detail = contradiction(e, markdown)
+            by = "self_contradiction" if detail else None
+        common = dict(drawing_id=drawing_id, status="FAIL", reason=e["reason"], citation=e["citation"], severity=e["severity"],
+                      page_num=e["page_num"], evidence_text=e["evidence_text"])
+        if by:
+            suppressed.append({**common, "finding_id": f"{drawing_id}-S{len(suppressed) + 1:02d}", "suppressed_by": by, "suppression_detail": detail[:400]})
+        else:
+            kept.append({**common, "finding_id": f"{drawing_id}-C{len(kept) + 1:02d}"})
+    if kept:
+        return kept, suppressed
+    if suppressed:
+        return _pass(drawing_id, f"No violation after guardrails ({len(suppressed)} judge {'entry' if len(suppressed) == 1 else 'entries'} suppressed, see compliance_suppressed)."), suppressed
+    return _pass(drawing_id), []
 
 
 # --------------------------------------------------------------------------------------------------
