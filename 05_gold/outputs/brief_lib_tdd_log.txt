@@ -1,0 +1,45 @@
+TDD log for 05_gold/brief_lib.py (validator + prompt builder).
+
+RED: tests written first, brief_lib.py did not exist yet
+$ uv run --no-project --with pytest python -m pytest 05_gold/tests/test_brief_lib.py -v
+ImportError while importing test module '/Users/joseph.hobbs/Downloads/hobbs_fe-local/05_gold/tests/test_brief_lib.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+../../.local/share/uv/python/cpython-3.12.13-macos-aarch64-none/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+05_gold/tests/test_brief_lib.py:11: in <module>
+    import brief_lib as bl  # noqa: E402
+    ^^^^^^^^^^^^^^^^^^^^^^
+E   ModuleNotFoundError: No module named 'brief_lib'
+=========================== short test summary info ============================
+ERROR 05_gold/tests/test_brief_lib.py
+!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
+=============================== 1 error in 0.06s ===============================
+
+GREEN: after implementing brief_lib.py (run shown is the final one, prompt_version v2)
+$ uv run --no-project --with pytest python -m pytest 05_gold/tests/test_brief_lib.py -v
+============================= test session starts ==============================
+platform darwin -- Python 3.12.13, pytest-9.2.0, pluggy-1.7.0 -- /Users/joseph.hobbs/.cache/uv/builds-v0/.tmpnFX7ja/bin/python
+cachedir: .pytest_cache
+rootdir: /Users/joseph.hobbs/Downloads/hobbs_fe-local
+configfile: pyproject.toml
+collecting ... collected 17 items
+05_gold/tests/test_brief_lib.py::test_grounded_brief_passes PASSED       [  5%]
+05_gold/tests/test_brief_lib.py::test_invented_number_fails PASSED       [ 11%]
+05_gold/tests/test_brief_lib.py::test_invented_milestone_fails PASSED    [ 17%]
+05_gold/tests/test_brief_lib.py::test_invented_drawing_fails PASSED      [ 23%]
+05_gold/tests/test_brief_lib.py::test_probability_percentage_fails PASSED [ 29%]
+05_gold/tests/test_brief_lib.py::test_percent_next_to_risk_fails_even_if_number_is_grounded PASSED [ 35%]
+05_gold/tests/test_brief_lib.py::test_probability_word_fails PASSED      [ 41%]
+05_gold/tests/test_brief_lib.py::test_budget_percent_passes PASSED       [ 47%]
+05_gold/tests/test_brief_lib.py::test_money_normalization_passes PASSED  [ 52%]
+05_gold/tests/test_brief_lib.py::test_wrong_money_fails PASSED           [ 58%]
+05_gold/tests/test_brief_lib.py::test_integers_are_exact PASSED          [ 64%]
+05_gold/tests/test_brief_lib.py::test_id_digits_are_not_checked_as_numbers PASSED [ 70%]
+05_gold/tests/test_brief_lib.py::test_list_markers_and_ordinals_are_exempt PASSED [ 76%]
+05_gold/tests/test_brief_lib.py::test_over_length_fails PASSED           [ 82%]
+05_gold/tests/test_brief_lib.py::test_150_words_is_the_limit PASSED      [ 88%]
+05_gold/tests/test_brief_lib.py::test_prompt_contains_rules_and_context_and_no_probability PASSED [ 94%]
+05_gold/tests/test_brief_lib.py::test_retry_prompt_appends_failures PASSED [100%]
+============================== 17 passed in 0.02s ==============================

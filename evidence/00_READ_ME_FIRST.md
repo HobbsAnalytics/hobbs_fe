@@ -80,7 +80,7 @@ Not an FE Bar box, but everything below writes into these objects.
 | ☑ done | [`evidence/sample_compliance_outputs/compliance_eval_summary.md`](sample_compliance_outputs/compliance_eval_summary.md) | The scorecard of the AI compliance judge against the 274 planted flaws: headline precision / recall / F1 (final table: 58.1% / 81.0% / 67.7%), per-flaw-type table, A/B/C columns, prompt lineage (v2 flagged as superseded for integrity), drawing-level and as-of-week confusion, per-drawing-type results, wins and losses, false-positive causes, MLflow experiment and run ids, the non-determinism note |
 | ☑ done | [`04_vector_search/outputs/corpus_sample.md`](../04_vector_search/outputs/corpus_sample.md) | The code-excerpt corpus behind the Vector Search index |
 | ☑ done | [`04_vector_search/outputs/sample_query.md`](../04_vector_search/outputs/sample_query.md) | A live index query for "flange rating" returning `ASME B16.5 §4.2` |
-| ☐ pending | [`05_gold/outputs/daily_brief_today.md`](../05_gold/outputs/daily_brief_today.md) | The `ai_query` narrator's daily brief |
+| ☑ done | [`05_gold/outputs/daily_brief_today.md`](../05_gold/outputs/daily_brief_today.md) | The `ai_query` narrator's daily brief |
 
 ## 5. ML: schedule-risk forecast
 
@@ -136,7 +136,7 @@ Each has its outputs embedded in the `.ipynb` and an HTML export of the same run
 | ☑ done | [`04_vector_search/02_create_endpoint_and_index.ipynb`](../04_vector_search/02_create_endpoint_and_index.ipynb) | [html](notebook_html_exports/02_create_endpoint_and_index.html) | 4 |
 | ☑ done | [`05_gold/01_kpi_daily.ipynb`](../05_gold/01_kpi_daily.ipynb) | [html](notebook_html_exports/01_kpi_daily.html) | 5 |
 | ☑ done | [`05_gold/02_risk_forecast.ipynb`](../05_gold/02_risk_forecast.ipynb) | [html](notebook_html_exports/02_risk_forecast.html) | 5 |
-| ☐ pending | [`05_gold/03_daily_brief.ipynb`](../05_gold/03_daily_brief.ipynb) | [html](notebook_html_exports/03_daily_brief.html) | 4 |
+| ☑ done | [`05_gold/03_daily_brief.ipynb`](../05_gold/03_daily_brief.ipynb) | [html](notebook_html_exports/03_daily_brief.html) | 4 |
 | ☐ pending | [`06_governance/apply.ipynb`](../06_governance/apply.ipynb) | [html](notebook_html_exports/apply.html) | 2 |
 | ☐ pending | [`07_genie_agent/01_create_space.ipynb`](../07_genie_agent/01_create_space.ipynb) | [html](notebook_html_exports/01_create_space.html) | 6 |
 | ☐ pending | [`07_genie_agent/02_run_sample_qa.ipynb`](../07_genie_agent/02_run_sample_qa.ipynb) | [html](notebook_html_exports/02_run_sample_qa.html) | 6 |
