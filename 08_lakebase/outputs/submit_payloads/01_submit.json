@@ -1,0 +1,13 @@
+{
+  "run_name": "bluerridge T16 01_create_instance (one-time evidence run)",
+  "tasks": [
+    {
+      "task_key": "main",
+      "disable_auto_optimization": true,
+      "notebook_task": {
+        "notebook_path": "/Workspace/Users/joseph.hobbs@databricks.com/_scratch_bluerridge/08_lakebase/01_create_instance",
+        "base_parameters": {"run_id": "{{job.run_id}}"}
+      }
+    }
+  ]
+}

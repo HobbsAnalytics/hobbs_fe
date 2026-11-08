@@ -16,7 +16,7 @@ Status key: **☑ done** means the file is committed and the link resolves. **�
 |---|---|---|---|
 | 1 | Lakeflow ingestion | [`02_pipelines/outputs/pipeline_project_run_summary.md`](../02_pipelines/outputs/pipeline_project_run_summary.md) (project data) and [`02_pipelines/outputs/pipeline_drawings_run_summary.md`](../02_pipelines/outputs/pipeline_drawings_run_summary.md) (drawing PDFs) | ☑ done |
 | 2 | Unity Catalog governance | [`evidence/grant_listing.md`](grant_listing.md) | ☑ done |
-| 3 | Lakebase | [`08_lakebase/outputs/synced_tables_listing.md`](../08_lakebase/outputs/synced_tables_listing.md) | ☐ pending |
+| 3 | Lakebase | [`08_lakebase/outputs/synced_tables_listing.md`](../08_lakebase/outputs/synced_tables_listing.md) | ☑ done |
 | 4 | GenAI: document intelligence | [`evidence/sample_compliance_outputs/compliance_eval_summary.md`](sample_compliance_outputs/compliance_eval_summary.md) | ☑ done |
 | 5 | ML: schedule-risk forecast | [`evidence/risk_model_metrics.json`](risk_model_metrics.json) | ☑ done |
 | 6 | Genie Agent | [`evidence/genie_qa_transcript.md`](genie_qa_transcript.md) | ☑ done |
@@ -67,7 +67,8 @@ Not an FE Bar box, but everything below writes into these objects.
 
 | Status | Artifact | What it proves |
 |---|---|---|
-| ☐ pending | [`08_lakebase/outputs/synced_tables_listing.md`](../08_lakebase/outputs/synced_tables_listing.md) | Instance `bluerridge-pm`, its three synced tables in state AVAILABLE, a row count read back over Postgres for each, and the read-write DNS |
+| ☑ done | [`08_lakebase/outputs/synced_tables_listing.md`](../08_lakebase/outputs/synced_tables_listing.md) | Lakebase project `bluerridge-pm` (1 CU, ACTIVE), its five synced tables online, a row count read back over Postgres equal to the Unity Catalog count for each, the read-write DNS, a Lakebase vs SQL warehouse latency comparison (p50/p95), and why `drawing_register` is not synced |
+| ☑ done | [`08_lakebase/app_grants.sql`](../08_lakebase/app_grants.sql) | The Postgres grants the app's service principal needs (CONNECT, USAGE, SELECT on the five tables) so it does not fail on first boot with `42501`; steps in `docs/BUILD.md`, "Lakebase + app" |
 
 ## 4. GenAI: document intelligence
 
@@ -143,6 +144,6 @@ Each has its outputs embedded in the `.ipynb` and an HTML export of the same run
 | ☑ done | [`06_governance/apply.ipynb`](../06_governance/apply.ipynb) | [html](notebook_html_exports/apply_governance.html) | 2 |
 | ☑ done | [`07_genie_agent/01_create_space.ipynb`](../07_genie_agent/01_create_space.ipynb) | [html](notebook_html_exports/01_create_space.html) | 6 |
 | ☑ done | [`07_genie_agent/02_run_sample_qa.ipynb`](../07_genie_agent/02_run_sample_qa.ipynb) | [html](notebook_html_exports/02_run_sample_qa.html) | 6 |
-| ☐ pending | [`08_lakebase/01_create_instance.ipynb`](../08_lakebase/01_create_instance.ipynb) | [html](notebook_html_exports/01_create_instance.html) | 3 |
+| ☑ done | [`08_lakebase/01_create_instance.ipynb`](../08_lakebase/01_create_instance.ipynb) | [html](notebook_html_exports/01_create_instance.html) | 3 |
 
 How a notebook is executed and captured is described in [`docs/BUILD.md`](../docs/BUILD.md#running-a-notebook-so-its-outputs-are-real).

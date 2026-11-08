@@ -38,7 +38,7 @@ Each stage reads what the earlier stages wrote.
 | 5 | Gold | `05_gold/` | `kpi_daily`, `risk_forecast`, `daily_brief` |
 | 6 | Governance | `06_governance/` | Tags, a row filter on `gold_pm.drawing_register`, lineage evidence; grants are in `grants.sql` (see "Governance follow-ups") |
 | 7 | Genie Space | `07_genie_agent/`, `resources/genie-space.yml` | Genie Space "Blue Ridge LNG — PM Co-Pilot (synthetic)" (bundle resource `bluerridge_pm_copilot`) and its Q&A transcript |
-| 8 | Lakebase | `08_lakebase/`, `resources/lakebase.yml` | Instance `bluerridge-pm` with synced `kpi_daily`, `compliance_findings`, `risk_forecast` |
+| 8 | Lakebase | `08_lakebase/`, `resources/lakebase.yml` | Lakebase project `bluerridge-pm` (bundle `postgres_projects`) with the five hot-path tables synced into Postgres schema `bluerridge_app` (bundle `postgres_synced_tables`): `kpi_daily`, `compliance_findings`, `risk_forecast`, `schedule_overdue`, `daily_brief`. `01_create_instance.ipynb` confirms state, row counts and latency; `app_grants.sql` is run after the app exists |
 | 9 | App | `09_app/`, `resources/app.yml` | The Databricks App (`09_app/deploy.sh`) |
 
 Catalog `mfg_mc_se_sa` is shared with other teams: touch only objects whose schema starts with `bluerridge_`.
@@ -87,6 +87,56 @@ Things the recipe depends on:
 - **Supported outputs** are stdout (`print`) and `display(df)` tables. Any other output type (images, HTML, errors) makes the tool stop rather than drop it silently.
 - **`outputs/` is relative.** A notebook run uses its own folder as the working directory, so `outputs/...` lands next to the workspace notebook. The scratch folder has no `outputs/` directory, so notebooks create it themselves.
 - **A notebook that imports a module from its own folder** (`02_generate_drawings.ipynb` imports `02_generate_drawings.py`) needs that file next to it in step 1: `databricks workspace import $SCRATCH/$NB.py --file $NB.py --format AUTO --overwrite --profile DEFAULT`. A `.py` without the `# Databricks notebook source` header lands as a workspace file (`workspace list` shows `FILE`), and the notebook puts its working directory on `sys.path`. A bundle deploy uploads the module the same way.
+
+## Lakebase + app
+
+**Flavor and how it is declared.** The "instance" `bluerridge-pm` is a Lakebase **Autoscaling** project (one `production` branch, one `primary` read-write endpoint, Postgres 17), not a Provisioned `database_instances` instance. Evidence for the choice: (a) `databricks bundle schema` on CLI v1.20.0 defines `postgres_projects`, `postgres_branches`, `postgres_endpoints`, `postgres_databases`, `postgres_catalogs` and `postgres_synced_tables` as well as the older `database_instances` / `synced_database_tables`; (b) the current Lakebase guidance treats Provisioned as retired and says the legacy `synced_database_tables` resource fails on current Lakebase, and a Databricks App binds Lakebase through the `postgres` resource key (`branch` + `database`), which targets Autoscaling projects (the old `database` key, `instance_name`, is deprecated). Both the project and the five synced tables deploy as ordinary bundle resources from `resources/lakebase.yml` with `databricks bundle deploy -t demo --profile DEFAULT`, so no SDK-only path is needed and no YAML is dead. `01_create_instance.ipynb` only confirms their state. (The `postgres_synced_tables` resource is newer than some skill docs say; it validated, deployed and produced five online tables in this workspace.)
+
+**Capacity.** The Autoscaling floor is 0.5 CU; the project pins the endpoint to 1 CU min and max (`default_endpoint_settings`), the closest match to the "CU_1" in the plan. Postgres database `databricks_postgres`, schema `bluerridge_app` (created by the synced tables). Endpoint host and counts are in `08_lakebase/outputs/synced_tables_listing.md`.
+
+**Synced tables (SNAPSHOT).** Source `mfg_mc_se_sa.bluerridge_gold_pm.<t>` becomes UC table `mfg_mc_se_sa.bluerridge_app.<t>_synced` and Postgres table `bluerridge_app.<t>_synced`, for the five tables above. SNAPSHOT because the gold tables are rewritten with `CREATE OR REPLACE` and have no Change Data Feed (TRIGGERED and CONTINUOUS need it). Each synced table has its own small managed pipeline in `mfg_mc_se_sa.bluerridge_app`. **Refresh (Task 24):** after any gold refresh, re-sync, for example by starting an update of each synced table's pipeline (`databricks postgres get-synced-table synced_tables/mfg_mc_se_sa.bluerridge_app.<t>_synced` shows `status.pipeline_id`; `databricks pipelines start-update <pipeline_id> --profile DEFAULT`), then re-run `08_lakebase/app_grants.sql` if a table was recreated. **`drawing_register` is never synced:** it has a Unity Catalog row filter that does not propagate to a Postgres copy; the app reads it through the SQL warehouse.
+
+**App resource binding (Task 24, `resources/app.yml`).**
+
+```yaml
+resources:
+  - name: postgres                      # the resource key; app.yaml reads it with `valueFrom: postgres`
+    postgres:
+      branch: projects/bluerridge-pm/branches/production
+      database: projects/bluerridge-pm/branches/production/databases/databricks-postgres
+      permission: CAN_CONNECT_AND_CREATE
+```
+
+The app also needs `postgres` in its `user_api_scopes`/scopes list only if it connects as the signed-in user; the plan has the app connect as its service principal, so the binding above is enough.
+
+**How the app gets credentials (Task 19 implements this).** The platform injects `PGHOST`, `PGPORT`, `PGDATABASE`, `PGUSER` (the app service principal's client id), `PGSSLMODE` and, with `env: - name: LAKEBASE_ENDPOINT / valueFrom: postgres`, the endpoint path `projects/bluerridge-pm/branches/production/endpoints/primary`. There is no static password: the backend calls `WorkspaceClient().postgres.generate_database_credential(endpoint=os.environ["LAKEBASE_ENDPOINT"]).token` (an OAuth token valid for about an hour) and passes it as the psycopg `password` with `sslmode=require`. Refresh it before expiry (every 30 to 40 minutes, or on a new pooled connection) and retry once on a connection error. Queries use the schema-qualified names `bluerridge_app.kpi_daily_synced` and so on. The notebook proves this exact pattern, with the signed-in user instead of the SP.
+
+**Grant steps and ordering (the first-boot `42501`).** Binding the database lets the SP connect and create its own objects, but not read schema `bluerridge_app`, which the sync writer owns. Order:
+
+1. `databricks bundle deploy -t demo --profile DEFAULT` (project, synced tables, then the app, which creates the SP).
+2. Wait for the five synced tables to be online (`01_create_instance.ipynb`, or `get-synced-table`).
+3. Get the SP client id: `databricks apps get <app> --profile DEFAULT -o json`, field `service_principal_client_id`.
+4. If `databricks postgres list-roles projects/bluerridge-pm/branches/production` shows no role for it yet, create one (command in the header of `08_lakebase/app_grants.sql`; the role id is `sp-<client id>`, the Postgres role name is the bare client id).
+5. Run `08_lakebase/app_grants.sql` as the project owner with `${APP_SP_ROLE}` replaced by the client id: generate a credential with `databricks postgres generate-database-credential projects/bluerridge-pm/branches/production/endpoints/primary --profile DEFAULT -o json`, then connect with psql or psycopg to the endpoint host, database `databricks_postgres`, user = your email, and run the file. It grants CONNECT on the database, USAGE on the schema and SELECT on the five tables. It does **not** use `ALTER DEFAULT PRIVILEGES` (the owner cannot set it for the sync writer role); re-run the file if a re-sync recreates a table.
+6. Only then start or restart the app.
+
+The statements in `app_grants.sql` were dry-run in a rolled-back transaction against the live endpoint (with the owner's own role in place of the placeholder), so the syntax is verified; the real SP role does not exist until the app does.
+
+**Cost and stopping it after the roleplay.** The endpoint is a fixed 1 CU and its scale-to-zero suspend timeout is 86400 s, so an idle project keeps one CU running for up to a day after the last connection. The five snapshot pipelines only run when a sync is triggered. To save cost sooner:
+
+```bash
+# shorten the idle timeout (compute suspends 5 minutes after the last connection and wakes in about a second)
+databricks postgres update-endpoint projects/bluerridge-pm/branches/production/endpoints/primary spec.suspend_timeout_duration \
+  --json '{"spec":{"suspend_timeout_duration":"300s"}}' --profile DEFAULT
+# or switch the compute off completely (re-enable with "disabled": false)
+databricks postgres update-endpoint projects/bluerridge-pm/branches/production/endpoints/primary spec.disabled \
+  --json '{"spec":{"disabled":true}}' --profile DEFAULT
+# delete everything when the demo is retired: synced tables first, then the project (permanent, data included)
+databricks postgres delete-synced-table synced_tables/mfg_mc_se_sa.bluerridge_app.<t>_synced --profile DEFAULT   # five times
+databricks postgres delete-project projects/bluerridge-pm --profile DEFAULT
+```
+
+If the project is deleted outside the bundle, remove `resources/lakebase.yml` from `databricks.yml` (or run `databricks bundle destroy`, which also removes the other resources) before the next `bundle deploy`, otherwise it recreates them. Only `bluerridge-pm` belongs to this project; other Lakebase instances and projects in the workspace are not ours.
 
 ## Genie space
 
