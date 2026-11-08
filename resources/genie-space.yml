@@ -1,0 +1,15 @@
+# Genie Space for the PM Co-Pilot chat (the "Genie Agent" box).
+#
+# CLI v1.20.0's bundle schema defines `genie_spaces` (grep `databricks bundle schema` for "genie"), so the space is a
+# normal bundle resource. The definition (tables, descriptions, synonyms, instructions, 10 example SQLs) is generated
+# by 07_genie_agent/build_space.py into genie_space.geniespace.json and inlined here at deploy time.
+# 07_genie_agent/01_create_space.ipynb finds the space by title, re-applies the same definition (idempotent) and writes
+# the space id to 07_genie_agent/outputs/space_id.txt.
+resources:
+  genie_spaces:
+    bluerridge_pm_copilot:
+      title: "Blue Ridge LNG — PM Co-Pilot (synthetic)"
+      description: "Ask about drawing compliance, schedule, risk, cost, safety and NCRs for the Blue Ridge LNG Terminal Phase 2 build. All data is synthetic (demo)."
+      warehouse_id: ${var.warehouse_id}
+      parent_path: /Workspace/Users/${workspace.current_user.userName}/genie_spaces
+      file_path: ../07_genie_agent/genie_space.geniespace.json

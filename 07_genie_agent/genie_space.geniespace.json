@@ -1,0 +1,583 @@
+{
+  "version": 2,
+  "config": {
+    "sample_questions": [
+      {
+        "id": "10000000000000000000000000000001",
+        "question": [
+          "How many drawings failed compliance review this week, out of how many reviewed?"
+        ]
+      },
+      {
+        "id": "10000000000000000000000000000002",
+        "question": [
+          "Show failed compliance findings this week by code citation."
+        ]
+      },
+      {
+        "id": "10000000000000000000000000000003",
+        "question": [
+          "Which piping isometric drawings failed compliance this week?"
+        ]
+      },
+      {
+        "id": "10000000000000000000000000000004",
+        "question": [
+          "Which milestones are already late, and by how many days?"
+        ]
+      },
+      {
+        "id": "10000000000000000000000000000005",
+        "question": [
+          "What are the top 3 highest-risk milestones in the next 90 days?"
+        ]
+      },
+      {
+        "id": "10000000000000000000000000000006",
+        "question": [
+          "Explain the budget variance: how far over budget are we?"
+        ]
+      },
+      {
+        "id": "10000000000000000000000000000007",
+        "question": [
+          "How many open NCRs do we have, by category?"
+        ]
+      },
+      {
+        "id": "10000000000000000000000000000008",
+        "question": [
+          "What is our safety record: TRIR and days without an incident?"
+        ]
+      },
+      {
+        "id": "10000000000000000000000000000009",
+        "question": [
+          "What does OSHA 1910.147 require?"
+        ]
+      },
+      {
+        "id": "1000000000000000000000000000000a",
+        "question": [
+          "How accurate is the AI compliance judge?"
+        ]
+      }
+    ]
+  },
+  "data_sources": {
+    "tables": [
+      {
+        "identifier": "mfg_mc_se_sa.bluerridge_agents.code_excerpts",
+        "description": [
+          "One row per code clause (52), paraphrased requirement text, keyed by citation_label (synthetic)."
+        ],
+        "column_configs": [
+          {
+            "column_name": "citation_label",
+            "description": [
+              "Exact citation label; matches compliance_findings.citation. Synthetic paraphrase of the requirement, not the standard text."
+            ],
+            "synonyms": [
+              "citation",
+              "clause",
+              "code reference"
+            ]
+          },
+          {
+            "column_name": "text",
+            "description": [
+              "Paraphrased requirement text for the clause. Mentions LOTO = lockout/tagout, PSV = pressure safety (relief) valve where relevant."
+            ],
+            "synonyms": [
+              "requirement",
+              "what the code requires"
+            ]
+          }
+        ]
+      },
+      {
+        "identifier": "mfg_mc_se_sa.bluerridge_gold_pm.compliance_eval",
+        "description": [
+          "Precision/recall of the AI compliance judge per citation, prompt version and scoring column. Headline: v3_final, column C, citation ALL."
+        ],
+        "column_configs": [
+          {
+            "column_name": "citation",
+            "description": [
+              "Citation scored; the value 'ALL' is the overall row across every citation, not a clause."
+            ],
+            "synonyms": [
+              "code",
+              "clause"
+            ]
+          },
+          {
+            "column_name": "eval_column",
+            "description": [
+              "Scoring view: A = all raw judge entries, B = after the judge's self-check, C = after guardrails (the headline view)."
+            ],
+            "synonyms": [
+              "scoring column",
+              "view"
+            ]
+          },
+          {
+            "column_name": "precision",
+            "description": [
+              "Fraction (0-1) of flagged FAILs that match planted flaws. Multiply by 100 for a percent."
+            ],
+            "synonyms": [
+              "accuracy",
+              "judge accuracy"
+            ]
+          },
+          {
+            "column_name": "prompt_version",
+            "description": [
+              "Version of the AI judge prompt: v1_baseline, v2_prompt_hints, v3_final. v3_final is the shipped judge."
+            ],
+            "synonyms": [
+              "judge version",
+              "prompt"
+            ]
+          },
+          {
+            "column_name": "recall",
+            "description": [
+              "Fraction (0-1) of planted flaws the judge caught. Multiply by 100 for a percent."
+            ],
+            "synonyms": [
+              "hit rate",
+              "catch rate",
+              "sensitivity"
+            ]
+          }
+        ]
+      },
+      {
+        "identifier": "mfg_mc_se_sa.bluerridge_gold_pm.compliance_findings",
+        "description": [
+          "AI compliance review of drawings: one row per finding, plus a PASS row for each clean drawing. Triage list for engineers, not a final determination."
+        ],
+        "column_configs": [
+          {
+            "column_name": "citation",
+            "description": [
+              "Illustrative project code label of the clause checked; join to code_excerpts.citation_label. 'OSHA 1910.147' = lockout/tagout (LOTO)."
+            ],
+            "synonyms": [
+              "code",
+              "clause",
+              "standard",
+              "code reference",
+              "LOTO",
+              "lockout tagout"
+            ]
+          },
+          {
+            "column_name": "discipline",
+            "description": [
+              "Engineering discipline: piping, instr (instrumentation), mechanical, electrical, structural."
+            ],
+            "synonyms": [
+              "trade",
+              "engineering discipline"
+            ]
+          },
+          {
+            "column_name": "drawing_id",
+            "description": [
+              "Drawing identifier, e.g. BRL-PIP-ISO-0206 (project, discipline, type, number)."
+            ],
+            "synonyms": [
+              "drawing",
+              "drawing number",
+              "dwg"
+            ]
+          },
+          {
+            "column_name": "drawing_type",
+            "description": [
+              "Drawing type: ISO = isometric, PID = P&ID = piping and instrumentation diagram, GA = general arrangement, SPEC = specification, OTHER."
+            ],
+            "synonyms": [
+              "ISO",
+              "isometric",
+              "P&ID",
+              "PID",
+              "piping and instrumentation diagram",
+              "GA",
+              "general arrangement"
+            ]
+          },
+          {
+            "column_name": "review_date",
+            "description": [
+              "Date the drawing was reviewed. 'This week' = 2026-10-31 to 2026-11-06."
+            ],
+            "synonyms": [
+              "reviewed on",
+              "check date"
+            ]
+          },
+          {
+            "column_name": "severity",
+            "description": [
+              "Severity of a FAIL finding: critical, high, medium."
+            ],
+            "synonyms": [
+              "seriousness"
+            ]
+          },
+          {
+            "column_name": "status",
+            "description": [
+              "Finding result: PASS (clean drawing sentinel row), FAIL (a possible code violation for engineer review), REVIEW (judge answer unusable)."
+            ],
+            "synonyms": [
+              "result",
+              "outcome",
+              "pass fail"
+            ]
+          }
+        ]
+      },
+      {
+        "identifier": "mfg_mc_se_sa.bluerridge_gold_pm.daily_brief",
+        "description": [
+          "The generated daily project brief (one row per day, markdown in brief_md)."
+        ]
+      },
+      {
+        "identifier": "mfg_mc_se_sa.bluerridge_gold_pm.drawing_register",
+        "description": [
+          "Register of all 1,200 drawings with discipline, type and latest review status. ISO = isometric, PID = P&ID, GA = general arrangement."
+        ],
+        "column_configs": [
+          {
+            "column_name": "drawing_type",
+            "description": [
+              "Drawing type: ISO = isometric (piping isometric), PID = P&ID = piping and instrumentation diagram, GA = general arrangement, SPEC = specification, OTHER."
+            ],
+            "synonyms": [
+              "ISO",
+              "isometric",
+              "P&ID",
+              "PID",
+              "piping and instrumentation diagram",
+              "GA",
+              "general arrangement",
+              "drawing kind"
+            ]
+          }
+        ]
+      },
+      {
+        "identifier": "mfg_mc_se_sa.bluerridge_gold_pm.kpi_daily",
+        "description": [
+          "Daily project KPI snapshot (budget, safety, NCR counts, compliance week counts). is_current marks the latest (2026-11-06)."
+        ],
+        "column_configs": [
+          {
+            "column_name": "budget_eac_pct",
+            "description": [
+              "EAC = estimate at completion. Percent over (+) or under (-) the total budget."
+            ],
+            "synonyms": [
+              "EAC variance",
+              "budget variance",
+              "over budget"
+            ]
+          },
+          {
+            "column_name": "is_current",
+            "description": [
+              "True on the latest snapshot (2026-11-06)."
+            ],
+            "synonyms": [
+              "latest",
+              "current"
+            ]
+          },
+          {
+            "column_name": "safety_days_without_incident",
+            "description": [
+              "Days since the last recordable incident."
+            ],
+            "synonyms": [
+              "days incident-free",
+              "days without incident",
+              "days since last incident"
+            ]
+          },
+          {
+            "column_name": "trir_28d",
+            "description": [
+              "TRIR = total recordable incident rate over the last 28 days."
+            ],
+            "synonyms": [
+              "TRIR",
+              "total recordable incident rate",
+              "safety rate"
+            ]
+          }
+        ]
+      },
+      {
+        "identifier": "mfg_mc_se_sa.bluerridge_gold_pm.risk_forecast",
+        "description": [
+          "Open milestones due in the next 90 days with a risk_band (High/Medium/Low) and risk_rank. slip_probability is a ranking score, not a chance."
+        ],
+        "column_configs": [
+          {
+            "column_name": "risk_band",
+            "description": [
+              "Risk band for slipping: High, Medium or Low. Use this, not slip_probability."
+            ],
+            "synonyms": [
+              "risk level",
+              "risk rating",
+              "schedule risk"
+            ]
+          },
+          {
+            "column_name": "risk_rank",
+            "description": [
+              "Rank by risk, 1 = highest."
+            ],
+            "synonyms": [
+              "risk order",
+              "priority"
+            ]
+          },
+          {
+            "column_name": "slip_probability",
+            "description": [
+              "Heuristic ranking score only. NOT a calibrated probability: never present it as a percentage or chance."
+            ],
+            "synonyms": [
+              "ranking score"
+            ]
+          }
+        ]
+      },
+      {
+        "identifier": "mfg_mc_se_sa.bluerridge_gold_pm.schedule_overdue",
+        "description": [
+          "Open milestones past planned_end (days_late > 0) or due today (days_late = 0), with downstream impact counts."
+        ],
+        "column_configs": [
+          {
+            "column_name": "days_late",
+            "description": [
+              "Days past planned_end for an open milestone. > 0 = late; 0 = due today."
+            ],
+            "synonyms": [
+              "days overdue",
+              "slipped days",
+              "days behind"
+            ]
+          }
+        ]
+      },
+      {
+        "identifier": "mfg_mc_se_sa.bluerridge_silver_engineering.change_orders",
+        "description": [
+          "Change orders with status (approved/pending/rejected), amount in USD and schedule impact."
+        ],
+        "column_configs": [
+          {
+            "column_name": "amount_usd",
+            "description": [
+              "Change order value in US dollars."
+            ],
+            "synonyms": [
+              "CO value",
+              "change order amount"
+            ]
+          }
+        ]
+      },
+      {
+        "identifier": "mfg_mc_se_sa.bluerridge_silver_engineering.ncrs",
+        "description": [
+          "NCR = nonconformance reports: category, severity, status (open/closed), area, dates, linked milestone."
+        ],
+        "column_configs": [
+          {
+            "column_name": "category",
+            "description": [
+              "NCR = nonconformance report. Category: compliance, workmanship, materials, documentation."
+            ],
+            "synonyms": [
+              "NCR type",
+              "nonconformance category"
+            ]
+          },
+          {
+            "column_name": "status",
+            "description": [
+              "open or closed."
+            ]
+          }
+        ]
+      },
+      {
+        "identifier": "mfg_mc_se_sa.bluerridge_silver_engineering.schedule",
+        "description": [
+          "Full milestone schedule: planned and actual dates, discipline, dependencies, criticality."
+        ],
+        "column_configs": [
+          {
+            "column_name": "slip_days",
+            "description": [
+              "Days the milestone finished late (completed milestones)."
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "instructions": {
+    "example_question_sqls": [
+      {
+        "id": "20000000000000000000000000000001",
+        "question": [
+          "How many drawings failed compliance review this week, out of how many reviewed?"
+        ],
+        "sql": [
+          "SELECT COUNT(DISTINCT drawing_id) AS drawings_reviewed,\n",
+          "       COUNT(DISTINCT CASE WHEN status = 'FAIL' THEN drawing_id END) AS drawings_failed,\n",
+          "       COUNT(DISTINCT CASE WHEN status = 'PASS' THEN drawing_id END) AS drawings_passed\n",
+          "FROM mfg_mc_se_sa.bluerridge_gold_pm.compliance_findings\n",
+          "WHERE review_date BETWEEN '2026-10-31' AND '2026-11-06'"
+        ]
+      },
+      {
+        "id": "20000000000000000000000000000002",
+        "question": [
+          "Show failed compliance findings this week by code citation."
+        ],
+        "sql": [
+          "SELECT citation, COUNT(*) AS failed_findings, COUNT(DISTINCT drawing_id) AS drawings\n",
+          "FROM mfg_mc_se_sa.bluerridge_gold_pm.compliance_findings\n",
+          "WHERE status = 'FAIL' AND review_date BETWEEN '2026-10-31' AND '2026-11-06'\n",
+          "GROUP BY citation\n",
+          "ORDER BY failed_findings DESC"
+        ]
+      },
+      {
+        "id": "20000000000000000000000000000003",
+        "question": [
+          "Which piping isometric drawings failed compliance this week?"
+        ],
+        "sql": [
+          "SELECT DISTINCT drawing_id\n",
+          "FROM mfg_mc_se_sa.bluerridge_gold_pm.compliance_findings\n",
+          "WHERE status = 'FAIL' AND discipline = 'piping' AND drawing_type = 'ISO' AND review_date BETWEEN '2026-10-31' AND '2026-11-06'\n",
+          "ORDER BY drawing_id"
+        ]
+      },
+      {
+        "id": "20000000000000000000000000000004",
+        "question": [
+          "Which milestones are already late, and by how many days?"
+        ],
+        "sql": [
+          "SELECT milestone_id, name, discipline, planned_end, days_late\n",
+          "FROM mfg_mc_se_sa.bluerridge_gold_pm.schedule_overdue\n",
+          "WHERE days_late > 0\n",
+          "ORDER BY days_late DESC"
+        ]
+      },
+      {
+        "id": "20000000000000000000000000000005",
+        "question": [
+          "What are the top 3 highest-risk milestones in the next 90 days?"
+        ],
+        "sql": [
+          "SELECT milestone_id, name, discipline, planned_end, risk_band, risk_rank\n",
+          "FROM mfg_mc_se_sa.bluerridge_gold_pm.risk_forecast\n",
+          "WHERE risk_band = 'High'\n",
+          "ORDER BY risk_rank\n",
+          "LIMIT 3"
+        ]
+      },
+      {
+        "id": "20000000000000000000000000000006",
+        "question": [
+          "Explain the budget variance: how far over budget are we?"
+        ],
+        "sql": [
+          "SELECT budget_total_usd, budget_overrun_usd, budget_eac_pct\n",
+          "FROM mfg_mc_se_sa.bluerridge_gold_pm.kpi_daily\n",
+          "WHERE is_current"
+        ]
+      },
+      {
+        "id": "20000000000000000000000000000007",
+        "question": [
+          "How many open NCRs do we have, by category?"
+        ],
+        "sql": [
+          "SELECT category, COUNT(*) AS open_ncrs\n",
+          "FROM mfg_mc_se_sa.bluerridge_silver_engineering.ncrs\n",
+          "WHERE status = 'open'\n",
+          "GROUP BY category\n",
+          "ORDER BY open_ncrs DESC"
+        ]
+      },
+      {
+        "id": "20000000000000000000000000000008",
+        "question": [
+          "What is our safety record: TRIR and days without an incident?"
+        ],
+        "sql": [
+          "SELECT trir_28d, safety_days_without_incident, recordables_28d\n",
+          "FROM mfg_mc_se_sa.bluerridge_gold_pm.kpi_daily\n",
+          "WHERE is_current"
+        ]
+      },
+      {
+        "id": "20000000000000000000000000000009",
+        "question": [
+          "What does OSHA 1910.147 require?"
+        ],
+        "sql": [
+          "SELECT citation_label, title, text\n",
+          "FROM mfg_mc_se_sa.bluerridge_agents.code_excerpts\n",
+          "WHERE citation_label = 'OSHA 1910.147'"
+        ]
+      },
+      {
+        "id": "2000000000000000000000000000000a",
+        "question": [
+          "How accurate is the AI compliance judge?"
+        ],
+        "sql": [
+          "SELECT prompt_version, eval_column, ROUND(`precision` * 100, 1) AS precision_pct, ROUND(recall * 100, 1) AS recall_pct\n",
+          "FROM mfg_mc_se_sa.bluerridge_gold_pm.compliance_eval\n",
+          "WHERE prompt_version = 'v3_final' AND eval_column = 'C' AND citation = 'ALL'"
+        ]
+      }
+    ],
+    "text_instructions": [
+      {
+        "id": "30000000000000000000000000000001",
+        "content": [
+          "You answer questions for the Project Manager of the Blue Ridge LNG Terminal, Phase 2 (a Bechtel-style LNG build). ALL DATA IS SYNTHETIC; the code citation labels (for example 'ASME B31.3 §322', 'OSHA 1910.147') are illustrative project labels and the clause text is a paraphrase, not the standard.\n",
+          "DATES: 'Today' is 2026-11-06 (the as-of date); do not use the system date. 'This week' for compliance means review_date BETWEEN '2026-10-31' AND '2026-11-06' on compliance_findings.\n",
+          "COMPLIANCE: compliance_findings has one row per finding; a clean drawing has one PASS row. When asked 'how many drawings failed', COUNT(DISTINCT drawing_id) with status = 'FAIL' (a drawing fails if it has at least one FAIL row); 'findings' means rows. 'Reviewed' is the distinct drawings with a row in the window. Treat compliance answers as a TRIAGE LIST for engineer review, not a final determination; the AI judge has known false positives.\n",
+          "CODE CLAUSES: to explain a clause or citation, look it up in bluerridge_agents.code_excerpts with citation_label = the exact citation (for example WHERE citation_label = 'OSHA 1910.147'); summarize its title and text.\n",
+          "JUDGE ACCURACY: compliance_eval holds precision and recall per citation and prompt version. The headline judge result is prompt_version = 'v3_final', eval_column = 'C' (after guardrails), citation = 'ALL'. Quote precision and recall as percentages.\n",
+          "SCHEDULE: 'late' or 'overdue' means schedule_overdue.days_late > 0; days_late = 0 means 'due today', not late. Use schedule_overdue for what is late now. silver_engineering.schedule is the full milestone plan (planned and actual dates, dependencies).\n",
+          "RISK: risk_forecast covers open milestones in the next 90 days. Present risk as risk_band (High / Medium / Low) and order by risk_rank (1 = highest). NEVER state slip_probability as a percentage or a chance of slipping; it is an uncalibrated heuristic ranking score. Do not select it unless asked how the ranking is built, and then say it is only a ranking score.\n",
+          "COST: the project budget variance is in kpi_daily (budget_eac_pct = estimate at completion over budget, in percent; budget_overrun_usd; budget_total_usd). kpi_daily has one row per snapshot_date; use is_current (true) for the latest.\n",
+          "SAFETY AND NCRs: kpi_daily has trir_28d, recordables_28d, safety_days_without_incident and the open NCR counts. For NCR detail use silver_engineering.ncrs; 'open' means status = 'open'.\n",
+          "JOINS: join on drawing_id (compliance_findings, drawing_register) and milestone_id (schedule, schedule_overdue, risk_forecast, ncrs).\n",
+          "If the data cannot answer a question, say so instead of guessing."
+        ]
+      }
+    ]
+  }
+}

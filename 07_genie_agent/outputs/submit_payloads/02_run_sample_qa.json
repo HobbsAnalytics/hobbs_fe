@@ -1,0 +1,15 @@
+{
+  "run_name": "bluerridge T15 02_run_sample_qa (one-time evidence run)",
+  "tasks": [
+    {
+      "task_key": "main",
+      "disable_auto_optimization": true,
+      "notebook_task": {
+        "notebook_path": "/Workspace/Users/joseph.hobbs@databricks.com/_scratch_bluerridge/07_genie_agent/02_run_sample_qa",
+        "base_parameters": {
+          "run_id": "{{job.run_id}}"
+        }
+      }
+    }
+  ]
+}

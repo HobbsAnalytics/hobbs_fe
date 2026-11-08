@@ -37,7 +37,7 @@ Each stage reads what the earlier stages wrote.
 | 4 | Vector Search | `04_vector_search/`, `resources/vector-search.yml` | `code_excerpts` table, endpoint `bluerridge_vs`, index `code_excerpts_vs` |
 | 5 | Gold | `05_gold/` | `kpi_daily`, `risk_forecast`, `daily_brief` |
 | 6 | Governance | `06_governance/` | Tags, a row filter on `gold_pm.drawing_register`, lineage evidence; grants are in `grants.sql` (see "Governance follow-ups") |
-| 7 | Genie Space | `07_genie_agent/`, `resources/genie-space.yml` | Space `bluerridge_pm_copilot` and its Q&A transcript |
+| 7 | Genie Space | `07_genie_agent/`, `resources/genie-space.yml` | Genie Space "Blue Ridge LNG — PM Co-Pilot (synthetic)" (bundle resource `bluerridge_pm_copilot`) and its Q&A transcript |
 | 8 | Lakebase | `08_lakebase/`, `resources/lakebase.yml` | Instance `bluerridge-pm` with synced `kpi_daily`, `compliance_findings`, `risk_forecast` |
 | 9 | App | `09_app/`, `resources/app.yml` | The Databricks App (`09_app/deploy.sh`) |
 
@@ -87,6 +87,14 @@ Things the recipe depends on:
 - **Supported outputs** are stdout (`print`) and `display(df)` tables. Any other output type (images, HTML, errors) makes the tool stop rather than drop it silently.
 - **`outputs/` is relative.** A notebook run uses its own folder as the working directory, so `outputs/...` lands next to the workspace notebook. The scratch folder has no `outputs/` directory, so notebooks create it themselves.
 - **A notebook that imports a module from its own folder** (`02_generate_drawings.ipynb` imports `02_generate_drawings.py`) needs that file next to it in step 1: `databricks workspace import $SCRATCH/$NB.py --file $NB.py --format AUTO --overwrite --profile DEFAULT`. A `.py` without the `# Databricks notebook source` header lands as a workspace file (`workspace list` shows `FILE`), and the notebook puts its working directory on `sys.path`. A bundle deploy uploads the module the same way.
+
+## Genie space
+
+- **Space id:** `01f1db9edffa1a298195db2806ce45e3` (committed in `07_genie_agent/outputs/space_id.txt`; an id is not a secret). Title "Blue Ridge LNG — PM Co-Pilot (synthetic)", warehouse `hobbs`.
+- **How it is created:** `bundle schema` in CLI v1.20.0 defines `genie_spaces` (grep the output for `genie`), so `resources/genie-space.yml` declares the space and `databricks bundle deploy -t demo --profile DEFAULT` creates it. The body comes from `07_genie_agent/genie_space.geniespace.json`, which `python3 -I 07_genie_agent/build_space.py` generates: 11 curated tables with descriptions and synonyms, one general instruction block, and the 10 curated example SQLs. The same script runs every verified SQL on the warehouse and writes `sample_questions.md`, `heldout_questions.md` and `benchmark_expected.json`, so expected answers are query results, not typed numbers. Create the folder named by `parent_path` first (`databricks workspace mkdirs /Workspace/Users/<you>/genie_spaces`).
+- **Idempotent re-apply:** `07_genie_agent/01_create_space.ipynb` pages through the workspace's Genie spaces, finds this exact title, `PATCH`es the same definition (or `POST`s a new space if the bundle has not been deployed), asserts the five held-out questions are not in the space, and writes `space_id.txt`. It never touches another space. When running it per the recipe above, upload the definition next to the notebook as `genie_space.json` (the workspace refuses to import a file ending in `.geniespace.json`) plus `benchmark_expected.json`.
+- **Benchmark:** `02_run_sample_qa.ipynb` asks 15 questions (10 curated, 5 held-out) as fresh conversations through the Genie Conversation API and writes `evidence/genie_qa_transcript.md`. It calls the REST endpoints through `WorkspaceClient.api_client` because the serverless SDK has no `w.genie`. Both notebooks ran as one-time serverless `jobs submit` runs (`07_genie_agent/outputs/submit_payloads/`); the run as the submitting user was accepted by the Conversation API, so no local-script fallback was needed. The notebook writes the transcript into its own `outputs/` folder; pull it back with `databricks workspace export` and copy it to `evidence/`.
+- **App calls run as the signed-in PM.** The app calls the space on behalf of the user (OBO, `user_api_scopes: [dashboards.genie]`), so each query runs with that PM's own Unity Catalog permissions, including the `drawing_register` row filter, not as the app's service principal.
 
 ## Vector Search: bundle resources, with one ordering rule
 

@@ -19,7 +19,7 @@ Status key: **☑ done** means the file is committed and the link resolves. **�
 | 3 | Lakebase | [`08_lakebase/outputs/synced_tables_listing.md`](../08_lakebase/outputs/synced_tables_listing.md) | ☐ pending |
 | 4 | GenAI: document intelligence | [`evidence/sample_compliance_outputs/compliance_eval_summary.md`](sample_compliance_outputs/compliance_eval_summary.md) | ☑ done |
 | 5 | ML: schedule-risk forecast | [`evidence/risk_model_metrics.json`](risk_model_metrics.json) | ☑ done |
-| 6 | Genie Agent | [`evidence/genie_qa_transcript.md`](genie_qa_transcript.md) | ☐ pending |
+| 6 | Genie Agent | [`evidence/genie_qa_transcript.md`](genie_qa_transcript.md) | ☑ done |
 | 7 | Databricks App | [`evidence/app_demo.mp4`](app_demo.mp4) and [`evidence/app_screenshots/`](app_screenshots/) | ☐ pending |
 | 8 | One-command deploy | [`evidence/deploy_transcript.txt`](deploy_transcript.txt) | ☐ pending |
 
@@ -98,9 +98,11 @@ Not an FE Bar box, but everything below writes into these objects.
 
 | Status | Artifact | What it proves |
 |---|---|---|
-| ☐ pending | [`evidence/genie_qa_transcript.md`](genie_qa_transcript.md) | Ten questions asked through the Genie Conversation API: question, generated SQL, first five result rows |
-| ☐ pending | [`07_genie_agent/sample_questions.md`](../07_genie_agent/sample_questions.md) | The curated ten questions with their expected SQL |
-| ☐ pending | [`07_genie_agent/outputs/space_id.txt`](../07_genie_agent/outputs/space_id.txt) | The deployed Genie Space's ID |
+| ☑ done | [`evidence/genie_qa_transcript.md`](genie_qa_transcript.md) | Fifteen questions (10 curated, 5 held-out and never loaded into the space) asked through the Genie Conversation API: Genie's answer, generated SQL, first five result rows, expected answer and a rule-based verdict. Curated 10/10, held-out 5/5 |
+| ☑ done | [`07_genie_agent/sample_questions.md`](../07_genie_agent/sample_questions.md) | The curated ten questions with verified SQL and the result of running it |
+| ☑ done | [`07_genie_agent/heldout_questions.md`](../07_genie_agent/heldout_questions.md) | The five held-out questions with verified SQL (not loaded into the space) |
+| ☑ done | [`resources/genie-space.yml`](../resources/genie-space.yml) | The space as a bundle resource (`genie_spaces`), definition in [`genie_space.geniespace.json`](../07_genie_agent/genie_space.geniespace.json) |
+| ☑ done | [`07_genie_agent/outputs/space_id.txt`](../07_genie_agent/outputs/space_id.txt) | The deployed Genie Space's ID |
 
 ## 7. Databricks App
 
@@ -139,8 +141,8 @@ Each has its outputs embedded in the `.ipynb` and an HTML export of the same run
 | ☑ done | [`05_gold/02_risk_forecast.ipynb`](../05_gold/02_risk_forecast.ipynb) | [html](notebook_html_exports/02_risk_forecast.html) | 5 |
 | ☑ done | [`05_gold/03_daily_brief.ipynb`](../05_gold/03_daily_brief.ipynb) | [html](notebook_html_exports/03_daily_brief.html) | 4 |
 | ☑ done | [`06_governance/apply.ipynb`](../06_governance/apply.ipynb) | [html](notebook_html_exports/apply_governance.html) | 2 |
-| ☐ pending | [`07_genie_agent/01_create_space.ipynb`](../07_genie_agent/01_create_space.ipynb) | [html](notebook_html_exports/01_create_space.html) | 6 |
-| ☐ pending | [`07_genie_agent/02_run_sample_qa.ipynb`](../07_genie_agent/02_run_sample_qa.ipynb) | [html](notebook_html_exports/02_run_sample_qa.html) | 6 |
+| ☑ done | [`07_genie_agent/01_create_space.ipynb`](../07_genie_agent/01_create_space.ipynb) | [html](notebook_html_exports/01_create_space.html) | 6 |
+| ☑ done | [`07_genie_agent/02_run_sample_qa.ipynb`](../07_genie_agent/02_run_sample_qa.ipynb) | [html](notebook_html_exports/02_run_sample_qa.html) | 6 |
 | ☐ pending | [`08_lakebase/01_create_instance.ipynb`](../08_lakebase/01_create_instance.ipynb) | [html](notebook_html_exports/01_create_instance.html) | 3 |
 
 How a notebook is executed and captured is described in [`docs/BUILD.md`](../docs/BUILD.md#running-a-notebook-so-its-outputs-are-real).

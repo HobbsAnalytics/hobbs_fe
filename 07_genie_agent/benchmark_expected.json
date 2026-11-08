@@ -1,0 +1,427 @@
+{
+  "as_of_date": "2026-11-06",
+  "curated": [
+    {
+      "n": 1,
+      "question": "How many drawings failed compliance review this week, out of how many reviewed?",
+      "sql": "SELECT COUNT(DISTINCT drawing_id) AS drawings_reviewed,\n       COUNT(DISTINCT CASE WHEN status = 'FAIL' THEN drawing_id END) AS drawings_failed,\n       COUNT(DISTINCT CASE WHEN status = 'PASS' THEN drawing_id END) AS drawings_passed\nFROM mfg_mc_se_sa.bluerridge_gold_pm.compliance_findings\nWHERE review_date BETWEEN '2026-10-31' AND '2026-11-06'",
+      "expected_rows": [
+        {
+          "drawings_failed": "51",
+          "drawings_passed": "187",
+          "drawings_reviewed": "238"
+        }
+      ],
+      "expected_answer": "51 of 238 drawings failed this week (187 passed).",
+      "rule": {
+        "desc": "numeric equality on 51 (failed) and 238 (reviewed)",
+        "tokens": [
+          51,
+          238
+        ]
+      }
+    },
+    {
+      "n": 2,
+      "question": "Show failed compliance findings this week by code citation.",
+      "sql": "SELECT citation, COUNT(*) AS failed_findings, COUNT(DISTINCT drawing_id) AS drawings\nFROM mfg_mc_se_sa.bluerridge_gold_pm.compliance_findings\nWHERE status = 'FAIL' AND review_date BETWEEN '2026-10-31' AND '2026-11-06'\nGROUP BY citation\nORDER BY failed_findings DESC",
+      "expected_rows": [
+        {
+          "citation": "ASME B31.3 §322",
+          "drawings": "19",
+          "failed_findings": "30"
+        },
+        {
+          "citation": "OSHA 1910.147",
+          "drawings": "13",
+          "failed_findings": "25"
+        },
+        {
+          "citation": "ASME B16.5 §4.2",
+          "drawings": "10",
+          "failed_findings": "15"
+        },
+        {
+          "citation": "IBC 1005.1",
+          "drawings": "8",
+          "failed_findings": "8"
+        },
+        {
+          "citation": "ASME B31.3 §341",
+          "drawings": "5",
+          "failed_findings": "7"
+        }
+      ],
+      "expected_answer": "Failed findings by citation: ASME B31.3 §322: 30; OSHA 1910.147: 25; ASME B16.5 §4.2: 15; IBC 1005.1: 8; ASME B31.3 §341: 7.",
+      "rule": {
+        "desc": "the five citations and their finding counts (30, 25, 15, 8, 7) all appear",
+        "tokens": [
+          "ASME B31.3 §322",
+          30,
+          "OSHA 1910.147",
+          25,
+          "ASME B16.5 §4.2",
+          15,
+          "IBC 1005.1",
+          8,
+          "ASME B31.3 §341",
+          7
+        ]
+      }
+    },
+    {
+      "n": 3,
+      "question": "Which piping isometric drawings failed compliance this week?",
+      "sql": "SELECT DISTINCT drawing_id\nFROM mfg_mc_se_sa.bluerridge_gold_pm.compliance_findings\nWHERE status = 'FAIL' AND discipline = 'piping' AND drawing_type = 'ISO' AND review_date BETWEEN '2026-10-31' AND '2026-11-06'\nORDER BY drawing_id",
+      "expected_rows": [
+        {
+          "drawing_id": "BRL-PIP-ISO-0066"
+        },
+        {
+          "drawing_id": "BRL-PIP-ISO-0394"
+        },
+        {
+          "drawing_id": "BRL-PIP-ISO-0438"
+        },
+        {
+          "drawing_id": "BRL-PIP-ISO-0664"
+        },
+        {
+          "drawing_id": "BRL-PIP-ISO-1197"
+        }
+      ],
+      "expected_answer": "5 piping ISO drawings failed this week: BRL-PIP-ISO-0066, BRL-PIP-ISO-0394, BRL-PIP-ISO-0438, BRL-PIP-ISO-0664, BRL-PIP-ISO-1197.",
+      "rule": {
+        "desc": "ID-set equality: all failing piping ISO drawing ids appear",
+        "tokens": [
+          "BRL-PIP-ISO-0066",
+          "BRL-PIP-ISO-0394",
+          "BRL-PIP-ISO-0438",
+          "BRL-PIP-ISO-0664",
+          "BRL-PIP-ISO-1197"
+        ]
+      }
+    },
+    {
+      "n": 4,
+      "question": "Which milestones are already late, and by how many days?",
+      "sql": "SELECT milestone_id, name, discipline, planned_end, days_late\nFROM mfg_mc_se_sa.bluerridge_gold_pm.schedule_overdue\nWHERE days_late > 0\nORDER BY days_late DESC",
+      "expected_rows": [
+        {
+          "days_late": "15",
+          "discipline": "mechanical",
+          "milestone_id": "MS-271",
+          "name": "Install heat exchanger - Main Substation (WP-281)",
+          "planned_end": "2026-10-22"
+        },
+        {
+          "days_late": "11",
+          "discipline": "mechanical",
+          "milestone_id": "MS-277",
+          "name": "Align rotating equipment - Train 3 (WP-286)",
+          "planned_end": "2026-10-26"
+        },
+        {
+          "days_late": "5",
+          "discipline": "piping",
+          "milestone_id": "MS-278",
+          "name": "Hydrotest line - Pipe Rack South (WP-282)",
+          "planned_end": "2026-11-01"
+        },
+        {
+          "days_late": "4",
+          "discipline": "mechanical",
+          "milestone_id": "MS-281",
+          "name": "Cryogenic Tank T-203 Install Complete",
+          "planned_end": "2026-11-02"
+        },
+        {
+          "days_late": "4",
+          "discipline": "piping",
+          "milestone_id": "MS-279",
+          "name": "Weld and inspect - Utilities Block (WP-264)",
+          "planned_end": "2026-11-02"
+        },
+        {
+          "days_late": "2",
+          "discipline": "instr",
+          "milestone_id": "MS-287",
+          "name": "Pull instrument cable - Train 4 (WP-290)",
+          "planned_end": "2026-11-04"
+        }
+      ],
+      "expected_answer": "6 milestones are late: MS-271 15 days; MS-277 11 days; MS-278 5 days; MS-281 4 days; MS-279 4 days; MS-287 2 days. MS-274 is due today (0 days late) and is not late.",
+      "rule": {
+        "desc": "ID+days equality for the 6 late milestones; MS-274 (due today) must not be in the result rows",
+        "tokens": [
+          "MS-271",
+          15,
+          "MS-277",
+          11,
+          "MS-278",
+          5,
+          "MS-281",
+          4,
+          "MS-279",
+          "MS-287",
+          2
+        ],
+        "forbid_in_rows": [
+          "MS-274"
+        ]
+      }
+    },
+    {
+      "n": 5,
+      "question": "What are the top 3 highest-risk milestones in the next 90 days?",
+      "sql": "SELECT milestone_id, name, discipline, planned_end, risk_band, risk_rank\nFROM mfg_mc_se_sa.bluerridge_gold_pm.risk_forecast\nWHERE risk_band = 'High'\nORDER BY risk_rank\nLIMIT 3",
+      "expected_rows": [
+        {
+          "discipline": "instr",
+          "milestone_id": "MS-335",
+          "name": "Loop check - Train 4 (WP-315)",
+          "planned_end": "2027-01-25",
+          "risk_band": "High",
+          "risk_rank": "1"
+        },
+        {
+          "discipline": "instr",
+          "milestone_id": "MS-351",
+          "name": "Loop check - Tank T-203 (WP-364)",
+          "planned_end": "2027-01-21",
+          "risk_band": "High",
+          "risk_rank": "2"
+        },
+        {
+          "discipline": "instr",
+          "milestone_id": "MS-352",
+          "name": "Calibrate transmitters - Jetty 2 (WP-333)",
+          "planned_end": "2027-01-24",
+          "risk_band": "High",
+          "risk_rank": "3"
+        }
+      ],
+      "expected_answer": "Top 3 by risk rank (all High): MS-335, MS-351, MS-352.",
+      "rule": {
+        "desc": "ID-set equality on MS-335, MS-351, MS-352; MS-331 (rank 4) must not be in the rows",
+        "tokens": [
+          "MS-335",
+          "MS-351",
+          "MS-352"
+        ],
+        "forbid_in_rows": [
+          "MS-331"
+        ]
+      }
+    },
+    {
+      "n": 6,
+      "question": "Explain the budget variance: how far over budget are we?",
+      "sql": "SELECT budget_total_usd, budget_overrun_usd, budget_eac_pct\nFROM mfg_mc_se_sa.bluerridge_gold_pm.kpi_daily\nWHERE is_current",
+      "expected_rows": [
+        {
+          "budget_eac_pct": "2.3",
+          "budget_overrun_usd": "4800000.0",
+          "budget_total_usd": "2.087E8"
+        }
+      ],
+      "expected_answer": "The estimate at completion is 2.3% over, $4,800,000 over the $208,700,000 budget.",
+      "rule": {
+        "desc": "numeric equality on 2.3 (% EAC), 4.8M overrun, 208.7M budget (M/million suffixes parsed)",
+        "tokens": [
+          2.3,
+          4800000,
+          208700000
+        ]
+      }
+    },
+    {
+      "n": 7,
+      "question": "How many open NCRs do we have, by category?",
+      "sql": "SELECT category, COUNT(*) AS open_ncrs\nFROM mfg_mc_se_sa.bluerridge_silver_engineering.ncrs\nWHERE status = 'open'\nGROUP BY category\nORDER BY open_ncrs DESC",
+      "expected_rows": [
+        {
+          "category": "workmanship",
+          "open_ncrs": "15"
+        },
+        {
+          "category": "compliance",
+          "open_ncrs": "9"
+        }
+      ],
+      "expected_answer": "Open NCRs by category: workmanship 15, compliance 9 (24 in total).",
+      "rule": {
+        "desc": "workmanship=15 and compliance=9",
+        "tokens": [
+          "workmanship",
+          15,
+          "compliance",
+          9
+        ]
+      }
+    },
+    {
+      "n": 8,
+      "question": "What is our safety record: TRIR and days without an incident?",
+      "sql": "SELECT trir_28d, safety_days_without_incident, recordables_28d\nFROM mfg_mc_se_sa.bluerridge_gold_pm.kpi_daily\nWHERE is_current",
+      "expected_rows": [
+        {
+          "recordables_28d": "0",
+          "safety_days_without_incident": "28",
+          "trir_28d": "0.0"
+        }
+      ],
+      "expected_answer": "TRIR (28-day) is 0.0, with 0 recordables and 28 days without an incident.",
+      "rule": {
+        "desc": "numeric equality on 28 days incident-free and TRIR 0",
+        "tokens": [
+          28,
+          0
+        ]
+      }
+    },
+    {
+      "n": 9,
+      "question": "What does OSHA 1910.147 require?",
+      "sql": "SELECT citation_label, title, text\nFROM mfg_mc_se_sa.bluerridge_agents.code_excerpts\nWHERE citation_label = 'OSHA 1910.147'",
+      "expected_rows": [
+        {
+          "citation_label": "OSHA 1910.147",
+          "text": "Control of hazardous energy: lockout and tagout. Before anyone services or maintains a machine or piece of equipment, the equipment must be isolated from all sources of hazardous energy and locked or tagged out so that it cannot start up or release stored energy. Each machine needs identified energy isolation points, such as breakers, valves and disconnects, where a lock or tag can be applied. A reviewer checks the drawing for lockout and tagout isolation points, tags or notes on each piece of equipment, and flags equipment that shows no lockout or isolation provision.",
+          "title": "Control of hazardous energy: lockout and tagout"
+        }
+      ],
+      "expected_answer": "Clause titled 'Control of hazardous energy: lockout and tagout': the paraphrased text says equipment must be isolated from hazardous energy and locked/tagged out before servicing (lockout/tagout).",
+      "rule": {
+        "desc": "answer contains the clause title 'Control of hazardous energy' and 'lockout', and the SQL reads code_excerpts",
+        "tokens": [
+          "Control of hazardous energy",
+          "lockout"
+        ],
+        "sql_contains": "code_excerpts"
+      }
+    },
+    {
+      "n": 10,
+      "question": "How accurate is the AI compliance judge?",
+      "sql": "SELECT prompt_version, eval_column, ROUND(`precision` * 100, 1) AS precision_pct, ROUND(recall * 100, 1) AS recall_pct\nFROM mfg_mc_se_sa.bluerridge_gold_pm.compliance_eval\nWHERE prompt_version = 'v3_final' AND eval_column = 'C' AND citation = 'ALL'",
+      "expected_rows": [
+        {
+          "eval_column": "C",
+          "precision_pct": "58.1",
+          "prompt_version": "v3_final",
+          "recall_pct": "81.0"
+        }
+      ],
+      "expected_answer": "The v3 judge (column C, all citations) has precision 58.1% and recall 81.0%.",
+      "rule": {
+        "desc": "precision 58.1% and recall 81.0% (a 0-1 fraction is accepted as the same value)",
+        "tokens": [
+          58.1,
+          81.0
+        ],
+        "pct": true
+      }
+    }
+  ],
+  "heldout": [
+    {
+      "n": 1,
+      "question": "Which discipline has the most failed drawings this week?",
+      "sql": "SELECT discipline, COUNT(DISTINCT drawing_id) AS failed_drawings\nFROM mfg_mc_se_sa.bluerridge_gold_pm.compliance_findings\nWHERE status = 'FAIL' AND review_date BETWEEN '2026-10-31' AND '2026-11-06'\nGROUP BY discipline\nORDER BY failed_drawings DESC\nLIMIT 1",
+      "expected_rows": [
+        {
+          "discipline": "piping",
+          "failed_drawings": "27"
+        }
+      ],
+      "expected_answer": "piping has the most failed drawings this week (27).",
+      "rule": {
+        "desc": "discipline = piping with 27 failed drawings",
+        "tokens": [
+          "piping",
+          27
+        ]
+      }
+    },
+    {
+      "n": 2,
+      "question": "Is the cryogenic tank milestone on schedule?",
+      "sql": "SELECT milestone_id, name, planned_end, days_late\nFROM mfg_mc_se_sa.bluerridge_gold_pm.schedule_overdue\nWHERE name LIKE '%Cryogenic%'",
+      "expected_rows": [
+        {
+          "days_late": "4",
+          "milestone_id": "MS-281",
+          "name": "Cryogenic Tank T-203 Install Complete",
+          "planned_end": "2026-11-02"
+        }
+      ],
+      "expected_answer": "No. MS-281 (Cryogenic Tank T-203 Install Complete) was due 2026-11-02 and is 4 days late.",
+      "rule": {
+        "desc": "MS-281 identified, 4 days late, and the word 'late'",
+        "tokens": [
+          "MS-281",
+          4,
+          "late"
+        ]
+      }
+    },
+    {
+      "n": 3,
+      "question": "How many change orders are there and what is their total value?",
+      "sql": "SELECT COUNT(*) AS change_orders, SUM(amount_usd) AS total_amount_usd\nFROM mfg_mc_se_sa.bluerridge_silver_engineering.change_orders",
+      "expected_rows": [
+        {
+          "change_orders": "20",
+          "total_amount_usd": "5282000"
+        }
+      ],
+      "expected_answer": "20 change orders totalling $5,282,000 (approved $3,475,000, pending $1,448,000, rejected $359,000).",
+      "rule": {
+        "desc": "numeric equality on 20 change orders and $5,282,000 across all statuses (an approved-only total is a miss)",
+        "tokens": [
+          20,
+          5282000
+        ]
+      }
+    },
+    {
+      "n": 4,
+      "question": "Which code citation does the AI judge miss most often?",
+      "sql": "SELECT citation, ROUND(recall * 100, 1) AS recall_pct, fn AS missed_flaws\nFROM mfg_mc_se_sa.bluerridge_gold_pm.compliance_eval\nWHERE prompt_version = 'v3_final' AND eval_column = 'C' AND citation <> 'ALL'\nORDER BY recall ASC\nLIMIT 1",
+      "expected_rows": [
+        {
+          "citation": "OSHA 1910.147",
+          "missed_flaws": "27",
+          "recall_pct": "54.2"
+        }
+      ],
+      "expected_answer": "OSHA 1910.147: lowest recall (54.2%), 27 missed flaws.",
+      "rule": {
+        "desc": "citation OSHA 1910.147 with recall 54.2% (fraction accepted)",
+        "tokens": [
+          "OSHA 1910.147",
+          54.2
+        ],
+        "pct": true
+      }
+    },
+    {
+      "n": 5,
+      "question": "How many P&IDs are in the drawing register?",
+      "sql": "SELECT COUNT(*) AS pid_drawings\nFROM mfg_mc_se_sa.bluerridge_gold_pm.drawing_register\nWHERE drawing_type = 'PID'",
+      "expected_rows": [
+        {
+          "pid_drawings": "373"
+        }
+      ],
+      "expected_answer": "373 P&ID drawings are in the register.",
+      "rule": {
+        "desc": "numeric equality on 373",
+        "tokens": [
+          373
+        ]
+      }
+    }
+  ]
+}
