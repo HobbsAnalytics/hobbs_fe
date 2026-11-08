@@ -1,6 +1,6 @@
 # Lineage edges, `mfg_mc_se_sa.bluerridge_*`
 
-Source: `system.access.table_lineage` and `column_lineage`, read by `06_governance/apply.ipynb` (job run `180105263363459`). 27 distinct table-to-table edges between tables that exist now; dropped scratch tables (for example `_dryrun`) and SDP hidden objects are excluded. System lineage lags the data by minutes to hours, so `drawing_register` (created in this run) has no edges yet.
+Source: `system.access.table_lineage` and `column_lineage`, read by `06_governance/apply.ipynb` (job run `543672861542223`). 29 distinct table-to-table edges between tables that exist now; dropped scratch tables (for example `_dryrun`) and SDP hidden objects are excluded. System lineage lags the data by minutes to hours, so `drawing_register` (created in this run) appears below.
 
 ## Diagram
 
@@ -24,14 +24,15 @@ flowchart LR
   n15["bronze_project.schedule_raw"]
   n16["silver_engineering.schedule"]
   n17["gold_pm.compliance_findings"]
-  n18["gold_pm.kpi_daily"]
-  n19["gold_pm.compliance_judge_raw"]
-  n20["gold_pm.compliance_judge_raw_v1_baseline"]
-  n21["gold_pm.compliance_judge_raw_v2_prompt_hints"]
-  n22["silver_engineering.drawings_extracted"]
-  n23["gold_pm.compliance_suppressed"]
-  n24["silver_engineering.drawings_extracted_raw"]
-  n25["silver_engineering.ground_truth_findings"]
+  n18["gold_pm.drawing_register"]
+  n19["gold_pm.kpi_daily"]
+  n20["gold_pm.compliance_judge_raw"]
+  n21["gold_pm.compliance_judge_raw_v1_baseline"]
+  n22["gold_pm.compliance_judge_raw_v2_prompt_hints"]
+  n23["silver_engineering.drawings_extracted"]
+  n24["gold_pm.compliance_suppressed"]
+  n25["silver_engineering.drawings_extracted_raw"]
+  n26["silver_engineering.ground_truth_findings"]
   n0 --> n1
   n2 --> n3
   n2 --> n4
@@ -42,23 +43,25 @@ flowchart LR
   n13 --> n14
   n15 --> n16
   n17 --> n18
-  n19 --> n20
-  n19 --> n21
-  n8 --> n18
-  n10 --> n18
-  n22 --> n17
-  n22 --> n19
-  n22 --> n23
-  n24 --> n22
+  n17 --> n19
+  n20 --> n21
+  n20 --> n22
+  n8 --> n19
+  n10 --> n19
+  n23 --> n17
+  n23 --> n20
+  n23 --> n24
+  n23 --> n18
+  n25 --> n23
   n3 --> n17
-  n3 --> n19
-  n3 --> n23
+  n3 --> n20
   n3 --> n24
+  n3 --> n25
   n4 --> n3
-  n25 --> n17
-  n12 --> n18
-  n14 --> n18
-  n16 --> n18
+  n26 --> n17
+  n12 --> n19
+  n14 --> n19
+  n16 --> n19
 ```
 
 ## Table-level edges
@@ -74,6 +77,7 @@ flowchart LR
 | `bronze_project.ncrs_raw` | `silver_engineering.ncrs` |
 | `bronze_project.safety_log_raw` | `silver_engineering.safety_log` |
 | `bronze_project.schedule_raw` | `silver_engineering.schedule` |
+| `gold_pm.compliance_findings` | `gold_pm.drawing_register` |
 | `gold_pm.compliance_findings` | `gold_pm.kpi_daily` |
 | `gold_pm.compliance_judge_raw` | `gold_pm.compliance_judge_raw_v1_baseline` |
 | `gold_pm.compliance_judge_raw` | `gold_pm.compliance_judge_raw_v2_prompt_hints` |
@@ -82,6 +86,7 @@ flowchart LR
 | `silver_engineering.drawings_extracted` | `gold_pm.compliance_findings` |
 | `silver_engineering.drawings_extracted` | `gold_pm.compliance_judge_raw` |
 | `silver_engineering.drawings_extracted` | `gold_pm.compliance_suppressed` |
+| `silver_engineering.drawings_extracted` | `gold_pm.drawing_register` |
 | `silver_engineering.drawings_extracted_raw` | `silver_engineering.drawings_extracted` |
 | `silver_engineering.drawings_parsed` | `gold_pm.compliance_findings` |
 | `silver_engineering.drawings_parsed` | `gold_pm.compliance_judge_raw` |

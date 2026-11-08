@@ -59,7 +59,7 @@ Not an FE Bar box, but everything below writes into these objects.
 | Status | Artifact | What it proves |
 |---|---|---|
 | ☑ done | [`00_setup/outputs/schemas_listing.md`](../00_setup/outputs/schemas_listing.md) | The governed schemas and Volumes exist, owned by the builder |
-| ☑ done | [`evidence/grant_listing.md`](grant_listing.md) | `SHOW GRANTS` for every `bluerridge_*` schema, the 112 tags applied, the row filter on `drawing_register` with its allow/deny demo, and the groups outcome (account groups not possible, nothing broad granted) |
+| ☑ done | [`evidence/grant_listing.md`](grant_listing.md) | `SHOW GRANTS` for every `bluerridge_*` schema, the 112 tags applied, the row filter on `drawing_register` with its allow/deny demo, and the groups outcome (account groups not possible, no direct broad grants), and the inherited account-wide read access from the catalog |
 | ☑ done | [`06_governance/outputs/lineage_edges.md`](../06_governance/outputs/lineage_edges.md) | 27 de-duplicated lineage edges, bronze to silver to gold, with the `compliance_findings` and `kpi_daily` paths |
 | ☑ done | [`06_governance/`](../06_governance/) (`tags.sql`, `grants.sql`, `row_filters.sql`) | The exact statements that were applied |
 

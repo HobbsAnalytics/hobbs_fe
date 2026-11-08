@@ -5,7 +5,10 @@
 -- GROUPS OUTCOME: the workspace groups bluerridge-pm and bluerridge-engineers could be created
 -- (databricks groups create) but Unity Catalog rejected a GRANT to them with PRINCIPAL_DOES_NOT_EXIST, because
 -- this workspace only resolves account-level groups and creating one needs account admin, which this demo does
--- not have. The probe groups were deleted. Nothing is granted to account users or any other broad principal.
+-- not have. The probe groups were deleted. This task made no direct grant to account users or any other broad principal.
+-- NOTE: account users already holds USE CATALOG, USE SCHEMA, SELECT, READ VOLUME and EXECUTE on the catalog (granted by its
+-- owners or inherited from the metastore), so every bluerridge_* table is already readable account-wide. The row filter on
+-- drawing_register is the only access control this build adds. Acceptable because all data is synthetic.
 -- The owner (joseph.hobbs@databricks.com) already holds ALL PRIVILEGES via ownership and catalog grants.
 --
 -- To enforce these: ask an account admin to create the two groups (or reuse existing ones), then run the notebook

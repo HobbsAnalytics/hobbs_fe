@@ -7796,7 +7796,7 @@ a.anchor-link {
 <!-- End of mermaid configuration --></head>
 <body class="jp-Notebook" data-jp-theme-light="true" data-jp-theme-name="JupyterLab Light">
 <main>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=2b6b9e33">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=905bef5f">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7830,7 +7830,7 @@ a.anchor-link {
 <tr>
 <td>Grants</td>
 <td><code>grants.sql</code> is the source of truth</td>
-<td>see "Groups outcome"</td>
+<td>see "Groups outcome". <code>account users</code> already has broad inherited read access from the catalog (section 5b), so the row filter is the only access control this build adds</td>
 </tr>
 <tr>
 <td>Lineage</td>
@@ -7848,13 +7848,13 @@ a.anchor-link {
 <li><code>domain = app</code> rejected, allowed <code>finance | sales | supply_chain | quality | hr | operations</code></li>
 </ul>
 <p>Those policies belong to the shared account, so the project does not change them. The project vocabulary is carried in <strong>prefixed keys that no policy governs</strong>: <code>br_layer</code>, <code>br_sensitivity</code>, <code>br_data_class</code>, <code>br_domain</code>, plus <code>synthetic = true</code>. Where a governed key accepts our value (<code>layer</code> = bronze, silver or gold on those schemas) it is set as well.</p>
-<h2 id="Groups-outcome">Groups outcome<a class="anchor-link" href="#Groups-outcome">¶</a></h2><p>Before this run, <code>databricks groups create</code> succeeded for <code>bluerridge-pm</code> and <code>bluerridge-engineers</code> (both came back as <code>WorkspaceGroup</code>). A Unity Catalog grant of USE SCHEMA on <code>mfg_mc_se_sa.bluerridge_gold_pm</code> to the group <code>bluerridge-pm</code> was then rejected with <code>PRINCIPAL_DOES_NOT_EXIST: Could not find principal with name bluerridge-pm</code>: Unity Catalog resolves account-level groups, and creating those needs account admin, which this demo does not have. <strong>Both probe groups were deleted</strong> and nothing was granted to <code>account users</code> or any other broad principal. <code>grants.sql</code> holds the intended grants with principal placeholders and this notebook applies a statement only when a widget supplies the principal. With no principal supplied, 0 grants are applied here: the owner already holds everything.</p>
+<h2 id="Groups-outcome">Groups outcome<a class="anchor-link" href="#Groups-outcome">¶</a></h2><p>Before this run, <code>databricks groups create</code> succeeded for <code>bluerridge-pm</code> and <code>bluerridge-engineers</code> (both came back as <code>WorkspaceGroup</code>). A Unity Catalog grant of USE SCHEMA on <code>mfg_mc_se_sa.bluerridge_gold_pm</code> to the group <code>bluerridge-pm</code> was then rejected with <code>PRINCIPAL_DOES_NOT_EXIST: Could not find principal with name bluerridge-pm</code>: Unity Catalog resolves account-level groups, and creating those needs account admin, which this demo does not have. <strong>Both probe groups were deleted</strong> and this task made no direct grant to <code>account users</code> or any other broad principal. <code>grants.sql</code> holds the intended grants with principal placeholders and this notebook applies a statement only when a widget supplies the principal. With no principal supplied, 0 grants are applied here: the owner already holds everything.</p>
 <h2 id="Row-level-security-design">Row-level security design<a class="anchor-link" href="#Row-level-security-design">¶</a></h2><p><code>discipline_access(principal, discipline)</code> maps a user to a discipline, where <code>'*'</code> means all. <code>discipline_allowed(principal, discipline)</code> returns true for a <code>'*'</code> row or an exact match. <code>rf_drawing_discipline(discipline)</code> is the row filter and just calls <code>discipline_allowed(current_user(), discipline)</code>. The mapping uses two fictitious principals (<code>mech.engineer@example.com</code>, <code>piping.lead@example.com</code>), which cannot log in, so what they would see is shown by calling the helper on the unfiltered silver table. A drawing whose title block gave no discipline (2 of 1,200) is hidden from everyone except a <code>'*'</code> principal.</p>
 <p><strong>TODO for Task 24:</strong> after the app deploys, add its service principal to <code>discipline_access</code> with <code>'*'</code> (statement in <code>grants.sql</code>), otherwise the app sees 0 rows of <code>drawing_register</code>.</p>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=a7a226c5">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=16ecd83e">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7924,7 +7924,7 @@ a.anchor-link {
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>job_run_id: 180105263363459 | raw parameter: '180105263363459'
+<pre>job_run_id: 543672861542223 | raw parameter: '543672861542223'
 running as: joseph.hobbs@databricks.com
 </pre>
 </div>
@@ -7932,7 +7932,7 @@ running as: joseph.hobbs@databricks.com
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=c11ff198">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=0391c989">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7942,7 +7942,7 @@ running as: joseph.hobbs@databricks.com
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=749cb113">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=c53e258c">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7973,7 +7973,7 @@ running as: joseph.hobbs@databricks.com
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=dfe7011b">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=56100d70">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7983,7 +7983,7 @@ running as: joseph.hobbs@databricks.com
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=38131e6e">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=d1b40916">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8034,17 +8034,17 @@ DESCRIBE TABLE EXTENDED, the filter and constraint rows:
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=aca7ca63">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=ba1da52b">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h2 id="3.-Row-filter-demo,-with-asserts">3. Row filter demo, with asserts<a class="anchor-link" href="#3.-Row-filter-demo,-with-asserts">¶</a></h2><p>Three parts. (a) The helper gives explicit allow and deny answers. (b) What each principal <strong>would</strong> see, as row counts per discipline from the unfiltered silver table <code>drawings_extracted</code> through <code>WHERE discipline_allowed('&lt;principal&gt;', discipline)</code>. (c) What the real filter shows the current user (mapped to <code>'*'</code>): all 1,200 rows. The two example.com users cannot log in to this workspace, so (b) is the faithful stand-in for their view.</p>
+<h2 id="3.-Row-filter-demo,-with-asserts">3. Row filter demo, with asserts<a class="anchor-link" href="#3.-Row-filter-demo,-with-asserts">¶</a></h2><p>Three parts. (a) The helper gives explicit allow and deny answers. (b) What each principal <strong>would</strong> see, as a <strong>simulation</strong> (<code>discipline_allowed()</code> applied to the unfiltered source, not a query run as that principal), as row counts per discipline from the unfiltered silver table <code>drawings_extracted</code> through <code>WHERE discipline_allowed('&lt;principal&gt;', discipline)</code>. (c) What the real filter shows the current user (mapped to <code>'*'</code>): all 1,200 rows. The two example.com users cannot log in to this workspace, so (b) is the faithful stand-in for their view.</p>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=2b73e6c8">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=ac2993fd">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8073,7 +8073,7 @@ DESCRIBE TABLE EXTENDED, the filter and constraint rows:
 <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">"joseph.hobbs@databricks.com"</span><span class="p">,</span> <span class="s2">"mech.engineer@example.com"</span><span class="p">,</span> <span class="s2">"piping.lead@example.com"</span><span class="p">,</span> <span class="s2">"unknown.person@example.com"</span><span class="p">]:</span>
     <span class="n">df</span> <span class="o">=</span> <span class="n">spark</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="sa">f</span><span class="s2">"SELECT coalesce(discipline, '(none)') AS discipline, count(*) AS rows FROM </span><span class="si">{</span><span class="n">SRC</span><span class="si">}</span><span class="s2"> WHERE </span><span class="si">{</span><span class="n">FN</span><span class="si">}</span><span class="s2">('</span><span class="si">{</span><span class="n">p</span><span class="si">}</span><span class="s2">', discipline) GROUP BY 1"</span><span class="p">)</span>
     <span class="n">VISIBLE</span><span class="p">[</span><span class="n">p</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="n">r</span><span class="p">[</span><span class="s2">"discipline"</span><span class="p">]:</span> <span class="n">r</span><span class="p">[</span><span class="s2">"rows"</span><span class="p">]</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">collect</span><span class="p">()}</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">"(b) rows each principal would see, per discipline:"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"(b) SIMULATION, rows each principal would see per discipline (helper applied to the unfiltered source, not run as them):"</span><span class="p">)</span>
 <span class="k">for</span> <span class="n">p</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">VISIBLE</span><span class="o">.</span><span class="n">items</span><span class="p">():</span> <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  </span><span class="si">{</span><span class="n">p</span><span class="si">:</span><span class="s2">32s</span><span class="si">}</span><span class="s2"> total </span><span class="si">{</span><span class="nb">sum</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">values</span><span class="p">())</span><span class="si">:</span><span class="s2">5d</span><span class="si">}</span><span class="s2">  </span><span class="si">{</span><span class="nb">dict</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">items</span><span class="p">()))</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 <span class="k">assert</span> <span class="nb">sum</span><span class="p">(</span><span class="n">VISIBLE</span><span class="p">[</span><span class="s2">"joseph.hobbs@databricks.com"</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">())</span> <span class="o">==</span> <span class="mi">1200</span> <span class="o">==</span> <span class="n">src_total</span>
 <span class="k">assert</span> <span class="n">VISIBLE</span><span class="p">[</span><span class="s2">"mech.engineer@example.com"</span><span class="p">]</span> <span class="o">==</span> <span class="p">{</span><span class="s2">"mechanical"</span><span class="p">:</span> <span class="n">src_by_disc</span><span class="p">[</span><span class="s2">"mechanical"</span><span class="p">]}</span>
@@ -8119,7 +8119,7 @@ DESCRIBE TABLE EXTENDED, the filter and constraint rows:
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
 <pre>unfiltered source mfg_mc_se_sa.bluerridge_silver_engineering.drawings_extracted rows: 1200 | by discipline: {None: 2, 'electrical': 77, 'instr': 119, 'mechanical': 134, 'piping': 755, 'structural': 113}
-(b) rows each principal would see, per discipline:
+(b) SIMULATION, rows each principal would see per discipline (helper applied to the unfiltered source, not run as them):
   joseph.hobbs@databricks.com      total  1200  {'(none)': 2, 'electrical': 77, 'instr': 119, 'mechanical': 134, 'piping': 755, 'structural': 113}
   mech.engineer@example.com        total   134  {'mechanical': 134}
   piping.lead@example.com          total   755  {'piping': 755}
@@ -8139,7 +8139,7 @@ mapping table discipline_access:
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=33afba18">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=5164fa20">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8149,7 +8149,7 @@ mapping table discipline_access:
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=572ba50c">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=196075fb">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8206,17 +8206,17 @@ risk_forecast: Row Filter rows in DESCRIBE TABLE EXTENDED = 0, mask rows = 0
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=29b01129">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=a7cdb59f">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h2 id="5.-Grants">5. Grants<a class="anchor-link" href="#5.-Grants">¶</a></h2><p><code>grants.sql</code> holds the intended grants for the project managers' group, the engineers' group and the app service principal. A statement runs only when its placeholder widget has a value. In this run none was supplied (see "Groups outcome"), so every statement is listed as not applied. Then <code>SHOW GRANTS</code> is captured for each schema. The command also returns grants inherited from the catalog, so direct schema grants (ObjectType = SCHEMA) are separated from inherited ones, which are only counted: the catalog is shared with other teams and those principals are not this project's business.</p>
+<h2 id="5.-Grants">5. Grants<a class="anchor-link" href="#5.-Grants">¶</a></h2><p><code>grants.sql</code> holds the intended grants for the project managers' group, the engineers' group and the app service principal. A statement runs only when its placeholder widget has a value. In this run none was supplied (see "Groups outcome"), so every statement is listed as not applied. Then <code>SHOW GRANTS</code> is captured for each schema. The command also returns grants inherited from the catalog, so direct schema grants (ObjectType = SCHEMA) are separated from inherited ones. <strong>Inherited access matters: see section 5b.</strong> The <code>BROAD</code> assertion below checks <em>direct</em> grants only.</p>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=9474f936">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=6376b62b">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8241,8 +8241,8 @@ risk_forecast: Row Filter rows in DESCRIBE TABLE EXTENDED = 0, mask rows = 0
     <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"volume </span><span class="si">{</span><span class="n">v</span><span class="si">}</span><span class="s2">: direct grants </span><span class="si">{</span><span class="n">VOL_GRANTS</span><span class="p">[</span><span class="n">v</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 <span class="n">BROAD</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"account users"</span><span class="p">,</span> <span class="s2">"users"</span><span class="p">,</span> <span class="s2">"admins"</span><span class="p">,</span> <span class="s2">"All Account Users"</span><span class="p">)</span>
 <span class="k">for</span> <span class="n">fq</span><span class="p">,</span> <span class="p">(</span><span class="n">direct</span><span class="p">,</span> <span class="n">_</span><span class="p">)</span> <span class="ow">in</span> <span class="n">GRANTS</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-    <span class="k">assert</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span><span class="n">p</span> <span class="ow">in</span> <span class="n">BROAD</span> <span class="k">for</span> <span class="n">p</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">direct</span><span class="p">),</span> <span class="sa">f</span><span class="s2">"broad principal granted on </span><span class="si">{</span><span class="n">fq</span><span class="si">}</span><span class="s2">"</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">"no schema or volume of this project is granted to a broad principal"</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span><span class="n">p</span> <span class="ow">in</span> <span class="n">BROAD</span> <span class="k">for</span> <span class="n">p</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">direct</span><span class="p">),</span> <span class="sa">f</span><span class="s2">"direct grant to a broad principal on </span><span class="si">{</span><span class="n">fq</span><span class="si">}</span><span class="s2">"</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"no DIRECT grant on a schema or volume of this project goes to a broad principal (this check does not see inherited catalog grants, see next cell)"</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -8279,14 +8279,81 @@ mfg_mc_se_sa.bluerridge_agents: 0 direct schema grants, 81 inherited from the ca
 mfg_mc_se_sa.bluerridge_app: 0 direct schema grants, 81 inherited from the catalog []
 volume drawings: direct grants []
 volume project: direct grants []
-no schema or volume of this project is granted to a broad principal
+no DIRECT grant on a schema or volume of this project goes to a broad principal (this check does not see inherited catalog grants, see next cell)
 </pre>
 </div>
 </div>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=8a7df007">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=eafb145a">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
+<h2 id="5b.-Inherited-access-(outside-this-project's-control)">5b. Inherited access (outside this project's control)<a class="anchor-link" href="#5b.-Inherited-access-(outside-this-project's-control)">¶</a></h2><p>Direct grants are not the whole story. Unity Catalog grants on the catalog <code>mfg_mc_se_sa</code> are inherited by every schema, table and Volume below it. This cell reads <code>SHOW GRANTS ON CATALOG</code> and the effective inherited rows of <code>SHOW GRANTS ON SCHEMA</code> and records what the built-in group <code>account users</code> can do. The catalog is shared and owned by others, so this build does not and should not change it. Other catalog-level grantees are only counted, never listed, because the repository is public.</p>
+</div>
+</div>
+</div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=0e1e3159">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [7]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="cm-editor cm-s-jupyter">
+<div class="highlight hl-python"><pre><span></span><span class="n">cat_g</span> <span class="o">=</span> <span class="n">spark</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="sa">f</span><span class="s2">"SHOW GRANTS ON CATALOG </span><span class="si">{</span><span class="n">catalog</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span>
+<span class="n">AU</span> <span class="o">=</span> <span class="s2">"account users"</span>
+<span class="n">au_cat</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">({</span><span class="n">r</span><span class="p">[</span><span class="s2">"ActionType"</span><span class="p">]</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">cat_g</span> <span class="k">if</span> <span class="n">r</span><span class="p">[</span><span class="s2">"Principal"</span><span class="p">]</span> <span class="o">==</span> <span class="n">AU</span> <span class="ow">and</span> <span class="n">r</span><span class="p">[</span><span class="s2">"ObjectType"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"CATALOG"</span><span class="p">})</span>
+<span class="n">au_meta</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">({</span><span class="n">r</span><span class="p">[</span><span class="s2">"ActionType"</span><span class="p">]</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">cat_g</span> <span class="k">if</span> <span class="n">r</span><span class="p">[</span><span class="s2">"Principal"</span><span class="p">]</span> <span class="o">==</span> <span class="n">AU</span> <span class="ow">and</span> <span class="n">r</span><span class="p">[</span><span class="s2">"ObjectType"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"METASTORE"</span><span class="p">})</span>
+<span class="n">others_cat</span> <span class="o">=</span> <span class="p">{</span><span class="n">r</span><span class="p">[</span><span class="s2">"Principal"</span><span class="p">]</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">cat_g</span> <span class="k">if</span> <span class="n">r</span><span class="p">[</span><span class="s2">"Principal"</span><span class="p">]</span> <span class="o">!=</span> <span class="n">AU</span> <span class="ow">and</span> <span class="n">r</span><span class="p">[</span><span class="s2">"ObjectType"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"CATALOG"</span><span class="p">}</span>
+<span class="n">others_use</span> <span class="o">=</span> <span class="p">{</span><span class="n">r</span><span class="p">[</span><span class="s2">"Principal"</span><span class="p">]</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">cat_g</span> <span class="k">if</span> <span class="n">r</span><span class="p">[</span><span class="s2">"Principal"</span><span class="p">]</span> <span class="o">!=</span> <span class="n">AU</span> <span class="ow">and</span> <span class="n">r</span><span class="p">[</span><span class="s2">"ObjectType"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"CATALOG"</span> <span class="ow">and</span> <span class="n">r</span><span class="p">[</span><span class="s2">"ActionType"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"USE CATALOG"</span><span class="p">}</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"account users, privileges on catalog"</span><span class="p">,</span> <span class="n">catalog</span> <span class="o">+</span> <span class="s2">":"</span><span class="p">,</span> <span class="n">au_cat</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"account users, privileges inherited from the metastore:"</span><span class="p">,</span> <span class="n">au_meta</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"other principals with any catalog-level grant:"</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">others_cat</span><span class="p">),</span> <span class="s2">"| holding USE CATALOG:"</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">others_use</span><span class="p">))</span>
+<span class="n">INHERITED</span> <span class="o">=</span> <span class="p">{}</span>
+<span class="k">for</span> <span class="n">fq</span> <span class="ow">in</span> <span class="n">SCHEMA_FQ</span><span class="p">:</span>
+    <span class="n">gs</span> <span class="o">=</span> <span class="n">spark</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="sa">f</span><span class="s2">"SHOW GRANTS ON SCHEMA </span><span class="si">{</span><span class="n">fq</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span>
+    <span class="n">INHERITED</span><span class="p">[</span><span class="n">fq</span><span class="p">]</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">({</span><span class="n">r</span><span class="p">[</span><span class="s2">"ActionType"</span><span class="p">]</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">gs</span> <span class="k">if</span> <span class="n">r</span><span class="p">[</span><span class="s2">"Principal"</span><span class="p">]</span> <span class="o">==</span> <span class="n">AU</span> <span class="ow">and</span> <span class="n">r</span><span class="p">[</span><span class="s2">"ObjectType"</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">"SCHEMA"</span><span class="p">})</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">fq</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">catalog</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s1">'.'</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">prefix</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s1">'_'</span><span class="p">,</span><span class="w"> </span><span class="s1">''</span><span class="p">)</span><span class="si">}</span><span class="s2">: privileges reaching account users by inheritance: </span><span class="si">{</span><span class="n">INHERITED</span><span class="p">[</span><span class="n">fq</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">cat_g</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">"SHOW GRANTS ON CATALOG returned nothing"</span>
+<span class="n">READ_SET</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"USE CATALOG"</span><span class="p">,</span> <span class="s2">"USE SCHEMA"</span><span class="p">,</span> <span class="s2">"SELECT"</span><span class="p">,</span> <span class="s2">"READ VOLUME"</span><span class="p">}</span>
+<span class="n">ACCOUNT_WIDE_READ</span> <span class="o">=</span> <span class="n">READ_SET</span> <span class="o">&lt;=</span> <span class="nb">set</span><span class="p">(</span><span class="n">au_cat</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"account users can read every bluerridge_* table and the drawings Volume through the catalog:"</span><span class="p">,</span> <span class="n">ACCOUNT_WIDE_READ</span><span class="p">)</span>
+<span class="n">SCHEMA_READ</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"USE SCHEMA"</span><span class="p">,</span> <span class="s2">"SELECT"</span><span class="p">,</span> <span class="s2">"READ VOLUME"</span><span class="p">}</span>   <span class="c1"># USE CATALOG is a catalog-level privilege and is not listed on a schema</span>
+<span class="k">assert</span> <span class="nb">all</span><span class="p">(</span><span class="n">SCHEMA_READ</span> <span class="o">&lt;=</span> <span class="nb">set</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">INHERITED</span><span class="o">.</span><span class="n">values</span><span class="p">())</span> <span class="o">==</span> <span class="n">ACCOUNT_WIDE_READ</span><span class="p">,</span> <span class="n">INHERITED</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>account users, privileges on catalog mfg_mc_se_sa: ['EXECUTE', 'READ VOLUME', 'SELECT', 'USE CATALOG', 'USE SCHEMA']
+account users, privileges inherited from the metastore: ['READ METADATA']
+other principals with any catalog-level grant: 42 | holding USE CATALOG: 22
+landing: privileges reaching account users by inheritance: ['EXECUTE', 'READ METADATA', 'READ VOLUME', 'SELECT', 'USE SCHEMA']
+bronze_project: privileges reaching account users by inheritance: ['EXECUTE', 'READ METADATA', 'READ VOLUME', 'SELECT', 'USE SCHEMA']
+bronze_drawings: privileges reaching account users by inheritance: ['EXECUTE', 'READ METADATA', 'READ VOLUME', 'SELECT', 'USE SCHEMA']
+silver_engineering: privileges reaching account users by inheritance: ['EXECUTE', 'READ METADATA', 'READ VOLUME', 'SELECT', 'USE SCHEMA']
+gold_pm: privileges reaching account users by inheritance: ['EXECUTE', 'READ METADATA', 'READ VOLUME', 'SELECT', 'USE SCHEMA']
+agents: privileges reaching account users by inheritance: ['EXECUTE', 'READ METADATA', 'READ VOLUME', 'SELECT', 'USE SCHEMA']
+app: privileges reaching account users by inheritance: ['EXECUTE', 'READ METADATA', 'READ VOLUME', 'SELECT', 'USE SCHEMA']
+account users can read every bluerridge_* table and the drawings Volume through the catalog: True
+</pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=61da5bf1">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8296,12 +8363,12 @@ no schema or volume of this project is granted to a broad principal
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=a8d350d3">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=7000583f">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [7]:</div>
+<div class="jp-InputPrompt jp-InputArea-prompt">In [8]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
 <div class="highlight hl-python"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">tags</span><span class="p">(</span><span class="n">view</span><span class="p">,</span> <span class="n">extra</span><span class="o">=</span><span class="s2">""</span><span class="p">):</span>
@@ -8352,7 +8419,7 @@ no schema or volume of this project is granted to a broad principal
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=a632540d">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=a51b8f4f">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8362,12 +8429,12 @@ no schema or volume of this project is granted to a broad principal
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=61321857">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=155c1ee5">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [8]:</div>
+<div class="jp-InputPrompt jp-InputArea-prompt">In [9]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
 <div class="highlight hl-python"><pre><span></span><span class="n">existing</span> <span class="o">=</span> <span class="p">{</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">catalog</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">r</span><span class="p">[</span><span class="s1">'table_schema'</span><span class="p">]</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">r</span><span class="p">[</span><span class="s1">'table_name'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">spark</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="sa">f</span><span class="s2">"SELECT table_schema, table_name FROM </span><span class="si">{</span><span class="n">catalog</span><span class="si">}</span><span class="s2">.information_schema.tables WHERE table_schema LIKE '</span><span class="si">{</span><span class="n">prefix</span><span class="si">}</span><span class="se">\\</span><span class="s2">_%'"</span><span class="p">)</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">is_internal</span><span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="s2">"table_name"</span><span class="p">])}</span>
@@ -8408,7 +8475,7 @@ no schema or volume of this project is granted to a broad principal
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>27 distinct table-level edges between existing bluerridge tables
+<pre>29 distinct table-level edges between existing bluerridge tables
   agents.code_excerpts -&gt; agents.code_excerpts_vs
   bronze_drawings.raw_files -&gt; silver_engineering.drawings_parsed
   bronze_drawings.raw_files -&gt; silver_engineering.drawings_raw_tracking
@@ -8418,6 +8485,7 @@ no schema or volume of this project is granted to a broad principal
   bronze_project.ncrs_raw -&gt; silver_engineering.ncrs
   bronze_project.safety_log_raw -&gt; silver_engineering.safety_log
   bronze_project.schedule_raw -&gt; silver_engineering.schedule
+  gold_pm.compliance_findings -&gt; gold_pm.drawing_register
   gold_pm.compliance_findings -&gt; gold_pm.kpi_daily
   gold_pm.compliance_judge_raw -&gt; gold_pm.compliance_judge_raw_v1_baseline
   gold_pm.compliance_judge_raw -&gt; gold_pm.compliance_judge_raw_v2_prompt_hints
@@ -8426,6 +8494,7 @@ no schema or volume of this project is granted to a broad principal
   silver_engineering.drawings_extracted -&gt; gold_pm.compliance_findings
   silver_engineering.drawings_extracted -&gt; gold_pm.compliance_judge_raw
   silver_engineering.drawings_extracted -&gt; gold_pm.compliance_suppressed
+  silver_engineering.drawings_extracted -&gt; gold_pm.drawing_register
   silver_engineering.drawings_extracted_raw -&gt; silver_engineering.drawings_extracted
   silver_engineering.drawings_parsed -&gt; gold_pm.compliance_findings
   silver_engineering.drawings_parsed -&gt; gold_pm.compliance_judge_raw
@@ -8436,7 +8505,7 @@ no schema or volume of this project is granted to a broad principal
   silver_engineering.ncrs -&gt; gold_pm.kpi_daily
   silver_engineering.safety_log -&gt; gold_pm.kpi_daily
   silver_engineering.schedule -&gt; gold_pm.kpi_daily
-edges touching drawing_register (new this run, lineage may lag): none yet
+edges touching drawing_register (new this run, lineage may lag): [('mfg_mc_se_sa.bluerridge_gold_pm.compliance_findings', 'mfg_mc_se_sa.bluerridge_gold_pm.drawing_register'), ('mfg_mc_se_sa.bluerridge_silver_engineering.drawings_extracted', 'mfg_mc_se_sa.bluerridge_gold_pm.drawing_register')]
 25 distinct column-level edges into kpi_daily and compliance_findings
 </pre>
 </div>
@@ -8444,7 +8513,7 @@ edges touching drawing_register (new this run, lineage may lag): none yet
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=8f7d3ee8">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=2312dfc9">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8454,12 +8523,12 @@ edges touching drawing_register (new this run, lineage may lag): none yet
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=76c0b08e">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=21a6457e">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [9]:</div>
+<div class="jp-InputPrompt jp-InputArea-prompt">In [10]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
 <div class="highlight hl-python"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">ai_steps</span><span class="p">(</span><span class="n">sql</span><span class="p">):</span>
@@ -8495,7 +8564,7 @@ AI Query steps in the physical plan, filtered read of drawing_register: 0
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=3c3c26de">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=2254136e">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8505,12 +8574,12 @@ AI Query steps in the physical plan, filtered read of drawing_register: 0
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=b286b564">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=dd70d506">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [10]:</div>
+<div class="jp-InputPrompt jp-InputArea-prompt">In [11]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
 <div class="highlight hl-python"><pre><span></span><span class="n">out</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">"outputs"</span><span class="p">);</span> <span class="n">out</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -8520,11 +8589,16 @@ AI Query steps in the physical plan, filtered read of drawing_register: 0
 <span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"Direct grants on each schema are listed; the owner (`joseph.hobbs@databricks.com`) holds everything through ownership and is not shown by `SHOW GRANTS`. </span><span class="se">\"</span><span class="s2">Inherited</span><span class="se">\"</span><span class="s2"> counts grants that reach the schema from the shared catalog `mfg_mc_se_sa` (not this project's to change).</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span>
 <span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">md_table</span><span class="p">([(</span><span class="sa">f</span><span class="s2">"`</span><span class="si">{</span><span class="n">short</span><span class="p">(</span><span class="n">fq</span><span class="p">)</span><span class="si">}</span><span class="s2">`"</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">d</span><span class="p">),</span> <span class="s2">"; "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">p</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">a</span><span class="si">}</span><span class="s2">"</span> <span class="k">for</span> <span class="n">p</span><span class="p">,</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">d</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">"none"</span><span class="p">,</span> <span class="n">inh</span><span class="p">)</span> <span class="k">for</span> <span class="n">fq</span><span class="p">,</span> <span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">inh</span><span class="p">)</span> <span class="ow">in</span> <span class="n">GRANTS</span><span class="o">.</span><span class="n">items</span><span class="p">()],</span> <span class="p">[</span><span class="s2">"Schema"</span><span class="p">,</span> <span class="s2">"Direct grants"</span><span class="p">,</span> <span class="s2">"Principal: privilege"</span><span class="p">,</span> <span class="s2">"Inherited from catalog"</span><span class="p">]))</span>
 <span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">Volumes: "</span> <span class="o">+</span> <span class="s2">"; "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="sa">f</span><span class="s2">"`</span><span class="si">{</span><span class="n">catalog</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">prefix</span><span class="si">}</span><span class="s2">_landing.</span><span class="si">{</span><span class="n">v</span><span class="si">}</span><span class="s2">` direct grants = </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">g</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span> <span class="k">for</span> <span class="n">v</span><span class="p">,</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">VOL_GRANTS</span><span class="o">.</span><span class="n">items</span><span class="p">())</span> <span class="o">+</span> <span class="s2">".</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span>
-<span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"Nothing is granted to `account users` or any other broad principal (asserted in the run).</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span>
+<span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"**No direct grants were made by this task** (asserted for schemas and Volumes: no direct grant to `account users` or any other broad principal). Inherited access is a different matter, see the next section.</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span>
+<span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"### Inherited access (outside this project's control)</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span>
+<span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"The built-in group `account users` holds these privileges on the catalog `</span><span class="si">{</span><span class="n">catalog</span><span class="si">}</span><span class="s2">`: "</span> <span class="o">+</span> <span class="s2">", "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="sa">f</span><span class="s2">"`</span><span class="si">{</span><span class="n">a</span><span class="si">}</span><span class="s2">`"</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">au_cat</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="s2">" (plus "</span> <span class="o">+</span> <span class="s2">", "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="sa">f</span><span class="s2">"`</span><span class="si">{</span><span class="n">a</span><span class="si">}</span><span class="s2">`"</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">au_meta</span><span class="p">)</span> <span class="o">+</span> <span class="s2">" on the metastore)"</span> <span class="k">if</span> <span class="n">au_meta</span> <span class="k">else</span> <span class="s2">""</span><span class="p">)</span> <span class="o">+</span> <span class="s2">". They were granted by the catalog owners or inherited from the metastore, not by this task, and Unity Catalog inherits them to every schema, table and Volume below the catalog.</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span>
+<span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">md_table</span><span class="p">([(</span><span class="sa">f</span><span class="s2">"`</span><span class="si">{</span><span class="n">short</span><span class="p">(</span><span class="n">fq</span><span class="p">)</span><span class="si">}</span><span class="s2">`"</span><span class="p">,</span> <span class="s2">", "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">"none"</span><span class="p">)</span> <span class="k">for</span> <span class="n">fq</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">INHERITED</span><span class="o">.</span><span class="n">items</span><span class="p">()],</span> <span class="p">[</span><span class="s2">"Schema"</span><span class="p">,</span> <span class="s2">"Privileges reaching `account users` by inheritance"</span><span class="p">])</span> <span class="o">+</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span>
+<span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"**Consequence, stated plainly:** "</span> <span class="o">+</span> <span class="p">(</span><span class="s2">"every `bluerridge_*` table (for example `kpi_daily` and `drawings_extracted`) and the drawing Volume is readable by all account principals today. "</span> <span class="k">if</span> <span class="n">ACCOUNT_WIDE_READ</span> <span class="k">else</span> <span class="s2">"see the privileges above. "</span><span class="p">)</span> <span class="o">+</span> <span class="s2">"**The row filter on `drawing_register` is the only access control this build adds**, and it protects that one table only. This is acceptable because all data in the project is synthetic. Do not read '0 grants applied' as 'data locked down'.</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span>
+<span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Other catalog-level grantees, counted only (no names are listed because the repository is public): </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">others_cat</span><span class="p">)</span><span class="si">}</span><span class="s2"> other principals hold a catalog-level grant, </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">others_use</span><span class="p">)</span><span class="si">}</span><span class="s2"> of them USE CATALOG (for example colleagues' app service principals).</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span>
 <span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"### Groups outcome: NOT possible, and why</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span>
 <span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"- `databricks groups create --display-name bluerridge-pm` and `bluerridge-engineers` succeeded as **workspace-local** groups."</span><span class="p">)</span>
 <span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"- A grant of USE SCHEMA on `mfg_mc_se_sa.bluerridge_gold_pm` to `bluerridge-pm` was rejected: `PRINCIPAL_DOES_NOT_EXIST: Could not find principal with name bluerridge-pm`. Unity Catalog only resolves account-level groups, and creating those needs account admin, which this demo does not have."</span><span class="p">)</span>
-<span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"- Both probe groups were deleted (`databricks groups list` shows no `bluerridge-*` group). Nothing broad was granted instead."</span><span class="p">)</span>
+<span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"- Both probe groups were deleted (`databricks groups list` shows no `bluerridge-*` group). This task granted nothing broad instead."</span><span class="p">)</span>
 <span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"- The intended grants are in [`06_governance/grants.sql`](../06_governance/grants.sql) with `</span><span class="si">{pm_group}</span><span class="s2">`, `</span><span class="si">{engineer_group}</span><span class="s2">` and `</span><span class="si">{app_sp}</span><span class="s2">` placeholders. `apply.ipynb` applies a statement when its widget has a value: this run supplied none, so **0 grants were applied**.</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span>
 <span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"Intended grants (not applied):</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span>
 <span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">md_table</span><span class="p">([(</span><span class="s2">"project managers group"</span><span class="p">,</span> <span class="s2">"USE SCHEMA, SELECT"</span><span class="p">,</span> <span class="s2">"`bluerridge_gold_pm`"</span><span class="p">),</span> <span class="p">(</span><span class="s2">"engineers group"</span><span class="p">,</span> <span class="s2">"USE SCHEMA, SELECT"</span><span class="p">,</span> <span class="s2">"`bluerridge_silver_engineering`, `bluerridge_gold_pm`"</span><span class="p">),</span> <span class="p">(</span><span class="s2">"engineers group"</span><span class="p">,</span> <span class="s2">"USE SCHEMA, READ VOLUME"</span><span class="p">,</span> <span class="s2">"`bluerridge_landing`, Volume `drawings`"</span><span class="p">),</span> <span class="p">(</span><span class="s2">"project managers group"</span><span class="p">,</span> <span class="s2">"USE CATALOG"</span><span class="p">,</span> <span class="s2">"catalog owner must grant (shared catalog)"</span><span class="p">)],</span> <span class="p">[</span><span class="s2">"Principal"</span><span class="p">,</span> <span class="s2">"Privileges"</span><span class="p">,</span> <span class="s2">"On"</span><span class="p">]))</span>
@@ -8538,7 +8612,7 @@ AI Query steps in the physical plan, filtered read of drawing_register: 0
 <span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">md_table</span><span class="p">([(</span><span class="n">r</span><span class="p">[</span><span class="s2">"principal"</span><span class="p">],</span> <span class="n">r</span><span class="p">[</span><span class="s2">"discipline"</span><span class="p">])</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">spark</span><span class="o">.</span><span class="n">table</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">AGENTS</span><span class="si">}</span><span class="s2">.discipline_access"</span><span class="p">)</span><span class="o">.</span><span class="n">orderBy</span><span class="p">(</span><span class="s2">"principal"</span><span class="p">)</span><span class="o">.</span><span class="n">collect</span><span class="p">()],</span> <span class="p">[</span><span class="s2">"principal"</span><span class="p">,</span> <span class="s2">"discipline"</span><span class="p">])</span> <span class="o">+</span> <span class="s2">"</span><span class="se">\n\n</span><span class="s2">`example.com` principals are fictitious.</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span>
 <span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"### Helper allow/deny results (all asserted)</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span>
 <span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">md_table</span><span class="p">([(</span><span class="sa">f</span><span class="s2">"`</span><span class="si">{</span><span class="n">p</span><span class="si">}</span><span class="s2">`"</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">g</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">rows</span><span class="p">],</span> <span class="p">[</span><span class="s2">"principal"</span><span class="p">,</span> <span class="s2">"discipline"</span><span class="p">,</span> <span class="s2">"expected"</span><span class="p">,</span> <span class="s2">"actual"</span><span class="p">])</span> <span class="o">+</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span>
-<span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"### What each principal would see (rows per discipline on the unfiltered `drawings_extracted`)</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span>
+<span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"### What each principal would see: a SIMULATION (the helper applied to the unfiltered `drawings_extracted`, not queries run as those principals)</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span>
 <span class="n">discs</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"electrical"</span><span class="p">,</span> <span class="s2">"instr"</span><span class="p">,</span> <span class="s2">"mechanical"</span><span class="p">,</span> <span class="s2">"piping"</span><span class="p">,</span> <span class="s2">"structural"</span><span class="p">,</span> <span class="s2">"(none)"</span><span class="p">]</span>
 <span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">md_table</span><span class="p">([(</span><span class="sa">f</span><span class="s2">"`</span><span class="si">{</span><span class="n">p</span><span class="si">}</span><span class="s2">`"</span><span class="p">,</span> <span class="o">*</span><span class="p">[</span><span class="n">v</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">discs</span><span class="p">],</span> <span class="nb">sum</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span> <span class="k">for</span> <span class="n">p</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">VISIBLE</span><span class="o">.</span><span class="n">items</span><span class="p">()],</span> <span class="p">[</span><span class="s2">"principal"</span><span class="p">,</span> <span class="o">*</span><span class="n">discs</span><span class="p">,</span> <span class="s2">"total"</span><span class="p">])</span> <span class="o">+</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span>
 <span class="n">L</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"As `</span><span class="si">{</span><span class="n">ME</span><span class="si">}</span><span class="s2">` (mapped to `*`), the real filtered table returns `SELECT COUNT(*) FROM drawing_register` = **</span><span class="si">{</span><span class="n">n_user</span><span class="si">}</span><span class="s2">**. `latest_status`: "</span> <span class="o">+</span> <span class="s2">", "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">v</span><span class="si">}</span><span class="s2">"</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">status</span><span class="o">.</span><span class="n">items</span><span class="p">()))</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">"; sum(fail_count) = </span><span class="si">{</span><span class="n">fail_total</span><span class="si">}</span><span class="s2"> = FAIL rows in `compliance_findings`.</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span>
@@ -8595,8 +8669,8 @@ AI Query steps in the physical plan, filtered read of drawing_register: 0
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>wrote outputs/grant_listing.md 8882 chars
-wrote outputs/lineage_edges.md 6633 chars
+<pre>wrote outputs/grant_listing.md 10723 chars
+wrote outputs/lineage_edges.md 6828 chars
 </pre>
 </div>
 </div>
