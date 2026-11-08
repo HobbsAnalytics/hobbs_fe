@@ -3,6 +3,8 @@
 Serves the JSON API under /api, /health, and the built React SPA (static assets
 plus an index.html fallback for client-side routes).
 """
+import logging
+import sys
 from pathlib import Path
 from typing import Optional
 
@@ -10,9 +12,25 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 
 from backend import config
+from backend.routes import whoami
+
+
+def _configure_app_logging() -> None:
+    """Send the app's own INFO lines (logger "bluerridge.*") to stdout, which `databricks apps logs` captures.
+
+    Only this namespace is raised to INFO, so third-party loggers keep their defaults. App code logs who and how
+    (email, auth_mode), never a token.
+    """
+    log = logging.getLogger("bluerridge")
+    if not log.handlers:
+        handler = logging.StreamHandler(sys.stdout)
+        handler.setFormatter(logging.Formatter("%(levelname)s %(name)s: %(message)s"))
+        log.addHandler(handler)
+    log.setLevel(logging.INFO)
 
 
 def create_app(static_dir: Optional[Path] = None) -> FastAPI:
+    _configure_app_logging()
     static_root = Path(static_dir) if static_dir is not None else config.STATIC_DIR
     app = FastAPI(title="Blue Ridge LNG Project Co-Pilot")
 
@@ -20,8 +38,8 @@ def create_app(static_dir: Optional[Path] = None) -> FastAPI:
     def health() -> dict:
         return {"status": "ok"}
 
-    # Feature routers (Tasks 18-20) are included here, before the SPA catch-all:
-    # from backend.routes import ...; app.include_router(..., prefix="/api")
+    # Feature routers (Tasks 18-20) are included here, before the SPA catch-all.
+    app.include_router(whoami.router, prefix="/api")
 
     index_file = static_root / "index.html"
 
