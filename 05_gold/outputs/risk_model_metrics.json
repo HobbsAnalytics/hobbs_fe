@@ -1,6 +1,6 @@
 {
   "method": "ai_forecast",
-  "method_detail": "ai_forecast weekly slip trend per discipline (13 wk, 80% interval) + normal approx P(slip>0) + upstream-late adjustment",
+  "method_detail": "ai_forecast weekly slip trend per discipline (13 wk, 80% interval) + float-aware upstream delay + normal approx P(slip>0); ranking signal, not calibrated",
   "ai_forecast_path": "SQL warehouse via Statement Execution API (table-valued function; series saved as tables first)",
   "series_grain": "weekly (ISO week) mean slip_days of milestones finished that week, forward-filled for empty weeks",
   "grouped_by": "discipline",
@@ -14,18 +14,19 @@
   },
   "holdout_weeks": 8,
   "holdout_start": "2026-09-14",
-  "holdout_points_scored": 12,
-  "mae_days": 11.0483,
-  "bias_days": -10.0911,
-  "interval_coverage": 0.1667,
-  "baseline_last_value_mae_days": 11.3472,
-  "baseline_last_value_bias_days": -9.9028,
+  "holdout_points_scored": 14,
+  "holdout_points_total": 40,
+  "mae_days": 10.6243,
+  "bias_days": -9.8038,
+  "interval_coverage": 0.1429,
+  "baseline_last_value_mae_days": 10.9405,
+  "baseline_last_value_bias_days": -9.7024,
   "per_discipline": [
     {
       "discipline": "electrical",
-      "n": 1,
-      "mae": 3.693,
-      "bias": 3.693,
+      "n": 2,
+      "mae": 4.006,
+      "bias": -0.313,
       "coverage": 0.0
     },
     {
@@ -44,9 +45,9 @@
     },
     {
       "discipline": "piping",
-      "n": 1,
-      "mae": 18.34,
-      "bias": -18.34,
+      "n": 2,
+      "mae": 15.091,
+      "bias": -15.091,
       "coverage": 0.0
     }
   ],
@@ -55,11 +56,20 @@
   "as_of_date": "2026-11-06",
   "prediction_interval_width": 0.8,
   "milestones_scored": 64,
-  "slip_probability_note": "heuristic normal approximation from the forecast interval, not calibrated",
-  "job_run_id": 1106931009314004,
+  "risk_band_cutoffs": {
+    "High": ">= 0.75",
+    "Medium": ">= 0.5 and < 0.75",
+    "Low": "< 0.5"
+  },
+  "risk_band_counts": {
+    "High": 26,
+    "Medium": 27,
+    "Low": 11
+  },
+  "overdue_milestones": 7,
+  "slip_probability_note": "ranking signal from a trend forecast, not calibrated; backtest interval coverage is far below the 80% target, so extreme scores are overconfident",
+  "job_run_id": "942883011040522",
   "mlflow_experiment_path": "/Shared/bluerridge_pm_copilot/schedule_risk_forecast",
   "mlflow_experiment_id": "4276059729056540",
-  "mlflow_run_id": "9ccaaeb63bd14c589c92615d0deadc97",
-  "task_run_id": 150977885375647,
-  "job_run_id_note": "one-time `jobs submit` run; the notebook itself could not read its run id, so this was filled in from the run record"
+  "mlflow_run_id": "74b797256d304671b7ca7330db408728"
 }

@@ -88,6 +88,8 @@ Not an FE Bar box, but everything below writes into these objects.
 |---|---|---|
 | ☑ done | [`evidence/risk_model_metrics.json`](risk_model_metrics.json) | Mean absolute error and bias of the `ai_forecast` schedule-slip model |
 | ☑ done | [`05_gold/outputs/risk_top5.md`](../05_gold/outputs/risk_top5.md) | The top 5 schedule risks in PM language, with the method in two sentences |
+| ☑ done | [`05_gold/outputs/submit_payloads/02_submit.json`](../05_gold/outputs/submit_payloads/02_submit.json) | The one-time `jobs submit` payload that produced the notebook's evidence run, with `{{job.run_id}}` passed in |
+| ☑ done | [`resources/job-risk-forecast.yml`](../resources/job-risk-forecast.yml) | The deployed weekly refresh job `bluerridge-risk-forecast` (id 563080592506156): schedule PAUSED, never run |
 | ☑ done | [`05_gold/outputs/risk_forecast_chart.png`](../05_gold/outputs/risk_forecast_chart.png) | Forecast against history with the interval band and the backtest overlay |
 | ☑ done | [`05_gold/outputs/kpi_today.md`](../05_gold/outputs/kpi_today.md) | The gold KPI row the app's KPI strip reads |
 

@@ -28,3 +28,4 @@ resources:
               catalog: ${var.catalog}
               schema_prefix: ${var.schema_prefix}
               warehouse_id: ${var.warehouse_id}
+              run_id: "{{job.run_id}}"
