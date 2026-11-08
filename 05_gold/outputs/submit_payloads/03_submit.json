@@ -1,5 +1,5 @@
 {
-  "run_name": "bluerridge T13 03_daily_brief (one-time evidence run)",
+  "run_name": "bluerridge T13 03_daily_brief (one-time evidence run, prompt v3 fix round)",
   "tasks": [
     {
       "task_key": "main",

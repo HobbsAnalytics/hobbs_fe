@@ -1,32 +1,82 @@
 # Daily Brief, 2026-11-06
 
-Blue Ridge LNG Terminal Phase 2 remains on track overall, though 7 milestones are now overdue and budget variance has reached $4.8M.
+Blue Ridge LNG Terminal Phase 2 is tracking a $4.8M overrun and schedule pressure from late milestones, though safety remains strong.
 
-**Schedule**: 7 milestones are already late; MS-271 (heat exchanger install) is 15 days overdue with 60 downstream tasks at risk. MS-281 (Tank T-203) slipped 4 days this period. 3 instrumentation milestones (MS-335, MS-351, MS-352) show High risk through January.
+- **Schedule:** 6 milestones are already late and 1 due today. MS-271 is already late by 15 days, MS-277 by 11 days, and MS-281 by 4 days.
 
-**Budget**: Current overrun stands at $4.8M against the $208.7M total budget (2.3% EAC).
+- **Budget:** The project shows a $4.8M overrun against the $208.7M total budget.
 
-**Safety**: 28 days without a recordable incident; 0.0 TRIR over the past 28 days.
+- **Safety:** 28 days without an incident and a 28-day TRIR of 0.0.
 
-**Compliance**: 51 of 238 drawings flagged for engineer review this week. 85 findings led by ASME B31.3 §322 (30 findings, primarily missing pressure relief devices on vessels) and OSHA 1910.147 (25 findings).
+- **Compliance:** 51 of 238 drawings flagged for engineer review this week. ASME B31.3 §322 leads with 30 findings, followed by OSHA 1910.147 with 25. 24 NCRs remain open.
 
-**Risk**: 24 open NCRs (9 compliance, 15 workmanship).
+- **Risk:** 26 milestones are High risk in the next 90 days; the top 3 are MS-335, MS-351, and MS-352.
 
-Would you like me to drill into the MS-271 delay or the pressure relief device findings?
+Where would you like to focus first?
 
 ## How this was grounded
 
 - Validation status: **pass** (1 model call; a failed first draft would be kept in `validation_detail`)
-- Model: `databricks-claude-sonnet-4-5`, prompt version `v2`
-- Generated at: 2026-11-08 17:19:00.914863 UTC, job run `438698467007318`
+- Model: `databricks-claude-sonnet-4-5`, prompt version `v3`
+- Generated at: 2026-11-08 17:31:08.689262 UTC, job run `1067568868183925`
 - Source: `mfg_mc_se_sa.bluerridge_gold_pm.daily_brief`, key `(BRL-PH2, 2026-11-06)`
-- Validator checks (`05_gold/brief_lib.py`, `validate_brief`), run on the stored brief against the stored context:
-  - Numbers: every number matches a number in the context: PASS
-  - IDs: every milestone and drawing ID exists in the context: PASS
+- Deterministic checks (`05_gold/brief_lib.py`, `validate_brief`), run on the stored brief against the stored context:
+  - Numbers: every number matches a number in the context (money to the precision shown, integers and percentages exact): PASS
+  - IDs: every MS- and drawing ID exists in the context: PASS
+  - Count adjacency: a number next to late / overdue / behind is the already-late count; a number next to High / Medium / Low risk is that band's total: PASS
+  - Bullet labels: exactly Schedule, Budget, Safety, Compliance, Risk, once each, as list items: PASS
+  - Section content: Risk names a band and has no NCRs; Schedule states the late count; Compliance carries the triage line: PASS
   - No probabilities: no probability wording, no percentage next to risk wording: PASS
-  - Length: 144 words (limit 150): PASS
+  - Time phrases and generalisations: nothing the context does not support: PASS
+  - Length: 130 words (limit 150; the prompt asks for about 130): PASS
 - Risk is shown by band only. The heuristic risk score is not in the context, so the model could not quote it.
 - Compliance is triage: drawings flagged for engineer review, not a verdict.
+
+## Known blind spots
+
+The checks verify numbers, IDs, counts against the context, section content and probability language. They do **not** verify paraphrase semantics: a sentence can use only true numbers and still say something misleading, which is exactly how v1 and v2 passed. For that reason a human read the final brief line by line; it is recorded in [`daily_brief_history/v3_human_read.md`](daily_brief_history/v3_human_read.md). Spelled-out numbers ("six") are not read by the validator; the prompt asks for digits.
+
+## Prompt history
+
+| Version | What it said wrong | Why it changed |
+|---|---|---|
+| v1 (run 758803144079141, [`v1.md`](daily_brief_history/v1.md)) | "three milestones are already late" | The context only listed the top 3 of the overdue list, so the model counted the list. Also generalised "primarily missing pressure relief devices" from 5 sample reasons. |
+| v2 (run 438698467007318, [`v2.md`](daily_brief_history/v2.md)) | "7 milestones are already late"; "3 instrumentation milestones show High risk through January"; Risk bullet held NCRs | Overdue total (7) includes 1 due today, only 6 are late. The High-risk count came from the top-3 list (the table holds more High rows). Section content and time phrases were unchecked. The validator passed all of it because every number existed somewhere in the context. |
+| v3 (this run) | see the brief above | Adds the true totals to the context (`schedule_already_late`, `schedule_due_today`, `risk_high_total` and friends), exact required phrasings in the prompt, and deterministic count-adjacency, label, section-content, time-phrase and generalisation checks to the validator. |
+
+## Trace of each claim to the context (generated by `brief_lib.grounding_table`)
+
+| Section | Claim in the brief | Where it is in the context |
+|---|---|---|
+| Opening | `2` | `kpi.project_id (inside text), project (inside text)` |
+| Opening | `$4.8M` | `kpi.budget_overrun_usd` |
+| Schedule | `MS-271` | `schedule_overdue_top3[1].milestone_id` |
+| Schedule | `MS-277` | `schedule_overdue_top3[2].milestone_id` |
+| Schedule | `MS-281` | `kpi.slipped_milestone_id` |
+| Schedule | `6` | `schedule_already_late, kpi.milestones_hit` |
+| Schedule | `1` | `schedule_due_today, risk_forecast_top3[0].planned_end (inside text)` |
+| Schedule | `15` | `schedule_overdue_top3[1].days_late, compliance_this_week.fail_findings_by_citation[2].fail_findings` |
+| Schedule | `11` | `schedule_overdue_top3[2].days_late, kpi.milestones_total` |
+| Schedule | `4` | `schedule_overdue_top3[0].days_late, kpi.slipped_days` |
+| Budget | `$4.8M` | `kpi.budget_overrun_usd` |
+| Budget | `$208.7M` | `kpi.budget_total_usd` |
+| Safety | `28` | `kpi.safety_days_without_incident` |
+| Safety | `28` | `kpi.safety_days_without_incident` |
+| Safety | `0.0` | `kpi.trir_28d, compliance_this_week.review_unusable_drawings` |
+| Compliance | `51` | `compliance_this_week.flagged_drawings` |
+| Compliance | `238` | `compliance_this_week.reviewed_drawings` |
+| Compliance | `31.3` | `compliance_this_week.fail_findings_by_citation[0].citation (inside text), compliance_this_week.fail_findings_by_citation[4].citation (inside text)` |
+| Compliance | `322` | `compliance_this_week.fail_findings_by_citation[0].citation (inside text), compliance_this_week.top_fail_findings[0].citation (inside text)` |
+| Compliance | `30` | `compliance_this_week.fail_findings_by_citation[0].fail_findings` |
+| Compliance | `1910.147` | `compliance_this_week.fail_findings_by_citation[1].citation (inside text)` |
+| Compliance | `25` | `compliance_this_week.fail_findings_by_citation[1].fail_findings, risk_forecast_top3[0].planned_end (inside text)` |
+| Compliance | `24` | `kpi.open_ncrs, risk_forecast_top3[2].planned_end (inside text)` |
+| Risk | `MS-335` | `risk_forecast_top3[0].milestone_id` |
+| Risk | `MS-351` | `risk_forecast_top3[1].milestone_id` |
+| Risk | `MS-352` | `risk_forecast_top3[2].milestone_id` |
+| Risk | `26` | `risk_high_total` |
+| Risk | `90` | `risk_forecast_window_days` |
+| Risk | `3` | `top_n_listed, schedule_overdue_top3[2].name (inside text)` |
 
 <details><summary>Context JSON the model was given</summary>
 
@@ -137,6 +187,10 @@ Would you like me to drill into the MS-271 delay or the pressure relief device f
       "risk_band": "High"
     }
   ],
+  "risk_forecast_window_days": 90,
+  "risk_high_total": 26,
+  "risk_low_total": 11,
+  "risk_medium_total": 27,
   "schedule_already_late": 6,
   "schedule_due_today": 1,
   "schedule_overdue_top3": [
@@ -159,7 +213,8 @@ Would you like me to drill into the MS-271 delay or the pressure relief device f
       "name": "Align rotating equipment - Train 3 (WP-286)"
     }
   ],
-  "schedule_overdue_total": 7
+  "schedule_overdue_total": 7,
+  "top_n_listed": 3
 }
 ```
 

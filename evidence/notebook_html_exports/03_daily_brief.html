@@ -7796,7 +7796,7 @@ a.anchor-link {
 <!-- End of mermaid configuration --></head>
 <body class="jp-Notebook" data-jp-theme-light="true" data-jp-theme-name="JupyterLab Light">
 <main>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=e2bf341f">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=462a53bd">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7805,15 +7805,17 @@ a.anchor-link {
 <h1 id="05-Gold:-daily_brief-(the-GenAI-narrator)">05 Gold: <code>daily_brief</code> (the GenAI narrator)<a class="anchor-link" href="#05-Gold:-daily_brief-(the-GenAI-narrator)">¶</a></h1><p>When the PM opens the app each morning, the chat starts with this <strong>Daily Brief</strong>. It is written by <code>ai_query('databricks-claude-sonnet-4-5', ...)</code> from a small context payload built from the gold tables, and then <strong>checked by a validator before anyone sees it</strong>. The point of this notebook is not that an LLM can write a paragraph; it is that every number and ID in the paragraph can be traced to real data, and that the check is code, not a promise.</p>
 <h2 id="What-this-notebook-does">What this notebook does<a class="anchor-link" href="#What-this-notebook-does">¶</a></h2><ol>
 <li><strong>Build the context</strong> from gold tables only (<code>kpi_daily</code>, <code>compliance_findings</code>, <code>schedule_overdue</code>, <code>risk_forecast</code>) and store it verbatim in the row's <code>context_json</code>. The model sees nothing else.</li>
-<li><strong>Prompt</strong> (<code>brief_lib.build_brief_prompt</code>, <code>prompt_version = v2</code>; v1 was the first run, whose brief said "three milestones are already late" because the context only listed the worst three of seven overdue milestones, so v2 adds the overdue totals to the context and tells the model to count from them): use only CONTEXT facts, reproduce numbers exactly, never invent milestones, drawings, people, dates or causes, describe risk by band only, frame compliance as triage ("N of M drawings flagged for engineer review this week"), call late milestones "already late". Shape: one status sentence, four to five bold-label bullets (Schedule, Budget, Safety, Compliance, Risk), one closing question, about 130 words.</li>
+<li><strong>Prompt</strong> (<code>brief_lib.build_brief_prompt</code>, <code>prompt_version = v3</code>; see "Prompt history" below): use only CONTEXT facts, reproduce numbers exactly, never invent milestones, drawings, people, dates or causes, describe risk by band only, frame compliance as triage ("N of M drawings flagged for engineer review this week"), call late milestones "already late". Shape: one status sentence, four to five bold-label bullets (Schedule, Budget, Safety, Compliance, Risk), one closing question, about 130 words.</li>
 <li><strong>Plan check, then call.</strong> Before each model call the notebook asserts that the query plan has exactly one <code>AI Query</code> step, so a call cannot silently fan out. Expect 1 call, at most 2.</li>
-<li><strong>Validate</strong> with <code>brief_lib.validate_brief</code> (pure Python, unit-tested in <code>05_gold/tests/test_brief_lib.py</code>, written test-first). Four checks: every number in the brief matches a number in the context (after normalising <code>$4.8M</code>, <code>$4.8 million</code>, <code>2.3%</code>, commas); every <code>MS-</code> and drawing ID exists in the context; no probability language and no percentage next to risk wording; at most 150 words.</li>
-<li><strong>One retry, no more.</strong> If validation fails, the failed checks are appended to the prompt and the model is called once more. Both drafts, with their failures, are kept in <code>validation_detail</code>. If the second draft also fails the row is still written with <code>validation_status = 'fail'</code> and printed prominently below. Nothing is dropped silently, and the prompt is not tuned in a loop.</li>
+<li><strong>Validate</strong> with <code>brief_lib.validate_brief</code> (pure Python, unit-tested in <code>05_gold/tests/test_brief_lib.py</code>, written test-first). Deterministic checks: every number matches a number in the context (after normalising <code>$4.8M</code>, <code>$4.8 million</code>, <code>2.3%</code>, commas); every <code>MS-</code> and drawing ID exists in the context; no probability language and no percentage next to risk wording; at most 150 words; <strong>count adjacency</strong> (a number next to late / overdue / behind must be the already-late count, a number next to High / Medium / Low risk must be that band's total); <strong>bullet labels</strong> (exactly Schedule, Budget, Safety, Compliance, Risk, once each, as list items); <strong>section content</strong> (Risk names a band and holds no NCRs, Schedule states the late count, Compliance carries the triage line); no time phrases or month names the context lacks; no generalising words ("primarily", "mostly").</li>
+<li><strong>One retry, no more.</strong> If validation fails, the failed checks are appended to the prompt and the model is called once more. Both drafts, with their failures, are kept in <code>validation_detail</code>. If the second draft also fails the row is still written with <code>validation_status = 'fail'</code> and printed prominently below. Nothing is dropped silently. There is <strong>no automated prompt-tuning loop</strong>: the only retry is the single one above.</li>
 <li><strong>Write</strong> <code>mfg_mc_se_sa.bluerridge_gold_pm.daily_brief</code> (primary key <code>project_id, brief_date</code>) with <code>CREATE OR REPLACE TABLE</code>, read the row back, re-validate it from the stored <code>context_json</code>, and write <code>outputs/daily_brief_today.md</code> from that row.</li>
 </ol>
+<h2 id="Prompt-history-(two-disclosed-revisions,-both-from-human-review)">Prompt history (two disclosed revisions, both from human review)<a class="anchor-link" href="#Prompt-history-(two-disclosed-revisions,-both-from-human-review)">¶</a></h2><p>The prompt was revised twice by hand, v1 to v2 to v3. Each revision fixed a factual error that a person found when reading a brief that had <strong>passed</strong> the validator of the time; nothing was tuned automatically or in a loop. The history table in <code>outputs/daily_brief_today.md</code> and the preserved briefs in <code>outputs/daily_brief_history/</code> show each version's text and why it changed. In short: v1 said "three milestones are late" because the context held only the top 3 of the overdue list; v2 said "7 already late" (it counted the milestone due today as late), counted High-risk milestones from the top-3 list, put NCRs under the Risk label and generalised from five sample reasons; v3 adds the true totals to the context, deterministic count-adjacency and section checks to the validator, and exact required phrasings to the prompt.</p>
 <h2 id="Decisions-worth-knowing">Decisions worth knowing<a class="anchor-link" href="#Decisions-worth-knowing">¶</a></h2><ul>
 <li><strong>One brief, for 2026-11-06 only.</strong> <code>risk_forecast</code> and <code>schedule_overdue</code> are as-of tables: they hold today's view, not a history. A brief for an earlier date would have to mix that date's KPIs with today's risks and overdue list, so it could not be point-in-time. Rather than back-fill briefs that look right but are not, the table holds the one date it can honestly produce. A daily job would add one row per day from here.</li>
 <li><strong>Risk is shown as a band, never a score.</strong> The risk score is a heuristic: in its backtest the 80 percent interval covered about 14 percent of held-out weeks (target 80), so it is overconfident. <code>slip_probability</code> is <strong>not in the context</strong>, so the model cannot quote it; the validator also rejects any percentage near risk wording.</li>
+<li><strong>Totals are in the context, so the model does not have to count lists.</strong> <code>schedule_overdue_total</code> (7), <code>schedule_already_late</code> (6), <code>schedule_due_today</code> (1) come from <code>schedule_overdue</code>; <code>risk_high_total</code>, <code>risk_medium_total</code>, <code>risk_low_total</code> come live from <code>risk_forecast.risk_band</code>. The prompt gives the exact phrasings to use.</li>
 <li><strong>The model is told not to calculate.</strong> If the model writes "21% failed" (51 of 238 computed), that number is not in the context and the validator fails it. I chose to keep the validator strict and tell the prompt not to derive new numbers, rather than add derived values to the context.</li>
 <li><strong>Validator exemptions, each deliberate.</strong> Digits inside milestone and drawing IDs are checked as IDs, not as numbers. Line-start list markers (<code>1.</code>) and ordinals (<code>1st</code>) are ignored. Money may be rounded to the precision written (<code>$5M</code> matches 4.8M; <code>$4.9M</code> does not, <code>$4.8M</code> does). Plain integers and percentages must match exactly. Spelled-out numbers ("six") are not read, which is why the prompt asks for digits.</li>
 <li><strong>Context fields.</strong> KPI block: all <code>kpi_daily</code> fields of the as-of row except <code>computed_at</code>, <code>is_current</code> (bookkeeping), with the four <code>compliance_*_week</code> counts placed under <code>compliance_this_week</code>. "Failed" in <code>kpi_daily</code> counts drawings with at least one FAIL finding (51); the finding-level counts (85 findings this week) are labelled as findings. The top 5 failing findings are ordered by severity (critical, high, medium, low), then <code>drawing_id</code>, then <code>finding_id</code>; each <code>reason</code> is cut at a word boundary to 140 characters.</li>
@@ -7821,7 +7823,7 @@ a.anchor-link {
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=4cb06562">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=8d46ab1e">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7869,15 +7871,15 @@ a.anchor-link {
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>job_run_id: 438698467007318 | raw parameter: '438698467007318'
-as_of 2026-11-06 | compliance week 2026-10-31 to 2026-11-06 | model databricks-claude-sonnet-4-5 | prompt_version v2
+<pre>job_run_id: 1067568868183925 | raw parameter: '1067568868183925'
+as_of 2026-11-06 | compliance week 2026-10-31 to 2026-11-06 | model databricks-claude-sonnet-4-5 | prompt_version v3
 </pre>
 </div>
 </div>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=e5a1defc">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=744e6705">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7887,7 +7889,7 @@ as_of 2026-11-06 | compliance week 2026-10-31 to 2026-11-06 | model databricks-c
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=ea4c11ec">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=5e7a90b0">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7925,6 +7927,8 @@ as_of 2026-11-06 | compliance week 2026-10-31 to 2026-11-06 | model databricks-c
 <span class="n">overdue</span> <span class="o">=</span> <span class="n">rows</span><span class="p">(</span><span class="sa">f</span><span class="s1">'''SELECT milestone_id, name, days_late, downstream_open_count FROM </span><span class="si">{</span><span class="n">GOLD</span><span class="si">}</span><span class="s1">.schedule_overdue</span>
 <span class="s1">  ORDER BY criticality DESC, days_late DESC, milestone_id LIMIT 3'''</span><span class="p">)</span>
 <span class="n">ov_total</span> <span class="o">=</span> <span class="n">rows</span><span class="p">(</span><span class="sa">f</span><span class="s2">"SELECT count(*) AS n, count_if(days_late &gt; 0) AS late, count_if(days_late = 0) AS today FROM </span><span class="si">{</span><span class="n">GOLD</span><span class="si">}</span><span class="s2">.schedule_overdue"</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">risk_totals</span> <span class="o">=</span> <span class="p">{</span><span class="n">r</span><span class="p">[</span><span class="s2">"risk_band"</span><span class="p">]:</span> <span class="n">r</span><span class="p">[</span><span class="s2">"n"</span><span class="p">]</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">rows</span><span class="p">(</span><span class="sa">f</span><span class="s2">"SELECT risk_band, count(*) AS n FROM </span><span class="si">{</span><span class="n">GOLD</span><span class="si">}</span><span class="s2">.risk_forecast GROUP BY risk_band"</span><span class="p">)}</span>
+<span class="k">assert</span> <span class="nb">sum</span><span class="p">(</span><span class="n">risk_totals</span><span class="o">.</span><span class="n">values</span><span class="p">())</span> <span class="o">==</span> <span class="n">rows</span><span class="p">(</span><span class="sa">f</span><span class="s2">"SELECT count(*) AS n FROM </span><span class="si">{</span><span class="n">GOLD</span><span class="si">}</span><span class="s2">.risk_forecast"</span><span class="p">)[</span><span class="mi">0</span><span class="p">][</span><span class="s2">"n"</span><span class="p">]</span> <span class="ow">and</span> <span class="nb">set</span><span class="p">(</span><span class="n">risk_totals</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="p">{</span><span class="s2">"High"</span><span class="p">,</span> <span class="s2">"Medium"</span><span class="p">,</span> <span class="s2">"Low"</span><span class="p">}</span>
 <span class="n">risk</span> <span class="o">=</span> <span class="n">rows</span><span class="p">(</span><span class="sa">f</span><span class="s1">'''SELECT milestone_id, name, discipline, planned_end, risk_band FROM </span><span class="si">{</span><span class="n">GOLD</span><span class="si">}</span><span class="s1">.risk_forecast ORDER BY risk_rank LIMIT 3'''</span><span class="p">)</span>
 
 <span class="n">context</span> <span class="o">=</span> <span class="p">{</span>
@@ -7942,6 +7946,11 @@ as_of 2026-11-06 | compliance week 2026-10-31 to 2026-11-06 | model databricks-c
     <span class="s2">"schedule_already_late"</span><span class="p">:</span> <span class="n">ov_total</span><span class="p">[</span><span class="s2">"late"</span><span class="p">],</span>
     <span class="s2">"schedule_due_today"</span><span class="p">:</span> <span class="n">ov_total</span><span class="p">[</span><span class="s2">"today"</span><span class="p">],</span>
     <span class="s2">"schedule_overdue_top3"</span><span class="p">:</span> <span class="n">overdue</span><span class="p">,</span>
+    <span class="s2">"risk_high_total"</span><span class="p">:</span> <span class="n">risk_totals</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"High"</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+    <span class="s2">"risk_medium_total"</span><span class="p">:</span> <span class="n">risk_totals</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"Medium"</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+    <span class="s2">"risk_low_total"</span><span class="p">:</span> <span class="n">risk_totals</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"Low"</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+    <span class="s2">"risk_forecast_window_days"</span><span class="p">:</span> <span class="mi">90</span><span class="p">,</span>
+    <span class="s2">"top_n_listed"</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span>
     <span class="s2">"risk_forecast_top3"</span><span class="p">:</span> <span class="n">risk</span><span class="p">,</span>
 <span class="p">}</span>
 <span class="n">context_json</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">context</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">sort_keys</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -8065,6 +8074,10 @@ as_of 2026-11-06 | compliance week 2026-10-31 to 2026-11-06 | model databricks-c
       "risk_band": "High"
     }
   ],
+  "risk_forecast_window_days": 90,
+  "risk_high_total": 26,
+  "risk_low_total": 11,
+  "risk_medium_total": 27,
   "schedule_already_late": 6,
   "schedule_due_today": 1,
   "schedule_overdue_top3": [
@@ -8087,7 +8100,8 @@ as_of 2026-11-06 | compliance week 2026-10-31 to 2026-11-06 | model databricks-c
       "name": "Align rotating equipment - Train 3 (WP-286)"
     }
   ],
-  "schedule_overdue_total": 7
+  "schedule_overdue_total": 7,
+  "top_n_listed": 3
 }
 </pre>
 </div>
@@ -8095,7 +8109,7 @@ as_of 2026-11-06 | compliance week 2026-10-31 to 2026-11-06 | model databricks-c
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=351a140d">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=ba739949">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8105,7 +8119,7 @@ as_of 2026-11-06 | compliance week 2026-10-31 to 2026-11-06 | model databricks-c
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=bbb59858">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=25955077">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8149,14 +8163,23 @@ You are the project manager's co-pilot on the Blue Ridge LNG Terminal, Phase 2 b
 GROUNDING RULES
 - Use only facts in the CONTEXT. Never invent milestones, drawings, people, dates or causes.
 - Reproduce numbers exactly as given, as digits. Rounding to the precision shown is fine (for example $4.8M). Do not calculate new numbers (no percentages of your own, no sums, no differences).
+- Use no time phrases that are not in the CONTEXT: no "this period", "last week", no month names. "This week" is fine for compliance.
 - Describe schedule risk only by its band ("High risk", "Medium risk"). Never write a percentage, probability, chance or likelihood for risk.
 - Frame compliance as triage: "N of M drawings flagged for engineer review this week". Do not say the drawings are non-compliant or failed.
-- Milestones listed under schedule_overdue_top3 are already late: say "already late". schedule_overdue_top3 shows only the worst three; when you say how many milestones are late or overdue, use the totals (schedule_overdue_total, schedule_already_late, schedule_due_today), never the length of that list.
+- Characterize compliance findings by citation counts only (fail_findings_by_citation). Never generalize from the sample reasons in top_fail_findings: do not say "primarily", "mostly" or name a common cause.
+- Late milestones. Say "6 milestones are already late and 1 due today". Do not use 7 (schedule_overdue_total) as the late count, because it includes the milestone due today. schedule_overdue_top3 shows only the worst 3: you may name them with their own days late (for example "MS-271 is already late by 15 days"), but never use the length of that list as a count.
+- Risk milestones. If you mention how many milestones are High risk, use 26 (Medium 27, Low 11); these count open milestones due in the next 90 days. You may name the top ones as "the top 3 are ...", using only milestones listed under risk_forecast_top3.
+- Open NCRs go in the Compliance bullet, never in the Risk bullet.
 - Refer to milestones and drawings by their IDs exactly as written (for example MS-281).
 
 SHAPE
 - One opening sentence on overall status.
-- Then 4 to 5 short Markdown bullets, each starting with a bold label: **Schedule**, **Budget**, **Safety**, **Compliance**, **Risk**.
+- Then exactly five bullets, in this order, each a real Markdown list item starting with "- " and a bold label with a colon inside the bold: "- **Schedule:** ...", "- **Budget:** ...", "- **Safety:** ...", "- **Compliance:** ...", "- **Risk:** ...".
+  - Schedule: the late phrasing above, plus the worst late milestone.
+  - Budget: the overrun and total budget.
+  - Safety: days without an incident and the 28-day TRIR.
+  - Compliance: the triage line, the lead citation by count, and the open NCRs if you mention them.
+  - Risk: milestones by risk band only (the High count above and the top ones named).
 - Then one closing question offering to dig in.
 - At most 130 words in total. Plain business tone for a project manager. No headings, no preamble.
 
@@ -8267,6 +8290,10 @@ CONTEXT (JSON)
       "risk_band": "High"
     }
   ],
+  "risk_forecast_window_days": 90,
+  "risk_high_total": 26,
+  "risk_low_total": 11,
+  "risk_medium_total": 27,
   "schedule_already_late": 6,
   "schedule_due_today": 1,
   "schedule_overdue_top3": [
@@ -8289,17 +8316,18 @@ CONTEXT (JSON)
       "name": "Align rotating equipment - Train 3 (WP-286)"
     }
   ],
-  "schedule_overdue_total": 7
+  "schedule_overdue_total": 7,
+  "top_n_listed": 3
 }
 
-====================================================================== | prompt words: 616
+====================================================================== | prompt words: 848
 </pre>
 </div>
 </div>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=132efdf6">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=69b2817d">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8309,7 +8337,7 @@ CONTEXT (JSON)
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=c2db1f5b">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=927b6f24">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8355,20 +8383,20 @@ CONTEXT (JSON)
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
 <pre>[attempt 1] AI Query steps in the physical plan: 1
---- attempt 1: validator ok=True, words=144
-Blue Ridge LNG Terminal Phase 2 remains on track overall, though 7 milestones are now overdue and budget variance has reached $4.8M.
+--- attempt 1: validator ok=True, words=130
+Blue Ridge LNG Terminal Phase 2 is tracking a $4.8M overrun and schedule pressure from late milestones, though safety remains strong.
 
-**Schedule**: 7 milestones are already late; MS-271 (heat exchanger install) is 15 days overdue with 60 downstream tasks at risk. MS-281 (Tank T-203) slipped 4 days this period. 3 instrumentation milestones (MS-335, MS-351, MS-352) show High risk through January.
+- **Schedule:** 6 milestones are already late and 1 due today. MS-271 is already late by 15 days, MS-277 by 11 days, and MS-281 by 4 days.
 
-**Budget**: Current overrun stands at $4.8M against the $208.7M total budget (2.3% EAC).
+- **Budget:** The project shows a $4.8M overrun against the $208.7M total budget.
 
-**Safety**: 28 days without a recordable incident; 0.0 TRIR over the past 28 days.
+- **Safety:** 28 days without an incident and a 28-day TRIR of 0.0.
 
-**Compliance**: 51 of 238 drawings flagged for engineer review this week. 85 findings led by ASME B31.3 §322 (30 findings, primarily missing pressure relief devices on vessels) and OSHA 1910.147 (25 findings).
+- **Compliance:** 51 of 238 drawings flagged for engineer review this week. ASME B31.3 §322 leads with 30 findings, followed by OSHA 1910.147 with 25. 24 NCRs remain open.
 
-**Risk**: 24 open NCRs (9 compliance, 15 workmanship).
+- **Risk:** 26 milestones are High risk in the next 90 days; the top 3 are MS-335, MS-351, and MS-352.
 
-Would you like me to drill into the MS-271 delay or the pressure relief device findings?
+Where would you like to focus first?
 
 FINAL validation_status: pass | attempts: 1
 </pre>
@@ -8377,7 +8405,7 @@ FINAL validation_status: pass | attempts: 1
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=f7238e54">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=5f3cb030">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8387,7 +8415,7 @@ FINAL validation_status: pass | attempts: 1
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=ac920897">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=c07bc4d4">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8437,7 +8465,7 @@ FINAL validation_status: pass | attempts: 1
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=1f8d43fc">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=98c96ad6">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8447,7 +8475,7 @@ FINAL validation_status: pass | attempts: 1
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=647981fb">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=49f2b0b6">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8484,30 +8512,30 @@ FINAL validation_status: pass | attempts: 1
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedHTMLCommon jp-RenderedHTML jp-OutputArea-output" data-mime-type="text/html" tabindex="0">
-<table><thead><tr><th>project_id</th><th>brief_date</th><th>model</th><th>prompt_version</th><th>validation_status</th><th>attempts</th><th>generated_at</th></tr></thead><tbody><tr><td>BRL-PH2</td><td>2026-11-06</td><td>databricks-claude-sonnet-4-5</td><td>v2</td><td>pass</td><td>1</td><td>2026-11-08T17:19:00.914Z</td></tr></tbody></table>
+<table><thead><tr><th>project_id</th><th>brief_date</th><th>model</th><th>prompt_version</th><th>validation_status</th><th>attempts</th><th>generated_at</th></tr></thead><tbody><tr><td>BRL-PH2</td><td>2026-11-06</td><td>databricks-claude-sonnet-4-5</td><td>v3</td><td>pass</td><td>1</td><td>2026-11-08T17:31:08.689Z</td></tr></tbody></table>
 </div>
 </div>
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
 <pre>columns: ['project_id', 'brief_date', 'brief_md', 'context_json', 'model', 'prompt_version', 'validation_status', 'validation_detail', 'attempts', 'generated_at']
-re-validation of the stored row: ok=True, failures=[], words=144
+re-validation of the stored row: ok=True, failures=[], words=130
 
 DAILY BRIEF for 2026-11-06 (validation_status = pass)
 ----------------------------------------------------------------------
-Blue Ridge LNG Terminal Phase 2 remains on track overall, though 7 milestones are now overdue and budget variance has reached $4.8M.
+Blue Ridge LNG Terminal Phase 2 is tracking a $4.8M overrun and schedule pressure from late milestones, though safety remains strong.
 
-**Schedule**: 7 milestones are already late; MS-271 (heat exchanger install) is 15 days overdue with 60 downstream tasks at risk. MS-281 (Tank T-203) slipped 4 days this period. 3 instrumentation milestones (MS-335, MS-351, MS-352) show High risk through January.
+- **Schedule:** 6 milestones are already late and 1 due today. MS-271 is already late by 15 days, MS-277 by 11 days, and MS-281 by 4 days.
 
-**Budget**: Current overrun stands at $4.8M against the $208.7M total budget (2.3% EAC).
+- **Budget:** The project shows a $4.8M overrun against the $208.7M total budget.
 
-**Safety**: 28 days without a recordable incident; 0.0 TRIR over the past 28 days.
+- **Safety:** 28 days without an incident and a 28-day TRIR of 0.0.
 
-**Compliance**: 51 of 238 drawings flagged for engineer review this week. 85 findings led by ASME B31.3 §322 (30 findings, primarily missing pressure relief devices on vessels) and OSHA 1910.147 (25 findings).
+- **Compliance:** 51 of 238 drawings flagged for engineer review this week. ASME B31.3 §322 leads with 30 findings, followed by OSHA 1910.147 with 25. 24 NCRs remain open.
 
-**Risk**: 24 open NCRs (9 compliance, 15 workmanship).
+- **Risk:** 26 milestones are High risk in the next 90 days; the top 3 are MS-335, MS-351, and MS-352.
 
-Would you like me to drill into the MS-271 delay or the pressure relief device findings?
+Where would you like to focus first?
 ----------------------------------------------------------------------
 </pre>
 </div>
@@ -8515,17 +8543,17 @@ Would you like me to drill into the MS-271 delay or the pressure relief device f
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=6cca069e">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=166655a2">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h2 id="6.-Evidence-file-outputs/daily_brief_today.md">6. Evidence file <code>outputs/daily_brief_today.md</code><a class="anchor-link" href="#6.-Evidence-file-outputs/daily_brief_today.md">¶</a></h2><p>Written from the table row (not from the in-memory draft). The brief comes first, then how it was grounded, then the context JSON in a collapsed block. Each check line is derived from the validator's failure list for the stored brief.</p>
+<h2 id="6.-Evidence-file-outputs/daily_brief_today.md">6. Evidence file <code>outputs/daily_brief_today.md</code><a class="anchor-link" href="#6.-Evidence-file-outputs/daily_brief_today.md">¶</a></h2><p>Written from the table row (not from the in-memory draft). Order: the brief, how it was grounded (every deterministic check with its result for this brief), known blind spots, the prompt history, a claim-by-claim trace of the brief to the context (filled programmatically by <code>brief_lib.grounding_table</code>), then the context JSON in a collapsed block. The line-by-line <strong>human read</strong> of the final brief is a separate file written after this run, <code>outputs/daily_brief_history/v3_human_read.md</code>.</p>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=ee33b65b">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=d261fea4">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8535,13 +8563,30 @@ Would you like me to drill into the MS-271 delay or the pressure relief device f
 <div class="cm-editor cm-s-jupyter">
 <div class="highlight hl-python"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">check_line</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">matcher</span><span class="p">):</span>
     <span class="n">bad</span> <span class="o">=</span> <span class="p">[</span><span class="n">f</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">failures2</span> <span class="k">if</span> <span class="n">matcher</span><span class="p">(</span><span class="n">f</span><span class="p">)]</span>
-    <span class="k">return</span> <span class="sa">f</span><span class="s2">"- </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">: "</span> <span class="o">+</span> <span class="p">(</span><span class="s2">"PASS"</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">bad</span> <span class="k">else</span> <span class="s2">"FAIL ("</span> <span class="o">+</span> <span class="s2">"; "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">bad</span><span class="p">)</span> <span class="o">+</span> <span class="s2">")"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="sa">f</span><span class="s2">"  - </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">: "</span> <span class="o">+</span> <span class="p">(</span><span class="s2">"PASS"</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">bad</span> <span class="k">else</span> <span class="s2">"FAIL ("</span> <span class="o">+</span> <span class="s2">"; "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">bad</span><span class="p">)</span> <span class="o">+</span> <span class="s2">")"</span><span class="p">)</span>
+<span class="n">is_section</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">f</span><span class="p">:</span> <span class="n">f</span><span class="o">.</span><span class="n">startswith</span><span class="p">((</span><span class="s2">"section "</span><span class="p">,</span> <span class="s2">"label "</span><span class="p">,</span> <span class="s2">"unexpected label"</span><span class="p">))</span> <span class="ow">or</span> <span class="s2">" bullet "</span> <span class="ow">in</span> <span class="n">f</span>
 <span class="n">lines</span> <span class="o">=</span> <span class="p">[</span>
-    <span class="n">check_line</span><span class="p">(</span><span class="s2">"Numbers: every number matches a number in the context"</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">f</span><span class="p">:</span> <span class="n">f</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"number "</span><span class="p">)),</span>
-    <span class="n">check_line</span><span class="p">(</span><span class="s2">"IDs: every milestone and drawing ID exists in the context"</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">f</span><span class="p">:</span> <span class="s2">" ID "</span> <span class="ow">in</span> <span class="n">f</span><span class="p">),</span>
+    <span class="n">check_line</span><span class="p">(</span><span class="s2">"Numbers: every number matches a number in the context (money to the precision shown, integers and percentages exact)"</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">f</span><span class="p">:</span> <span class="n">f</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"number "</span><span class="p">)),</span>
+    <span class="n">check_line</span><span class="p">(</span><span class="s2">"IDs: every MS- and drawing ID exists in the context"</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">f</span><span class="p">:</span> <span class="s2">" ID "</span> <span class="ow">in</span> <span class="n">f</span> <span class="ow">and</span> <span class="n">f</span><span class="o">.</span><span class="n">startswith</span><span class="p">((</span><span class="s2">"milestone"</span><span class="p">,</span> <span class="s2">"drawing"</span><span class="p">))),</span>
+    <span class="n">check_line</span><span class="p">(</span><span class="s2">"Count adjacency: a number next to late / overdue / behind is the already-late count; a number next to High / Medium / Low risk is that band's total"</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">f</span><span class="p">:</span> <span class="n">f</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"count "</span><span class="p">)),</span>
+    <span class="n">check_line</span><span class="p">(</span><span class="s2">"Bullet labels: exactly Schedule, Budget, Safety, Compliance, Risk, once each, as list items"</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">f</span><span class="p">:</span> <span class="n">f</span><span class="o">.</span><span class="n">startswith</span><span class="p">((</span><span class="s2">"section "</span><span class="p">,</span> <span class="s2">"label "</span><span class="p">,</span> <span class="s2">"unexpected label"</span><span class="p">))),</span>
+    <span class="n">check_line</span><span class="p">(</span><span class="s2">"Section content: Risk names a band and has no NCRs; Schedule states the late count; Compliance carries the triage line"</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">f</span><span class="p">:</span> <span class="s2">" bullet "</span> <span class="ow">in</span> <span class="n">f</span><span class="p">),</span>
     <span class="n">check_line</span><span class="p">(</span><span class="s2">"No probabilities: no probability wording, no percentage next to risk wording"</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">f</span><span class="p">:</span> <span class="s2">"probab"</span> <span class="ow">in</span> <span class="n">f</span><span class="o">.</span><span class="n">lower</span><span class="p">()),</span>
-    <span class="n">check_line</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Length: </span><span class="si">{</span><span class="n">words</span><span class="si">}</span><span class="s2"> words (limit </span><span class="si">{</span><span class="n">bl</span><span class="o">.</span><span class="n">MAX_WORDS</span><span class="si">}</span><span class="s2">)"</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">f</span><span class="p">:</span> <span class="n">f</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"too long"</span><span class="p">)),</span>
+    <span class="n">check_line</span><span class="p">(</span><span class="s2">"Time phrases and generalisations: nothing the context does not support"</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">f</span><span class="p">:</span> <span class="n">f</span><span class="o">.</span><span class="n">startswith</span><span class="p">((</span><span class="s2">"time phrase"</span><span class="p">,</span> <span class="s2">"generalisation"</span><span class="p">))),</span>
+    <span class="n">check_line</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Length: </span><span class="si">{</span><span class="n">words</span><span class="si">}</span><span class="s2"> words (limit </span><span class="si">{</span><span class="n">bl</span><span class="o">.</span><span class="n">MAX_WORDS</span><span class="si">}</span><span class="s2">; the prompt asks for about </span><span class="si">{</span><span class="n">bl</span><span class="o">.</span><span class="n">PROMPT_WORDS</span><span class="si">}</span><span class="s2">)"</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">f</span><span class="p">:</span> <span class="n">f</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"too long"</span><span class="p">)),</span>
 <span class="p">]</span>
+<span class="n">trace</span> <span class="o">=</span> <span class="n">bl</span><span class="o">.</span><span class="n">grounding_table</span><span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="s2">"brief_md"</span><span class="p">],</span> <span class="n">stored_context</span><span class="p">)</span>
+<span class="n">trace_md</span> <span class="o">=</span> <span class="s2">"| Section | Claim in the brief | Where it is in the context |</span><span class="se">\n</span><span class="s2">|---|---|---|</span><span class="se">\n</span><span class="s2">"</span> <span class="o">+</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="sa">f</span><span class="s2">"| </span><span class="si">{</span><span class="n">t</span><span class="p">[</span><span class="s1">'section'</span><span class="p">]</span><span class="si">}</span><span class="s2"> | `</span><span class="si">{</span><span class="n">t</span><span class="p">[</span><span class="s1">'claim'</span><span class="p">]</span><span class="si">}</span><span class="s2">` | `</span><span class="si">{</span><span class="n">t</span><span class="p">[</span><span class="s1">'context_path'</span><span class="p">]</span><span class="si">}</span><span class="s2">` |"</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">trace</span><span class="p">)</span>
+<span class="k">assert</span> <span class="nb">all</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="s2">"context_path"</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">"NOT FOUND"</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">trace</span><span class="p">)</span> <span class="ow">or</span> <span class="n">r</span><span class="p">[</span><span class="s2">"validation_status"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"fail"</span><span class="p">,</span> <span class="s2">"a number or ID in a passing brief has no context path"</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"grounding trace rows:"</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">trace</span><span class="p">),</span> <span class="s2">"| rows with no context path:"</span><span class="p">,</span> <span class="nb">sum</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="s2">"context_path"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"NOT FOUND"</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">trace</span><span class="p">))</span>
+<span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">trace</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  </span><span class="si">{</span><span class="n">t</span><span class="p">[</span><span class="s1">'section'</span><span class="p">]</span><span class="si">:</span><span class="s2">&lt;10</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">t</span><span class="p">[</span><span class="s1">'claim'</span><span class="p">]</span><span class="si">:</span><span class="s2">&lt;22</span><span class="si">}</span><span class="s2"> -&gt; </span><span class="si">{</span><span class="n">t</span><span class="p">[</span><span class="s1">'context_path'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+<span class="n">HISTORY</span> <span class="o">=</span> <span class="s1">'''| Version | What it said wrong | Why it changed |</span>
+<span class="s1">|---|---|---|</span>
+<span class="s1">| v1 (run 758803144079141, [`v1.md`](daily_brief_history/v1.md)) | "three milestones are already late" | The context only listed the top 3 of the overdue list, so the model counted the list. Also generalised "primarily missing pressure relief devices" from 5 sample reasons. |</span>
+<span class="s1">| v2 (run 438698467007318, [`v2.md`](daily_brief_history/v2.md)) | "7 milestones are already late"; "3 instrumentation milestones show High risk through January"; Risk bullet held NCRs | Overdue total (7) includes 1 due today, only 6 are late. The High-risk count came from the top-3 list (the table holds more High rows). Section content and time phrases were unchecked. The validator passed all of it because every number existed somewhere in the context. |</span>
+<span class="s1">| v3 (this run) | see the brief above | Adds the true totals to the context (`schedule_already_late`, `schedule_due_today`, `risk_high_total` and friends), exact required phrasings in the prompt, and deterministic count-adjacency, label, section-content, time-phrase and generalisation checks to the validator. |'''</span>
+
 <span class="n">md_text</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">'''# Daily Brief, </span><span class="si">{</span><span class="n">r</span><span class="p">[</span><span class="s2">"brief_date"</span><span class="p">]</span><span class="si">}</span>
 
 <span class="si">{</span><span class="n">r</span><span class="p">[</span><span class="s2">"brief_md"</span><span class="p">]</span><span class="si">}</span>
@@ -8552,10 +8597,22 @@ Would you like me to drill into the MS-271 delay or the pressure relief device f
 <span class="s1">- Model: `</span><span class="si">{</span><span class="n">r</span><span class="p">[</span><span class="s2">"model"</span><span class="p">]</span><span class="si">}</span><span class="s1">`, prompt version `</span><span class="si">{</span><span class="n">r</span><span class="p">[</span><span class="s2">"prompt_version"</span><span class="p">]</span><span class="si">}</span><span class="s1">`</span>
 <span class="s1">- Generated at: </span><span class="si">{</span><span class="n">r</span><span class="p">[</span><span class="s2">"generated_at"</span><span class="p">]</span><span class="si">}</span><span class="s1"> UTC, job run `</span><span class="si">{</span><span class="n">job_run_id</span><span class="si">}</span><span class="s1">`</span>
 <span class="s1">- Source: `</span><span class="si">{</span><span class="n">GOLD</span><span class="si">}</span><span class="s1">.daily_brief`, key `(</span><span class="si">{</span><span class="n">r</span><span class="p">[</span><span class="s2">"project_id"</span><span class="p">]</span><span class="si">}</span><span class="s1">, </span><span class="si">{</span><span class="n">r</span><span class="p">[</span><span class="s2">"brief_date"</span><span class="p">]</span><span class="si">}</span><span class="s1">)`</span>
-<span class="s1">- Validator checks (`05_gold/brief_lib.py`, `validate_brief`), run on the stored brief against the stored context:</span>
-<span class="s1">'''</span> <span class="o">+</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s2">"  "</span> <span class="o">+</span> <span class="n">l</span> <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">lines</span><span class="p">)</span> <span class="o">+</span> <span class="sa">f</span><span class="s1">'''</span>
+<span class="s1">- Deterministic checks (`05_gold/brief_lib.py`, `validate_brief`), run on the stored brief against the stored context:</span>
+<span class="s1">'''</span> <span class="o">+</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span> <span class="o">+</span> <span class="sa">f</span><span class="s1">'''</span>
 <span class="s1">- Risk is shown by band only. The heuristic risk score is not in the context, so the model could not quote it.</span>
 <span class="s1">- Compliance is triage: drawings flagged for engineer review, not a verdict.</span>
+
+<span class="s1">## Known blind spots</span>
+
+<span class="s1">The checks verify numbers, IDs, counts against the context, section content and probability language. They do **not** verify paraphrase semantics: a sentence can use only true numbers and still say something misleading, which is exactly how v1 and v2 passed. For that reason a human read the final brief line by line; it is recorded in [`daily_brief_history/v3_human_read.md`](daily_brief_history/v3_human_read.md). Spelled-out numbers ("six") are not read by the validator; the prompt asks for digits.</span>
+
+<span class="s1">## Prompt history</span>
+
+<span class="si">{</span><span class="n">HISTORY</span><span class="si">}</span>
+
+<span class="s1">## Trace of each claim to the context (generated by `brief_lib.grounding_table`)</span>
+
+<span class="si">{</span><span class="n">trace_md</span><span class="si">}</span>
 
 <span class="s1">&lt;details&gt;&lt;summary&gt;Context JSON the model was given&lt;/summary&gt;</span>
 
@@ -8567,7 +8624,7 @@ Would you like me to drill into the MS-271 delay or the pressure relief device f
 <span class="s1">'''</span>
 <span class="p">(</span><span class="n">OUT</span> <span class="o">/</span> <span class="s2">"daily_brief_today.md"</span><span class="p">)</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span><span class="n">md_text</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">((</span><span class="n">OUT</span> <span class="o">/</span> <span class="s2">"daily_brief_today.md"</span><span class="p">)</span><span class="o">.</span><span class="n">stat</span><span class="p">()</span><span class="o">.</span><span class="n">st_size</span><span class="p">,</span> <span class="s2">"bytes written to outputs/daily_brief_today.md"</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">md_text</span><span class="p">[:</span><span class="mi">1800</span><span class="p">])</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">md_text</span><span class="p">[:</span><span class="mi">1500</span><span class="p">])</span>
 <span class="nb">print</span><span class="p">(</span><span class="s2">"plan checks:"</span><span class="p">,</span> <span class="n">PLANS</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -8581,36 +8638,63 @@ Would you like me to drill into the MS-271 delay or the pressure relief device f
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>5936 bytes written to outputs/daily_brief_today.md
+<pre>grounding trace rows: 29 | rows with no context path: 0
+  Opening    2                      -&gt; kpi.project_id (inside text), project (inside text)
+  Opening    $4.8M                  -&gt; kpi.budget_overrun_usd
+  Schedule   MS-271                 -&gt; schedule_overdue_top3[1].milestone_id
+  Schedule   MS-277                 -&gt; schedule_overdue_top3[2].milestone_id
+  Schedule   MS-281                 -&gt; kpi.slipped_milestone_id
+  Schedule   6                      -&gt; schedule_already_late, kpi.milestones_hit
+  Schedule   1                      -&gt; schedule_due_today, risk_forecast_top3[0].planned_end (inside text)
+  Schedule   15                     -&gt; schedule_overdue_top3[1].days_late, compliance_this_week.fail_findings_by_citation[2].fail_findings
+  Schedule   11                     -&gt; schedule_overdue_top3[2].days_late, kpi.milestones_total
+  Schedule   4                      -&gt; schedule_overdue_top3[0].days_late, kpi.slipped_days
+  Budget     $4.8M                  -&gt; kpi.budget_overrun_usd
+  Budget     $208.7M                -&gt; kpi.budget_total_usd
+  Safety     28                     -&gt; kpi.safety_days_without_incident
+  Safety     28                     -&gt; kpi.safety_days_without_incident
+  Safety     0.0                    -&gt; kpi.trir_28d, compliance_this_week.review_unusable_drawings
+  Compliance 51                     -&gt; compliance_this_week.flagged_drawings
+  Compliance 238                    -&gt; compliance_this_week.reviewed_drawings
+  Compliance 31.3                   -&gt; compliance_this_week.fail_findings_by_citation[0].citation (inside text), compliance_this_week.fail_findings_by_citation[4].citation (inside text)
+  Compliance 322                    -&gt; compliance_this_week.fail_findings_by_citation[0].citation (inside text), compliance_this_week.top_fail_findings[0].citation (inside text)
+  Compliance 30                     -&gt; compliance_this_week.fail_findings_by_citation[0].fail_findings
+  Compliance 1910.147               -&gt; compliance_this_week.fail_findings_by_citation[1].citation (inside text)
+  Compliance 25                     -&gt; compliance_this_week.fail_findings_by_citation[1].fail_findings, risk_forecast_top3[0].planned_end (inside text)
+  Compliance 24                     -&gt; kpi.open_ncrs, risk_forecast_top3[2].planned_end (inside text)
+  Risk       MS-335                 -&gt; risk_forecast_top3[0].milestone_id
+  Risk       MS-351                 -&gt; risk_forecast_top3[1].milestone_id
+  Risk       MS-352                 -&gt; risk_forecast_top3[2].milestone_id
+  Risk       26                     -&gt; risk_high_total
+  Risk       90                     -&gt; risk_forecast_window_days
+  Risk       3                      -&gt; top_n_listed, schedule_overdue_top3[2].name (inside text)
+10526 bytes written to outputs/daily_brief_today.md
 # Daily Brief, 2026-11-06
 
-Blue Ridge LNG Terminal Phase 2 remains on track overall, though 7 milestones are now overdue and budget variance has reached $4.8M.
+Blue Ridge LNG Terminal Phase 2 is tracking a $4.8M overrun and schedule pressure from late milestones, though safety remains strong.
 
-**Schedule**: 7 milestones are already late; MS-271 (heat exchanger install) is 15 days overdue with 60 downstream tasks at risk. MS-281 (Tank T-203) slipped 4 days this period. 3 instrumentation milestones (MS-335, MS-351, MS-352) show High risk through January.
+- **Schedule:** 6 milestones are already late and 1 due today. MS-271 is already late by 15 days, MS-277 by 11 days, and MS-281 by 4 days.
 
-**Budget**: Current overrun stands at $4.8M against the $208.7M total budget (2.3% EAC).
+- **Budget:** The project shows a $4.8M overrun against the $208.7M total budget.
 
-**Safety**: 28 days without a recordable incident; 0.0 TRIR over the past 28 days.
+- **Safety:** 28 days without an incident and a 28-day TRIR of 0.0.
 
-**Compliance**: 51 of 238 drawings flagged for engineer review this week. 85 findings led by ASME B31.3 §322 (30 findings, primarily missing pressure relief devices on vessels) and OSHA 1910.147 (25 findings).
+- **Compliance:** 51 of 238 drawings flagged for engineer review this week. ASME B31.3 §322 leads with 30 findings, followed by OSHA 1910.147 with 25. 24 NCRs remain open.
 
-**Risk**: 24 open NCRs (9 compliance, 15 workmanship).
+- **Risk:** 26 milestones are High risk in the next 90 days; the top 3 are MS-335, MS-351, and MS-352.
 
-Would you like me to drill into the MS-271 delay or the pressure relief device findings?
+Where would you like to focus first?
 
 ## How this was grounded
 
 - Validation status: **pass** (1 model call; a failed first draft would be kept in `validation_detail`)
-- Model: `databricks-claude-sonnet-4-5`, prompt version `v2`
-- Generated at: 2026-11-08 17:19:00.914863 UTC, job run `438698467007318`
+- Model: `databricks-claude-sonnet-4-5`, prompt version `v3`
+- Generated at: 2026-11-08 17:31:08.689262 UTC, job run `1067568868183925`
 - Source: `mfg_mc_se_sa.bluerridge_gold_pm.daily_brief`, key `(BRL-PH2, 2026-11-06)`
-- Validator checks (`05_gold/brief_lib.py`, `validate_brief`), run on the stored brief against the stored context:
-  - Numbers: every number matches a number in the context: PASS
-  - IDs: every milestone and drawing ID exists in the context: PASS
-  - No probabilities: no probability wording, no percentage next to risk wording: PASS
-  - Length: 144 words (limit 150): PASS
-- Risk is shown by band only. The heuristic risk score is not in the context, so the model could not quote it.
-- Compli
+- Deterministic checks (`05_gold/brief_lib.py`, `validate_brief`), run on the stored brief against the stored context:
+  - Numbers: every number matches a number in the context (money to the precision shown, integers and percentages exact): PASS
+  - IDs: every MS- and drawing ID exists in the context: PASS
+  - Count adjacency: a number next to late / overdue / behind is the alr
 plan checks: [('attempt 1', 1)]
 </pre>
 </div>
