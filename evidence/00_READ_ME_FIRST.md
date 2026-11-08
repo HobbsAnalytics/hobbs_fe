@@ -78,8 +78,8 @@ Not an FE Bar box, but everything below writes into these objects.
 | ☑ done | [`03_doc_intelligence/outputs/sample_suppressed.jsonl`](../03_doc_intelligence/outputs/sample_suppressed.jsonl) | Three rows of `compliance_suppressed`: judge entries that a guardrail removed (rule applicability, expected item present in the drawing text, reason that admits compliance), kept apart from the findings |
 | ☑ done | [`03_doc_intelligence/outputs/submit_payloads/`](../03_doc_intelligence/outputs/submit_payloads/) | The exact `jobs submit` requests of the judge run, the guardrails run and the scoring run, each with `disable_auto_optimization: true` (`get-run` does not return the flag, so the request is the proof) |
 | ☑ done | [`evidence/sample_compliance_outputs/compliance_eval_summary.md`](sample_compliance_outputs/compliance_eval_summary.md) | The scorecard of the AI compliance judge against the 274 planted flaws: headline precision / recall / F1 (final table: 58.1% / 81.0% / 67.7%), per-flaw-type table, A/B/C columns, prompt lineage (v2 flagged as superseded for integrity), drawing-level and as-of-week confusion, per-drawing-type results, wins and losses, false-positive causes, MLflow experiment and run ids, the non-determinism note |
-| ☐ pending | [`04_vector_search/outputs/corpus_sample.md`](../04_vector_search/outputs/corpus_sample.md) | The code-excerpt corpus behind the Vector Search index |
-| ☐ pending | [`04_vector_search/outputs/sample_query.md`](../04_vector_search/outputs/sample_query.md) | A live index query for "flange rating" returning `ASME B16.5 §4.2` |
+| ☑ done | [`04_vector_search/outputs/corpus_sample.md`](../04_vector_search/outputs/corpus_sample.md) | The code-excerpt corpus behind the Vector Search index |
+| ☑ done | [`04_vector_search/outputs/sample_query.md`](../04_vector_search/outputs/sample_query.md) | A live index query for "flange rating" returning `ASME B16.5 §4.2` |
 | ☐ pending | [`05_gold/outputs/daily_brief_today.md`](../05_gold/outputs/daily_brief_today.md) | The `ai_query` narrator's daily brief |
 
 ## 5. ML: schedule-risk forecast
@@ -128,8 +128,8 @@ Each has its outputs embedded in the `.ipynb` and an HTML export of the same run
 | ☑ done | [`03_doc_intelligence/03_compliance_check.ipynb`](../03_doc_intelligence/03_compliance_check.ipynb) | [html](notebook_html_exports/03_compliance_check.html) | 4 |
 | ☑ done | [`03_doc_intelligence/03b_compliance_guardrails.ipynb`](../03_doc_intelligence/03b_compliance_guardrails.ipynb) | [html](notebook_html_exports/03b_compliance_guardrails.html) | 4 |
 | ☑ done | [`03_doc_intelligence/04_ground_truth_scoring.ipynb`](../03_doc_intelligence/04_ground_truth_scoring.ipynb) | [html](notebook_html_exports/04_ground_truth_scoring.html) | 4 |
-| ☐ pending | [`04_vector_search/01_load_code_excerpts.ipynb`](../04_vector_search/01_load_code_excerpts.ipynb) | [html](notebook_html_exports/01_load_code_excerpts.html) | 4 |
-| ☐ pending | [`04_vector_search/02_create_endpoint_and_index.ipynb`](../04_vector_search/02_create_endpoint_and_index.ipynb) | [html](notebook_html_exports/02_create_endpoint_and_index.html) | 4 |
+| ☑ done | [`04_vector_search/01_load_code_excerpts.ipynb`](../04_vector_search/01_load_code_excerpts.ipynb) | [html](notebook_html_exports/01_load_code_excerpts.html) | 4 |
+| ☑ done | [`04_vector_search/02_create_endpoint_and_index.ipynb`](../04_vector_search/02_create_endpoint_and_index.ipynb) | [html](notebook_html_exports/02_create_endpoint_and_index.html) | 4 |
 | ☐ pending | [`05_gold/01_kpi_daily.ipynb`](../05_gold/01_kpi_daily.ipynb) | [html](notebook_html_exports/01_kpi_daily.html) | 5 |
 | ☐ pending | [`05_gold/02_risk_forecast.ipynb`](../05_gold/02_risk_forecast.ipynb) | [html](notebook_html_exports/02_risk_forecast.html) | 5 |
 | ☐ pending | [`05_gold/03_daily_brief.ipynb`](../05_gold/03_daily_brief.ipynb) | [html](notebook_html_exports/03_daily_brief.html) | 4 |

@@ -1,0 +1,26 @@
+# Vector Search for the code-excerpts corpus: our own STANDARD endpoint plus one Delta Sync index.
+#
+# The bundle schema (CLI v1.20.0) has `vector_search_endpoints` and `vector_search_indexes`, so these are bundle
+# resources rather than SDK calls (see docs/BUILD.md, "Vector Search"). Order matters: the index points at the Delta
+# table `${var.catalog}.${var.schema_prefix}_agents.code_excerpts`, which must exist (with Change Data Feed on) before
+# `bundle deploy`, so run 04_vector_search/01_load_code_excerpts.ipynb first. 02_create_endpoint_and_index.ipynb then
+# triggers the sync, waits for it, and runs the smoke test; it also creates the endpoint and index through the SDK if
+# they are missing, so a workspace where this file was not deployed still works.
+resources:
+  vector_search_endpoints:
+    bluerridge_vs:
+      name: bluerridge_vs
+      endpoint_type: STANDARD
+
+  vector_search_indexes:
+    code_excerpts_vs:
+      name: ${var.catalog}.${var.schema_prefix}_agents.code_excerpts_vs
+      endpoint_name: ${resources.vector_search_endpoints.bluerridge_vs.name}
+      index_type: DELTA_SYNC
+      primary_key: citation_id
+      delta_sync_index_spec:
+        source_table: ${var.catalog}.${var.schema_prefix}_agents.code_excerpts
+        pipeline_type: TRIGGERED
+        embedding_source_columns:
+          - name: text
+            embedding_model_endpoint_name: databricks-bge-large-en

@@ -1,0 +1,12 @@
+{
+  "run_name": "bluerridge T10 01_load_code_excerpts (one-time evidence run)",
+  "tasks": [
+    {
+      "task_key": "main",
+      "disable_auto_optimization": true,
+      "notebook_task": {
+        "notebook_path": "/Workspace/Users/joseph.hobbs@databricks.com/_scratch_bluerridge/04_vector_search/01_load_code_excerpts"
+      }
+    }
+  ]
+}

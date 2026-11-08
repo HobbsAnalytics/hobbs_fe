@@ -88,6 +88,10 @@ Things the recipe depends on:
 - **`outputs/` is relative.** A notebook run uses its own folder as the working directory, so `outputs/...` lands next to the workspace notebook. The scratch folder has no `outputs/` directory, so notebooks create it themselves.
 - **A notebook that imports a module from its own folder** (`02_generate_drawings.ipynb` imports `02_generate_drawings.py`) needs that file next to it in step 1: `databricks workspace import $SCRATCH/$NB.py --file $NB.py --format AUTO --overwrite --profile DEFAULT`. A `.py` without the `# Databricks notebook source` header lands as a workspace file (`workspace list` shows `FILE`), and the notebook puts its working directory on `sys.path`. A bundle deploy uploads the module the same way.
 
+## Vector Search: bundle resources, with one ordering rule
+
+`bundle schema` in CLI v1.20.0 defines `vector_search_endpoints` and `vector_search_indexes` (grep the output for `vector_search`), and `bundle validate` accepts them, so `resources/vector-search.yml` declares endpoint `bluerridge_vs` (STANDARD) and Delta Sync index `code_excerpts_vs` as ordinary bundle resources. No SDK-only path was needed. Order: run `04_vector_search/01_load_code_excerpts.ipynb` first (the index needs the `code_excerpts` table, with Change Data Feed on, to exist), then `bundle deploy`, then `02_create_endpoint_and_index.ipynb`, which reuses the endpoint and index (creating them through the SDK only if missing), triggers a sync, waits for rows indexed = table rows, and runs the smoke test. Right after deploy the endpoint reads ONLINE while the index can stay "pending endpoint provisioning" for several minutes. The excerpt files are validated locally with `uv run --no-project --with pytest --with pyyaml python -m pytest 04_vector_search/tests`.
+
 ## Gotchas found while building
 
 - `databricks workspace export` writes files with the exec bit (mode 755). `chmod 644` anything under `outputs/` before `git add`.
