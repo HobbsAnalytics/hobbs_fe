@@ -1,0 +1,12 @@
+{
+  "run_name": "t9-ground-truth-scoring",
+  "tasks": [
+    {
+      "task_key": "main",
+      "disable_auto_optimization": true,
+      "notebook_task": {
+        "notebook_path": "/Workspace/Users/joseph.hobbs@databricks.com/_scratch_bluerridge/03_doc_intelligence/04_ground_truth_scoring"
+      }
+    }
+  ]
+}
