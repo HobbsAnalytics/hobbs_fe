@@ -1,16 +1,18 @@
-# Document intelligence, end to end: three notebook tasks in sequence.
+# Document intelligence, end to end: four notebook tasks in sequence.
 #
 #   parse             01_parse_drawings.ipynb     ai_parse_document on the 1,200 PDFs -> silver_engineering.drawings_parsed
 #   extract_classify  02_extract_classify.ipynb   ai_extract + ai_classify            -> silver_engineering.drawings_extracted
-#   compliance_check  03_compliance_check.ipynb   ai_query judge (Claude Sonnet 4.5)  -> gold_pm.compliance_findings
+#   compliance_check  03_compliance_check.ipynb   ai_query judge (Claude Sonnet 4.5)  -> gold_pm.compliance_judge_raw + compliance_findings
+#   guardrails        03b_compliance_guardrails.ipynb  rule-applicability + self-consistency guardrails over the saved
+#                                                   judge answers, no AI call -> compliance_findings (rewritten) + compliance_suppressed
 #
 # Runs on serverless compute (no cluster or environment named), like the other jobs. Every task sets
-# disable_auto_optimization: true because every task calls an AI function: serverless otherwise retries a failed
+# disable_auto_optimization: true (the first three call AI functions; the fourth is set too, as required): serverless otherwise retries a failed
 # notebook task automatically, and a retry repeats the whole notebook, AI calls included (see docs/BUILD.md).
 # No task passes max_rows, so each notebook processes the full 1,200 drawings; max_rows is only for trial runs of a notebook.
 #
-# Running this job re-bills all three AI steps (about 1,370 parsed pages, 2,400 extract/classify calls and 1,200 judge
-# calls) and replaces drawings_parsed, drawings_extracted and compliance_findings. The committed outputs of the three
+# Running this job re-bills the three AI steps (about 1,370 parsed pages, 2,400 extract/classify calls and 1,200 judge
+# calls; the fourth task makes no AI call) and replaces drawings_parsed, drawings_extracted, compliance_findings and compliance_suppressed. The committed outputs of the three
 # notebooks came from one-time `jobs submit` runs, so this job is validated (`databricks bundle validate`) and is not
 # part of the normal build:
 #
@@ -46,6 +48,15 @@ resources:
           disable_auto_optimization: true
           notebook_task:
             notebook_path: ../03_doc_intelligence/03_compliance_check.ipynb
+            base_parameters:
+              catalog: ${var.catalog}
+              schema_prefix: ${var.schema_prefix}
+        - task_key: guardrails
+          depends_on:
+            - task_key: compliance_check
+          disable_auto_optimization: true
+          notebook_task:
+            notebook_path: ../03_doc_intelligence/03b_compliance_guardrails.ipynb
             base_parameters:
               catalog: ${var.catalog}
               schema_prefix: ${var.schema_prefix}

@@ -213,6 +213,132 @@ def flatten_judgement(drawing_id, response, error):
 
 
 # --------------------------------------------------------------------------------------------------
+# Guardrails over the saved judge output (no AI call): rule routing and a self-consistency filter
+# --------------------------------------------------------------------------------------------------
+
+_FL, _LO, _IB, _WE, _RE = CITATIONS
+_YES, _NO = True, False
+APPLICABILITY = {  # drawing_type -> citation -> (applies, one-line engineering rationale). The routing a rule engine does before calling a model.
+    "ISO": {
+        _FL: (_YES, "An isometric shows one line with its flanged joints and the line's design pressure, so flange ratings can be checked."),
+        _LO: (_NO, "An isometric shows pipe, fittings and nozzle tie-ins only; the powered equipment and its isolation tags are on the P&ID and the plan."),
+        _IB: (_NO, "Means of egress belongs to building plans; an isometric of a pipe run has no exits."),
+        _WE: (_YES, "An isometric carries the weld map: each shop and field weld with its joint type and examination."),
+        _RE: (_NO, "Vessels and their relief devices are shown on the P&ID and the relief schedule, not on a single-line isometric."),
+    },
+    "PID": {
+        _FL: (_YES, "A P&ID tags each line with a flange class and design pressure."),
+        _LO: (_YES, "Pumps, compressors and their isolation (LOTO) points are drawn on the P&ID."),
+        _IB: (_NO, "A process schematic has no building, exits or occupant load."),
+        _WE: (_NO, "A P&ID is not to scale and does not show weld joints or examination; those are on isometrics and the piping class spec."),
+        _RE: (_YES, "Vessels and the PSVs that protect them, with set pressures, are shown on the P&ID."),
+    },
+    "GA": {
+        _FL: (_NO, "A general arrangement plan locates equipment and rooms; line flange classes are not on it."),
+        _LO: (_YES, "The plan shows where powered equipment sits and where its isolation tags are provided."),
+        _IB: (_YES, "The plan with its egress schedule is where exit widths against occupant load are shown."),
+        _WE: (_NO, "Weld joints are not shown on an arrangement plan."),
+        _RE: (_NO, "Relief devices and their set pressures are on the P&ID and the relief schedule, not on the arrangement plan."),
+    },
+    "SPEC": {
+        _FL: (_YES, "The piping class specification tabulates flange class against design pressure."),
+        _LO: (_NO, "A specification sheet has tables only; there is no equipment to isolate."),
+        _IB: (_NO, "A piping or relief specification has no exits or occupant load."),
+        _WE: (_YES, "The piping class specification states the weld joint type and examination for each class."),
+        _RE: (_YES, "The relief device schedule lists each vessel with its PSV tag, set pressure and orifice."),
+    },
+    "OTHER": {c: (_NO, "A symbols/legend or typical-detail sheet defines notation; it describes no installed item to check against this rule.") for c in CITATIONS},
+}
+
+
+def applies(drawing_type, citation):
+    # Whether `citation` is routed to a drawing of this type. A drawing that cannot be routed (no type) is not suppressed.
+    cells = APPLICABILITY.get(drawing_type)
+    return True if cells is None else cells[citation][0]
+
+
+_ADMITS_COMPLIANCE = [  # conservative: phrases with which a judge says, in the same breath as a "violation", that the item is fine
+    re.compile(r"\bnot a violation\b", re.I),
+    re.compile(r"\b(?:is|are) present in the (?:drawing|text|drawing text)\b", re.I),
+    re.compile(r"\bso (?:it|this \w+|the \w+) (?:is|are) (?:protected|compliant|adequate)\b", re.I),
+    re.compile(r"\bso this \w+ has its\b", re.I),
+    re.compile(r"\b(?:is|are) (?:adequate|compliant)\b", re.I),
+    re.compile(r"\b(?:is|are) not powered equipment\b", re.I),
+    re.compile(r"\bno violation\b", re.I),
+]
+
+
+_NEGATED = re.compile(r"\b(?:no|not|only|none|without|missing|isn't|aren't)\b", re.I)
+_NEEDS_AFFIRMATIVE_SENTENCE = (1, 2, 4)  # indexes in _ADMITS_COMPLIANCE: "X is present", "so it is protected", "is adequate/compliant"
+
+
+def _admits(reason):
+    # The first phrase by which the reason admits compliance, or None. "is present" / "is compliant" only count in a sentence
+    # that is not negated ("No LOTO-2702 tag is present in the drawing" and "Only LOTO-2101A is present" state a violation).
+    for k, pattern in enumerate(_ADMITS_COMPLIANCE):
+        for sentence in re.split(r"(?<=[.;!?])\s+", reason):
+            m = pattern.search(sentence)
+            if m and not (k in _NEEDS_AFFIRMATIVE_SENTENCE and _NEGATED.search(sentence)):
+                return m.group(0)
+    return None
+
+
+def _squash_tag(text):
+    return re.sub(r"[^A-Z0-9]", "", str(text).upper().replace("0", "O"))
+
+
+def contradiction(entry, markdown):
+    """Why this FAIL entry contradicts itself or the drawing text, or None. Uses the judge's structured fields first
+    (found_in_text, expected_item against the drawing text), then a vessel check, then conservative phrases in the reason."""
+    if entry.get("found_in_text") is True:
+        return "found_in_text is true: the judge's own search found the item that makes the drawing comply"
+    expected = _squash_tag(entry.get("expected_item") or "")
+    # only for a tag-like item (LOTO-2505A, PSV-2102): a requirement such as "BW with 100% RT" is quoted in the drawing's notes whether or not the weld complies
+    if re.fullmatch(r"[A-Za-z0-9]{2,6}-\d{3,5}[A-Za-z]?", str(entry.get("expected_item") or "").strip()) and expected in _squash_tag(markdown or ""):
+        return f"expected_item {str(entry.get('expected_item'))[:60]!r} is in the drawing text although found_in_text is false"
+    citation = normalize_citation(entry.get("citation"))
+    if citation == _LO and re.match(r"\s*V-\d", str(entry.get("evidence_text") or ""), re.I):
+        return "the lockout/tagout rule was applied to a vessel, which the rule itself excludes (vessels are not powered equipment)"
+    phrase = _admits(str(entry.get("reason") or ""))
+    return f"the reason admits compliance: {phrase!r}" if phrase else None
+
+
+def judge_with_guardrails(drawing_id, drawing_type, markdown, response, error):
+    """(rows, suppressed) for one drawing. `rows` as flatten_judgement (FAIL rows, or one PASS, or one REVIEW), but a FAIL entry is
+    taken out when its citation does not apply to the drawing type (suppressed_by 'rule_applicability') or when it contradicts itself
+    (suppressed_by 'self_contradiction'). A drawing whose entries are all suppressed gets the PASS row. Never raises."""
+    base = flatten_judgement(drawing_id, response, error)
+    if base[0]["status"] == "REVIEW":  # an error, an answer that is not the expected JSON, or findings citing no rule: unchanged
+        return base, []
+    try:
+        body = re.sub(r"^```(?:json)?\s*|\s*```$", "", response.strip())
+        entries = [f for f in json.loads(body)["findings"] if isinstance(f, dict) and normalize_citation(f.get("citation")) and str(f.get("status", "FAIL")).strip().upper() != "PASS"]
+        if not entries:
+            return base, []
+        kept, suppressed = [], []
+        for f in entries:
+            citation = normalize_citation(f["citation"])
+            if not applies(drawing_type, citation):
+                by, detail = "rule_applicability", f"{citation} does not apply to a {drawing_type} drawing: {APPLICABILITY[drawing_type][citation][1]}"
+            else:
+                detail = contradiction(f, markdown)
+                by = "self_contradiction" if detail else None
+            page = f.get("page_num")
+            page = int(page) if isinstance(page, (int, float)) and not isinstance(page, bool) and page >= 0 else 0
+            common = dict(drawing_id=drawing_id, status="FAIL", reason=_one_line(f.get("reason"), 400) or f"Violation of {citation}.", citation=citation,
+                          severity=normalize_severity(f.get("severity")), page_num=page, evidence_text=_one_line(f.get("evidence_text"), 80))
+            if by:
+                suppressed.append({**common, "finding_id": f"{drawing_id}-S{len(suppressed) + 1:02d}", "suppressed_by": by, "suppression_detail": detail[:400]})
+            else:
+                kept.append({**common, "finding_id": f"{drawing_id}-C{len(kept) + 1:02d}"})
+        if kept:
+            return kept, suppressed
+        return [_row(drawing_id, f"{drawing_id}-PASS", "PASS", "No violation of the five checked rules found.")], suppressed
+    except Exception as e:
+        return _review(drawing_id, f"{type(e).__name__}: {str(e)[:120]}"), []
+
+
+# --------------------------------------------------------------------------------------------------
 # Simulated review dates
 # --------------------------------------------------------------------------------------------------
 
