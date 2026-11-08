@@ -43,27 +43,37 @@ def test_missing_build_does_not_break_health(tmp_path):
     assert c.get("/health").status_code == 200
 
 
-@pytest.mark.parametrize(
-    "path",
-    [
-        "/..%2f..%2fetc/passwd",
-        "/..%2f..%2fbackend/config.py",
-        "/assets/../../backend/config.py",
-        "/static/../../backend/config.py",
-        "/%2e%2e/%2e%2e/backend/config.py",
-        "/assets/..%2f..%2f..%2fbackend/config.py",
-    ],
-)
+# Encoded forms survive httpx's client-side normalization and reach the server as traversal
+# attempts. Targets are real files one level ABOVE the static root, so a vulnerable handler
+# would return their contents and the assertions below would fail.
+TRAVERSAL_PATHS = [
+    "/..%2fsecret.txt",
+    "/assets/..%2f..%2fsecret.txt",
+    "/%2e%2e/secret.txt",
+    "/%2e%2e%2fsecret.txt",
+    "/..%2fconfig_marker.py",
+    "/%2e%2e%2fconfig_marker.py",
+    "/assets/..%2f..%2fconfig_marker.py",
+    "/..%2f..%2fetc/passwd",
+    # Plain ../ is normalized away by the client before sending (never reaches the server as
+    # traversal); kept only as a sanity check that it also yields the SPA shell or 404.
+    "/assets/../../secret.txt",
+    "/static/../../config_marker.py",
+]
+
+
+@pytest.mark.parametrize("path", TRAVERSAL_PATHS)
 def test_path_traversal_never_leaks_outside_static_root(tmp_path, path):
     static = tmp_path / "dist"
-    static.mkdir()
+    (static / "assets").mkdir(parents=True)
     (static / "index.html").write_text("<html><body>SPA-SHELL</body></html>")
     (tmp_path / "secret.txt").write_text("TOP-SECRET")
+    (tmp_path / "config_marker.py").write_text("CATALOG = 'LEAKED'")
     c = TestClient(create_app(static_dir=static))
     r = c.get(path)
     assert r.status_code in (200, 404)
     assert "TOP-SECRET" not in r.text
+    assert "LEAKED" not in r.text
     assert "root:" not in r.text
-    assert "CATALOG" not in r.text
     if r.status_code == 200:
         assert "SPA-SHELL" in r.text
