@@ -15,7 +15,7 @@ Status key: **☑ done** means the file is committed and the link resolves. **�
 | # | FE Bar box | Headline proof | Status |
 |---|---|---|---|
 | 1 | Lakeflow ingestion | [`02_pipelines/outputs/pipeline_project_run_summary.md`](../02_pipelines/outputs/pipeline_project_run_summary.md) (project data) and [`02_pipelines/outputs/pipeline_drawings_run_summary.md`](../02_pipelines/outputs/pipeline_drawings_run_summary.md) (drawing PDFs) | ☑ done |
-| 2 | Unity Catalog governance | [`evidence/grant_listing.md`](grant_listing.md) | ☐ pending |
+| 2 | Unity Catalog governance | [`evidence/grant_listing.md`](grant_listing.md) | ☑ done |
 | 3 | Lakebase | [`08_lakebase/outputs/synced_tables_listing.md`](../08_lakebase/outputs/synced_tables_listing.md) | ☐ pending |
 | 4 | GenAI: document intelligence | [`evidence/sample_compliance_outputs/compliance_eval_summary.md`](sample_compliance_outputs/compliance_eval_summary.md) | ☑ done |
 | 5 | ML: schedule-risk forecast | [`evidence/risk_model_metrics.json`](risk_model_metrics.json) | ☑ done |
@@ -59,8 +59,9 @@ Not an FE Bar box, but everything below writes into these objects.
 | Status | Artifact | What it proves |
 |---|---|---|
 | ☑ done | [`00_setup/outputs/schemas_listing.md`](../00_setup/outputs/schemas_listing.md) | The governed schemas and Volumes exist, owned by the builder |
-| ☐ pending | [`evidence/grant_listing.md`](grant_listing.md) | `SHOW GRANTS` for every `bluerridge_*` schema, plus the tags applied |
-| ☐ pending | [`06_governance/`](../06_governance/) (`tags.sql`, `grants.sql`, `row_filters.sql`) | The exact statements that were applied |
+| ☑ done | [`evidence/grant_listing.md`](grant_listing.md) | `SHOW GRANTS` for every `bluerridge_*` schema, the 112 tags applied, the row filter on `drawing_register` with its allow/deny demo, and the groups outcome (account groups not possible, nothing broad granted) |
+| ☑ done | [`06_governance/outputs/lineage_edges.md`](../06_governance/outputs/lineage_edges.md) | 27 de-duplicated lineage edges, bronze to silver to gold, with the `compliance_findings` and `kpi_daily` paths |
+| ☑ done | [`06_governance/`](../06_governance/) (`tags.sql`, `grants.sql`, `row_filters.sql`) | The exact statements that were applied |
 
 ## 3. Lakebase
 
@@ -137,7 +138,7 @@ Each has its outputs embedded in the `.ipynb` and an HTML export of the same run
 | ☑ done | [`05_gold/01_kpi_daily.ipynb`](../05_gold/01_kpi_daily.ipynb) | [html](notebook_html_exports/01_kpi_daily.html) | 5 |
 | ☑ done | [`05_gold/02_risk_forecast.ipynb`](../05_gold/02_risk_forecast.ipynb) | [html](notebook_html_exports/02_risk_forecast.html) | 5 |
 | ☑ done | [`05_gold/03_daily_brief.ipynb`](../05_gold/03_daily_brief.ipynb) | [html](notebook_html_exports/03_daily_brief.html) | 4 |
-| ☐ pending | [`06_governance/apply.ipynb`](../06_governance/apply.ipynb) | [html](notebook_html_exports/apply.html) | 2 |
+| ☑ done | [`06_governance/apply.ipynb`](../06_governance/apply.ipynb) | [html](notebook_html_exports/apply_governance.html) | 2 |
 | ☐ pending | [`07_genie_agent/01_create_space.ipynb`](../07_genie_agent/01_create_space.ipynb) | [html](notebook_html_exports/01_create_space.html) | 6 |
 | ☐ pending | [`07_genie_agent/02_run_sample_qa.ipynb`](../07_genie_agent/02_run_sample_qa.ipynb) | [html](notebook_html_exports/02_run_sample_qa.html) | 6 |
 | ☐ pending | [`08_lakebase/01_create_instance.ipynb`](../08_lakebase/01_create_instance.ipynb) | [html](notebook_html_exports/01_create_instance.html) | 3 |

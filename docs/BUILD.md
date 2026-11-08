@@ -36,7 +36,7 @@ Each stage reads what the earlier stages wrote.
 | 3 | Document intelligence | `03_doc_intelligence/` | `drawings_parsed`, `drawings_extracted`, `compliance_findings`, `compliance_eval` |
 | 4 | Vector Search | `04_vector_search/`, `resources/vector-search.yml` | `code_excerpts` table, endpoint `bluerridge_vs`, index `code_excerpts_vs` |
 | 5 | Gold | `05_gold/` | `kpi_daily`, `risk_forecast`, `daily_brief` |
-| 6 | Governance | `06_governance/` | Tags, grants and a row filter |
+| 6 | Governance | `06_governance/` | Tags, a row filter on `gold_pm.drawing_register`, lineage evidence; grants are in `grants.sql` (see "Governance follow-ups") |
 | 7 | Genie Space | `07_genie_agent/`, `resources/genie-space.yml` | Space `bluerridge_pm_copilot` and its Q&A transcript |
 | 8 | Lakebase | `08_lakebase/`, `resources/lakebase.yml` | Instance `bluerridge-pm` with synced `kpi_daily`, `compliance_findings`, `risk_forecast` |
 | 9 | App | `09_app/`, `resources/app.yml` | The Databricks App (`09_app/deploy.sh`) |
@@ -91,6 +91,13 @@ Things the recipe depends on:
 ## Vector Search: bundle resources, with one ordering rule
 
 `bundle schema` in CLI v1.20.0 defines `vector_search_endpoints` and `vector_search_indexes` (grep the output for `vector_search`), and `bundle validate` accepts them, so `resources/vector-search.yml` declares endpoint `bluerridge_vs` (STANDARD) and Delta Sync index `code_excerpts_vs` as ordinary bundle resources. No SDK-only path was needed. Order: run `04_vector_search/01_load_code_excerpts.ipynb` first (the index needs the `code_excerpts` table, with Change Data Feed on, to exist), then `bundle deploy`, then `02_create_endpoint_and_index.ipynb`, which reuses the endpoint and index (creating them through the SDK only if missing), triggers a sync, waits for rows indexed = table rows, and runs the smoke test. Right after deploy the endpoint reads ONLINE while the index can stay "pending endpoint provisioning" for several minutes. The excerpt files are validated locally with `uv run --no-project --with pytest --with pyyaml python -m pytest 04_vector_search/tests`.
+
+## Governance follow-ups (Task 24 and group cleanup)
+
+- **App service principal, after `databricks bundle deploy`:** fill `{app_sp}` in `06_governance/grants.sql` (USE SCHEMA + SELECT on `bluerridge_gold_pm` and `bluerridge_agents`, READ VOLUME on `bluerridge_landing.drawings`; USE CATALOG needs the catalog owner) **and** add the row-filter mapping, otherwise the app sees 0 rows of `drawing_register`: `INSERT INTO mfg_mc_se_sa.bluerridge_agents.discipline_access VALUES ('<app sp application id>', '*')`.
+- **Groups:** workspace-local groups are rejected by Unity Catalog grants (`PRINCIPAL_DOES_NOT_EXIST`), so none exist. If an account admin supplies `bluerridge-pm` / `bluerridge-engineers`, run `06_governance/apply.ipynb` with the widgets `pm_group` / `engineer_group`. To remove them later: `REVOKE` the same privileges, then ask the account admin to delete the groups.
+- **Tags:** the account's governed tags own the keys `layer`, `sensitivity`, `data_class`, `domain`; the project uses `br_layer`, `br_sensitivity`, `br_data_class`, `br_domain`, `synthetic`.
+- **Filters:** never attach a row filter or mask to `kpi_daily`, `compliance_findings`, `risk_forecast` or a pipeline input (Lakebase sync and the notebooks would break). Only `drawing_register` carries one.
 
 ## Gotchas found while building
 
