@@ -164,3 +164,23 @@ If the project is deleted outside the bundle, remove `resources/lakebase.yml` fr
 - Auto Loader's `binaryFile` format has a fixed schema: it rejects `cloudFiles.schemaEvolutionMode=rescue` (`CF_UNSUPPORTED_SCHEMA_EVOLUTION_MODE`; use `none`) and adds no `_rescued_data` column, so a malformed file is an ordinary row. `pipeline_drawings.py` sets `_rescued_data` itself for files without the `%PDF-` header. A streaming table also keeps the row of a source file that is later deleted; only a full refresh removes it.
 - A failed serverless notebook task is retried automatically (`attempt_number` 1 in `databricks jobs get-run`), and the retry runs the whole notebook again, AI calls included. For a notebook that calls an AI function (`03_doc_intelligence/01_parse_drawings.ipynb` bills about 1,370 pages per run) put `"disable_auto_optimization": true` on the task in the `jobs submit` JSON; the bundle schema has the same field for job tasks. `jobs submit` also stops waiting after 20 minutes (`--timeout`): for a longer notebook use `--no-wait` and poll `databricks jobs get-run`.
 - `databricks bundle validate` accepts any key under `experimental.scripts`, so a passing validate does not prove a lifecycle hook name is real. The top-level `scripts:` block holds named scripts that run on demand with `databricks bundle run <name>`.
+
+## App build and deploy (Task 17 scaffold)
+
+**Layout.** `09_app/` is the app's `source_code_path`: `app.yaml` (uvicorn `backend.main:app`, port `${DATABRICKS_APP_PORT:-8000}`), `requirements.txt`, `backend/` (FastAPI) and `frontend/` (React 18 + Vite + TS + Tailwind). Vite builds to `09_app/frontend/dist`; FastAPI serves it (static assets plus an `index.html` fallback for client routes; `/health` and `/api/*` keep priority and an unknown `/api/*` path is a 404, not the SPA).
+
+**Deploy order.** The build output is git-ignored, so build first, then deploy:
+
+```bash
+cd 09_app/frontend && npm ci && npm run build      # produces 09_app/frontend/dist
+cd ../.. && databricks bundle validate --profile DEFAULT
+databricks bundle deploy -t demo --profile DEFAULT  # uploads dist via databricks.yml sync.include
+# first deploy only: do the app service principal grants (see "Lakebase + app" and the governance section), then
+databricks bundle run pm_copilot_app -t demo --profile DEFAULT   # starts the app (or: databricks apps deploy)
+```
+
+**Why `sync.include`.** `bundle deploy` skips git-ignored files, so `databricks.yml` has `sync.include: [09_app/frontend/dist/**]`. `databricks bundle sync --dry-run` lists `09_app/frontend/dist/index.html` and `dist/assets/*` for upload when the build exists (and nothing under `node_modules`). If `dist/` is missing the deployed app still answers `/health` but `/` returns 404 "Frontend build not found".
+
+**Local dev.** `cd 09_app && pip install -r requirements.txt && uvicorn backend.main:app --reload` (API on :8000) and `cd 09_app/frontend && npm run dev` (Vite on :3000, proxies `/api` to :8000). Tests: `pytest 09_app/backend/tests -q` and `cd 09_app/frontend && npx vitest run`.
+
+**App resource (`resources/app.yml`).** Bindings (resource name, then what `app.yaml` reads): `sql-warehouse` (`${var.warehouse_id}`, CAN_USE, `WAREHOUSE_ID`), `postgres` (project `bluerridge-pm` production branch and `databricks-postgres` database, CAN_CONNECT_AND_CREATE, `LAKEBASE_ENDPOINT`), `genie-space` (`${resources.genie_spaces.bluerridge_pm_copilot.id}`, CAN_RUN, `GENIE_SPACE_ID`) and `drawings-volume` (`uc_securable` VOLUME `mfg_mc_se_sa.bluerridge_landing.drawings`, READ_VOLUME). On-behalf-of scopes are `user_api_scopes: [dashboards.genie, sql]` on the app resource, not in `app.yaml` (CLI v1.20.0 schema: `resources.apps.*.user_api_scopes`, Public Preview; a workspace admin must have enabled user authorization). Task 17 only ran `bundle validate`; the first deploy is Task 18.

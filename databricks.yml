@@ -14,7 +14,6 @@ bundle:
 # adds its path here (explicit list, not a glob, so a missing file fails loudly).
 # Still to come, added by the task that creates each file:
 #   - resources/lakebase.yml (now included below)
-#   - resources/app.yml                   # Databricks App
 include:
   - resources/job-synthetic-data.yml      # one-time synthetic data: project CSVs + drawing PDFs (two parallel serverless notebook tasks)
   - resources/pipeline-project.yml        # SDP: project data ingestion (6 bronze streaming tables + 6 silver materialized views)
@@ -23,7 +22,16 @@ include:
   - resources/job-doc-intelligence.yml    # parse -> extract_classify -> compliance_check -> guardrails (4 sequential serverless notebook tasks, the 4th a no-AI guardrails pass; validate only, running it re-bills the AI steps)
   - resources/genie-space.yml             # Genie Space "Blue Ridge LNG — PM Co-Pilot (synthetic)" (10 tables, instructions, 10 example SQLs)
   - resources/lakebase.yml                # Lakebase Autoscaling project bluerridge-pm + the 5 synced hot-path tables
+  - resources/app.yml                     # Databricks App bluerridge-pm-copilot (React SPA + FastAPI; bindings: warehouse, Lakebase, Genie, drawings volume)
   - resources/job-risk-forecast.yml       # weekly ai_forecast schedule-slip refresh of gold_pm.risk_forecast (schedule PAUSED; validate/deploy only, evidence came from a one-time submit)
+
+# The React build (09_app/frontend/dist) is git-ignored, and bundle sync skips git-ignored files,
+# so list it explicitly. Run `npm ci && npm run build` in 09_app/frontend before `bundle deploy`.
+sync:
+  include:
+    - 09_app/frontend/dist/**
+  exclude:
+    - 09_app/frontend/node_modules/**
 
 variables:
   catalog:
