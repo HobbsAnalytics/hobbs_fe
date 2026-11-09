@@ -15,7 +15,7 @@ from fastapi.responses import FileResponse
 
 from backend import config, selftest
 from backend.errors import install_error_handlers
-from backend.routes import citations, compliance, drawings, kpi, whoami
+from backend.routes import chat, citations, compliance, drawings, kpi, whoami
 
 
 def _configure_app_logging() -> None:
@@ -52,7 +52,7 @@ def create_app(static_dir: Optional[Path] = None) -> FastAPI:
 
     # Feature routers (Tasks 18-20) are included here, before the SPA catch-all.
     app.include_router(whoami.router, prefix="/api")
-    for r in (kpi.router, compliance.router, drawings.router, citations.router):
+    for r in (kpi.router, compliance.router, drawings.router, citations.router, chat.router):
         app.include_router(r, prefix="/api")
 
     index_file = static_root / "index.html"

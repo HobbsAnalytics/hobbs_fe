@@ -160,6 +160,9 @@ def _patch_ok(monkeypatch):
     monkeypatch.setattr(selftest.vector_search, "exact", lambda label: {"citation_label": label, "text": "SECRET-ROW-CONTENT"})
     monkeypatch.setattr(selftest.vector_search, "related", lambda label, text, k=3: [{"text": "SECRET-ROW-CONTENT"}] * 3)
     monkeypatch.setattr(selftest.vector_search, "mode", lambda: "vs")
+    # Task 20 stages (route data functions, Genie as the SP) are covered in test_chat.py.
+    monkeypatch.setattr(selftest, "run_routes", lambda: True, raising=False)
+    monkeypatch.setattr(selftest, "run_genie", lambda: True, raising=False)
 
 
 def test_selftest_logs_counts_only(monkeypatch, caplog):

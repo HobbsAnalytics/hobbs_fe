@@ -1,24 +1,64 @@
 """Compliance summary and paginated findings (Lakebase). The as-of week is fixed by the demo's anchor date."""
+import json
+import logging
+import math
+import threading
 from typing import Literal
 
 from fastapi import APIRouter, Query
 
 from backend import lakebase
 
+logger = logging.getLogger("bluerridge.compliance")
 router = APIRouter()
 S = "bluerridge_app"
 T = f"{S}.compliance_findings_synced"
 WEEK_START, WEEK_END = "2026-10-31", "2026-11-06"
 MAX_LIMIT = 200
 
+_bbox_warned = False
+_bbox_lock = threading.Lock()
 
-def _bbox(v):
-    if v is None:
+
+def _reset_bbox_warning() -> None:
+    global _bbox_warned
+    _bbox_warned = False
+
+
+def _parse_bbox(v):
+    # Delta array<double> is synced to Postgres as JSONB (Lakebase type mapping), which psycopg normally decodes to a
+    # list; the UC view of the synced table reports it as string, so JSON text and a Postgres array literal
+    # ("{0.1,0.2,0.3,0.4}") are accepted too.
+    if isinstance(v, str):
+        s = v.strip()
+        if s.startswith("{") and s.endswith("}"):
+            s = "[" + s[1:-1] + "]"
+        try:
+            v = json.loads(s)
+        except ValueError:
+            return None
+    if not isinstance(v, (list, tuple)) or len(v) != 4:
         return None
     try:
-        return [float(x) for x in v]
+        out = [float(x) for x in v]
     except (TypeError, ValueError):
         return None
+    return out if all(math.isfinite(x) for x in out) else None
+
+
+def _bbox(v):
+    """A finding's highlight box as exactly four finite floats, or None. Logs one warning per process on bad input."""
+    global _bbox_warned
+    if v is None:
+        return None
+    out = _parse_bbox(v)
+    if out is None:
+        with _bbox_lock:
+            if not _bbox_warned:
+                _bbox_warned = True
+                logger.warning("bbox value could not be parsed as 4 floats (type=%s); its highlight is omitted",
+                               type(v).__name__)
+    return out
 
 
 @router.get("/compliance/summary")

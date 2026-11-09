@@ -69,7 +69,54 @@ WorkspaceClient()   # oauth-m2m, refreshes itself, safe to cache for the process
   `sql:restricted-query`. No page says outright that `sql` is *not* needed to fetch Genie query-result rows.
   **Decision: keep `sql` for now. Verify in T20:** run the chat once with `sql` removed. If Genie answers
   and returns result rows, drop it.
+- **Task 20 outcome: `sql` stays. Least-privilege note.** Removing it can only be proven with a live OBO session:
+  a PM's token through the Apps proxy, asking a question and getting rows back. The headless browser cannot sign in,
+  because the workspace's Okta login enforces a managed-device check, and minting a user token by hand is outside
+  this build's policy. Dropping a scope blind would risk the primary UI surface. The chat needs only `genie`
+  (sources D1, M1), and every SQL statement it causes is generated and run by Genie, not by the app. So `sql` is
+  wider than the code needs, and for a user it is bounded by that user's own Unity Catalog grants. **Follow-up for
+  Task 24:** once a browser session works, remove `sql` from `resources/app.yml`, redeploy, restart, re-consent, and
+  ask the chat one question. If rows come back, the removal stands; otherwise restore it.
 - The app's own warehouse reads run as the SP, so they need no user scope.
+
+## Genie transport for the chat (Task 20)
+
+The user asked to "just call the Genie One MCP", so the MCP options were researched first (2026-11-08).
+
+| # | Source | What it gave us |
+|---|---|---|
+| M1 | Managed MCP servers: <https://docs.databricks.com/aws/en/generative-ai/mcp/managed-mcp> | Genie Agent MCP URL `https://<host>/api/2.0/mcp/genie/{genie_space_id}`, OAuth scope `genie`. Listed under "Endpoints not governed by Unity Gateway ... These endpoints are in Public Preview". "Managed MCP Servers" must be enabled by an admin. |
+| M2 | Genie Agent MCP: <https://docs.databricks.com/aws/en/agents/mcp-tools/genie-agent> | Same URL and scope; read-only. |
+| M3 | Genie One MCP: <https://docs.databricks.com/aws/en/agents/mcp-tools/genie-mcp> | `https://<host>/ai-gateway/mcp-services/system.ai.genie_one_mcp?o=<workspace-id>`, GA. OAuth scope `ai-gateway`; callers need `EXECUTE` on `system.ai.genie_one_mcp`. Tools `genie_ask` / `genie_poll_response` / `genie_get_query_result`. Workspace-wide: no space argument is documented. "The Beta endpoint `/api/2.0/mcp/genie` reaches end of life on November 30, 2026". That is the old Genie One beta path, without a space id. |
+| M4 | AI Bridge `databricks_ai_bridge/genie.py` (`github.com/databricks/databricks-ai-bridge`, main) | Databricks' own Python `Genie(space_id, client: WorkspaceClient)` helper uses the Conversation API REST paths, not MCP. |
+| M5 | Live probe, CLI-managed auth (no token handled by hand): `databricks api post /api/2.0/mcp/genie/<space_id> --json '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' --profile DEFAULT` | Tool `query_space_<space_id>` (args `query`, optional `conversation_id`) and tool `poll_response_<space_id>` (args `conversation_id`, `message_id`). Output schema `{content:{queryAttachments:[{query, description, statement_response}], textAttachments:[str], suggestedQuestions:[str]}, conversationId, messageId, status}`. |
+| M6 | Live probe `tools/call query_space` "How many drawings failed this week?" | `COMPLETED` in one call, with Genie's text ("**51** distinct drawings failed this week ..."), the SQL, and a full `statement_response`: manifest columns and `data_array` rows as protobuf-style cells `{"values":[{"string_value":"51"}]}`. "which?" returned a clarifying question (text, no SQL). A drawing listing returned `drawing_id, citation` columns and 5 rows. |
+| M7 | `uv pip compile` of `databricks-mcp` | 108 packages, including full `mlflow`, `matplotlib`, `docker`, `flask`, `gunicorn`. |
+
+**Decision: the managed Genie MCP server for this space (M1, M2) is the chat's transport.** It returns everything
+the chat needs (answer text, SQL, rows, conversation id) and accepts `conversation_id` for follow-ups (M5, M6).
+Its scope `genie` is the one the app already has: the platform maps `dashboards.genie` to it (D1).
+
+- **Not Genie One (M3).** It answers across the whole workspace rather than from the curated space that scored
+  10/10 + 5/5 in Task 15. It also needs the extra `ai-gateway` user scope, which means re-consent and cannot be
+  verified headlessly, plus a per-user `EXECUTE` grant on `system.ai.genie_one_mcp`. The space-scoped server is the
+  same Genie behind an MCP interface.
+- **Not the `databricks-mcp` client library (M7).** The app speaks the same MCP JSON-RPC `tools/call` itself, one
+  POST per call. The call does not go through the SDK's `api_client`: that client retries read timeouts for up to
+  300 s, and a retried `query_space` would ask Genie twice. Instead the request carries the header from
+  `w.config.authenticate()`, the SDK's own provider, the same pattern as the SQL connector's `credentials_provider`.
+  Its read timeout is the remaining deadline, and it is never retried. The header exists only inside that request;
+  it is never logged or stored.
+- **Conversation API kept as a guarded fallback.** It is the same space, through `w.genie.*`, and SDK 0.162 has
+  `w.genie` (the gap Task 15 hit was the serverless notebook's older SDK). It is used only when
+  `GENIE_TRANSPORT=conversation_api` is set, or when the MCP endpoint refuses the first call with 403, 404, 5xx or a
+  JSON-RPC protocol error; at that point no Genie message exists yet. A 401 or a timeout never falls back. The live
+  self-test showed `transport=mcp` with no fallback.
+- **Verified so far.** The SP, through the identical code path in the startup self-test, got `transport=mcp
+  status=COMPLETED got_sql=True rows=1 headline=51` (`09_app/outputs/chat_selftest.md`). The OBO path (a PM's
+  token, scope `dashboards.genie` mapping to `genie`) is verified in the browser in Task 24. If the MCP endpoint
+  rejected an OBO token's scope with a 403, the guarded fallback would answer through the Conversation API, and the
+  `chat ... transport=` log line would show it.
 
 ## Service principal identity for SQL (row filter)
 
