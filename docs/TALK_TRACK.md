@@ -28,7 +28,7 @@ The narration is in quotes. Point at the thing on screen before you talk about i
 2. **Ask the question.** Click the suggested action **"Which drawings failed this week and why?"** in the right rail, or type it. Say: "This goes to a Genie space, and it runs *as me*. My Unity Catalog permissions apply, not the app's."
 3. **The answer and the SQL card.**
    - The answer streams in. Expand the **Generated SQL** card.
-   - Say: "Nothing is a black box. This is the SQL Genie wrote, and this table is what it returned." The table shows at most 50 rows, with a "showing first N of M" note. In the live check, the user's question returned 85 rows, the week's 85 FAIL findings. The question text itself is not logged.
+   - Say: "Nothing is a black box. This is the SQL Genie wrote, and this table is what it returned." The table shows at most 50 rows, with a "showing first N of M" note. In the live check, the user's question returned 85 rows, matching the week's 85 FAIL findings. The question text itself is not logged.
    - Point at the footer: *AI-generated — verify before action · Genie · as you (OBO) · via …*. It names the transport that answered. In the live check it read "via Conversation API" (see the technical Q&A on MCP).
 4. **Open a drawing.**
    - In **Sources → Drawings from Volume**, click **BRL-ELE-GA-0842**. The PDF viewer opens on the right sheet, with a red box over the exit that is too narrow.
@@ -73,9 +73,9 @@ If something fails live: the UI shows a plain error card instead of a stack trac
 - [[`docs/ARCHITECTURE.md`](ARCHITECTURE.md)]
 
 **"How is it governed?"**
-- **Row-level security.** There is a real UC row filter on `drawing_register`, by discipline, through a mapping table. A mechanical engineer sees 134 drawings, a piping lead 755 and an unmapped user none. That table is a simulation, asserted in [`grant_listing.md`](../evidence/grant_listing.md).
+- **Row-level security.** There is a real UC row filter on `drawing_register`, by discipline, through a mapping table. A mechanical engineer sees 134 drawings, a piping lead 755 and an unmapped user none. The filter applies per user only to Genie chat answers (the app's own pages run as the app service principal, mapped to `'*'`, so they show all disciplines). That mapping table is a simulation, asserted in [`grant_listing.md`](../evidence/grant_listing.md).
 - **On-behalf-of for Genie.** The chat calls Genie with the signed-in user's token, so Genie's SQL obeys *their* permissions. It fails closed: no token means a 401, and there is no service-principal fallback.
-- **Least-privilege service principal.** Everything else runs as the app's service principal, which gets only SELECT on gold, READ on the drawings Volume and SELECT on five Postgres tables.
+- **Least-privilege service principal.** Everything else runs as the app's service principal, which gets USE CATALOG on `mfg_mc_se_sa`, USE SCHEMA and SELECT on `bluerridge_gold_pm` and `bluerridge_agents`, READ VOLUME on the drawings Volume, and SELECT on five synced Postgres tables.
 - **Tags and lineage.** 112 tags (prefixed `br_`, because the account's governed tags own `layer` and `sensitivity`) and 29 lineage edges from system tables.
 - **Say it before they find it.** The shared catalog grants `account users` read access by inheritance, so in this sandbox every table is readable account-wide. The row filter is the only control the build adds. That's fine for synthetic data and not acceptable for production.
 
@@ -100,7 +100,7 @@ If something fails live: the UI shows a plain error card instead of a stack trac
 **"What are the forecast's limits?"**
 - It's a v1 trend model: `ai_forecast` of weekly slip per discipline, plus delay inherited from late predecessors.
 - In an 8-week backtest, its error (MAE 10.6 days) was about the same as just carrying the last value forward (10.9 days). The 80% interval covered only 14% of points, so it's overconfident.
-- That's why the app and the brief show **bands only** (26 High / 27 Medium / 11 Low) as a ranking signal, never a probability.
+- That's why the app and the brief show **bands only** (26 High / 27 Medium / 11 Low) as a ranking signal, never a probability in the app, the daily brief or Genie answers (the committed `05_gold/outputs/risk_top5.md` does print a percentage next to the band, e.g. "High (93%)").
 - Next: milestone-level features (predecessor slips, crew, weather) and a calibrated model, judged by the same backtest.
 - [[`risk_model_metrics.json`](../evidence/risk_model_metrics.json)]
 
@@ -108,7 +108,7 @@ If something fails live: the UI shows a plain error card instead of a stack trac
 - The chat's primary transport is the **managed Genie MCP server** for the space (Public Preview). It uses stateless JSON-RPC `tools/call` with no retries, so a question is never posted twice.
 - There is a guarded fallback to the Genie Conversation API, used only when MCP refuses the *first* call before it can have accepted the question.
 - Live, the service principal's self-test goes through MCP (`headline=51`). In the signed-in user's session, MCP returned 403 for the user token and the fallback answered. The footer said so.
-- "That's the design working. Which scope the MCP endpoint wants for a user token is an open item."
+- Say it plainly: "MCP is proven as the service principal only. For a signed-in user it returned 403 and the fallback answered, still as the user. I have not diagnosed why. One candidate is that the endpoint wants the OAuth scope `genie` while the app requests `dashboards.genie`. That is an open item."
 - [[`live_obo_chat.md`](../09_app/outputs/live_obo_chat.md)]
 
 **"And the Genie space itself?"**
@@ -143,11 +143,33 @@ If something fails live: the UI shows a plain error card instead of a stack trac
 - [[`01_parse_drawings.ipynb`](../03_doc_intelligence/01_parse_drawings.ipynb), [`03_compliance_check.ipynb`](../03_doc_intelligence/03_compliance_check.ipynb), [`docs/BUILD.md`](BUILD.md#costs-and-teardown)]
 
 **"Can a PM see drawings outside their discipline?"**
-- "Not through the governed table: the row filter is enforced on the warehouse, and Genie runs as the PM."
+- "The row filter governs `drawing_register`, and it applies per user only to Genie chat answers, because only the chat runs as the signed-in user (OBO). The app's own pages (KPIs, compliance queue, risk, schedule, brief, drawing viewer, citations) run as the app's service principal, which is mapped to `'*'` in `discipline_access`, so those pages show every discipline to every user. Running the data routes on behalf of the user is a roadmap item."
 - "In this sandbox the catalog's inherited `account users` grant would let anyone read the other tables directly. That's the first thing to close for production: grant per group and drop the inherited access."
 
 **"Why is one of the brief's top findings a false positive?"**
 - If they spot that BRL-INS-PID-0580 appears in both the brief's context and the scorecard's false-positive list, say: "Good catch. That's exactly why the brief says *flagged for engineer review*."
+
+## Roleplay traps (be ready)
+
+Five things a sharp customer can find in the app or the repo. Each has an honest answer.
+
+**(a) "The KPI strip says On track, but you have late milestones."**
+- True. `kpi_daily.schedule_status` follows a documented rule: `on_track` below a 5-day slip on the worst key milestone, `at_risk` at 5 to 9 days, `behind` at 10 or more. The worst key milestone is 4 days late, so the status is `on_track`.
+- Separately, the overdue list has 6 late milestones and 1 due today, including the criticality-5 cryogenic tank gate MS-281 (4 days late). Say: "The strip is a coarse status. **Late or due today** is the actionable list, and I'd work from that." Do not defend the label as a full picture. [[`kpi_today.md`](../05_gold/outputs/kpi_today.md)]
+
+**(b) "Some highlights cover the whole page."**
+- True: 105 of 498 FAIL rows (21%) have `bbox_source='page'`. The UI labels those "whole page" and the others "approximate" or "synthetic ground truth", and the viewer draws approximate boxes dashed.
+
+**(c) "This flagged finding says the drawing 'appears compliant'."**
+- True for 6 of this week's flagged findings (57 FAIL rows overall; 49 are not planted flaws). Cause: the self-contradiction guardrail checks only the last sentence, and the 400-character reason limit often cuts it. Example: BRL-MEC-GA-0308.
+- Say: "It's a triage list. An engineer confirms every flag, and the roadmap fix is the guardrail truncation. I did not re-tune it to the score." Also say the committed samples skip hedging rows by a fixed, disclosed rule.
+
+**(d) "Your signed-in chat didn't use MCP."**
+- Correct. In the one live signed-in session the managed Genie MCP endpoint returned 403 for the user token, and the guarded fallback answered through the Conversation API, still as the user. MCP is proven only as the service principal. The cause is undiagnosed; a candidate is the OAuth scope (`genie` against the app's `dashboards.genie`). [[`live_obo_chat.md`](../09_app/outputs/live_obo_chat.md)]
+
+**(e) "Are 58% precision and 81% recall real?"**
+- They are in-sample. The prompts and guardrails were developed from error analysis on the same 1,200 drawings that are scored, and there is no held-out drawing split. Say: "Read them as this synthetic set's numbers, not a generalization estimate. The pilot measures it on your closed project." The Genie benchmark is different: it has 5 held-out questions.
+- Also say the review week is simulated: its 238 drawings (24 with planted flaws) were chosen deterministically from the manifest.
 
 ## (f) Close and next steps
 

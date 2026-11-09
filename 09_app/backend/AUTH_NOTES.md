@@ -22,7 +22,7 @@ page or the file it came from.
 
 ## Headers (exact names)
 
-Starlette header lookup is case-insensitive. The proxy sets these headers; a client cannot supply its own through the app URL.
+Starlette header lookup is case-insensitive. The proxy sets these headers; a client cannot supply its own through the app URL (field experience of the platform behavior, not from cited docs).
 
 | Header | Meaning | Source |
 |---|---|---|
@@ -74,9 +74,10 @@ WorkspaceClient()   # oauth-m2m, refreshes itself, safe to cache for the process
   because the workspace's Okta login enforces a managed-device check, and minting a user token by hand is outside
   this build's policy. Dropping a scope blind would risk the primary UI surface. The chat needs only `genie`
   (sources D1, M1), and every SQL statement it causes is generated and run by Genie, not by the app. So `sql` is
-  wider than the code needs, and for a user it is bounded by that user's own Unity Catalog grants. **Follow-up for
-  Task 24:** once a browser session works, remove `sql` from `resources/app.yml`, redeploy, restart, re-consent, and
-  ask the chat one question. If rows come back, the removal stands; otherwise restore it.
+  wider than the code needs, and for a user it is bounded by that user's own Unity Catalog grants. **Task 24
+  outcome: not done.** Verifying the removal needs a live OBO session (remove `sql`, redeploy, re-consent, ask one
+  question), and doing it blind or late risked the primary UI surface, so `sql` was kept for safety. It remains
+  wider than the code needs; removing it is a documented follow-up.
 - The app's own warehouse reads run as the SP, so they need no user scope.
 
 ## Genie transport for the chat (Task 20)

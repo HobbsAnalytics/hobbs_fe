@@ -13,7 +13,7 @@ All data endpoints run as the app's **service principal** (SP). None of them use
 | `GET /api/drawings/{drawing_id}` | warehouse `drawing_register` (row-filtered) + Lakebase findings | 422 bad id, 404 not visible |
 | `GET /api/drawings/{drawing_id}/pdf` | warehouse (path lookup) + Volume Files API | `application/pdf`, `inline`; path comes from the table, must be under the drawings volume |
 | `GET /api/citations/{label}` | Vector Search index `code_excerpts_vs`, SQL fallback on `code_excerpts` | exact `citation_label` (URL-decoded) plus up to 3 related; 404 unknown |
-| `POST /api/chat` | Genie space, **as the signed-in user** (managed Genie MCP server), plus Lakebase findings for sources | Server-Sent Events; 401 with no user token, 422 bad body; see "Chat (Task 20)" below |
+| `POST /api/chat` | Genie space, **as the signed-in user** (managed Genie MCP server, with a Conversation API fallback; see below), plus Lakebase findings for sources | Server-Sent Events; 401 with no user token, 422 bad body; see "Chat (Task 20)" below |
 
 `drawing_id` pattern: `BRL-[A-Z]{3}-[A-Z]{2,4}-[0-9]{4}` (full match). It matches all 1,200 ids in `drawing_register` (13 prefixes, e.g. `BRL-INS-PID-0052`, `BRL-ELE-GA-0023`; 1200 of 1200 checked with `RLIKE` in the warehouse).
 
@@ -47,9 +47,9 @@ The PM's question goes to the Genie space `01f1db9edffa1a298195db2806ce45e3` **a
 - **Drawing items.** When a result column is named `drawing_id` (case-insensitive), up to 10 distinct, well-formed ids (`BRL-[A-Z]{3}-[A-Z]{2,4}-[0-9]{4}`) are taken from the shown rows in first-seen order. Their FAIL findings are then looked up in Lakebase with a single parameterized query (`... compliance_findings_synced WHERE status = %s AND drawing_id = ANY(%s)`). Each FAIL finding becomes `{"kind":"drawing","drawing_id","finding_id","page_num","bbox","citation"}`, with `bbox` as four floats. A drawing with no FAIL finding is still listed, with nulls, so it stays clickable. If Lakebase is down, every drawing is listed with nulls and the stream still ends with `done`.
 - **Citation items.** Any of the five labels `ASME B16.5 §4.2`, `OSHA 1910.147`, `IBC 1005.1`, `ASME B31.3 §341`, `ASME B31.3 §322` found in the answer text or in a string cell becomes `{"kind":"citation","label","url":"/api/citations/<URL-encoded label>"}`, e.g. `/api/citations/ASME%20B31.3%20%C2%A7322`.
 
-**Timeouts.** Genie polling stops at 105 s, and the route's own wall clock gives up at 110 s; both end in the `error` event. The Apps proxy caps a request at 120 s.
+**Timeouts.** Genie polling stops at 105 s, and the route's own wall clock gives up at 110 s; both end in the `error` event. The Apps proxy caps a request at 120 s (platform behavior observed during the build, not from cited docs).
 
-**Transport.** The app uses the **managed Genie MCP server for this space**, `POST https://<workspace>/api/2.0/mcp/genie/{space_id}`. It is in Public Preview and needs the OAuth scope `genie`, which the app's `dashboards.genie` user scope maps to.
+**Transport.** The app uses the **managed Genie MCP server for this space**, `POST https://<workspace>/api/2.0/mcp/genie/{space_id}`. It is in Public Preview and needs the OAuth scope `genie`, which the app's `dashboards.genie` user scope may or may not map to (unconfirmed). It is verified as the app service principal; in the one live signed-in session, MCP returned 403 and the chat answered via the Conversation API fallback (still OBO). The cause of the 403 is undiagnosed; one candidate is a scope mismatch.
 
 The app speaks MCP's JSON-RPC `tools/call` directly:
 1. Call `query_space_<space_id>` with `{query, conversation_id?}`.

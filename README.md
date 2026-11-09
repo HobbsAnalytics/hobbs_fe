@@ -1,6 +1,6 @@
 # Blue Ridge LNG — Project Manager Co-Pilot
 
-> **Grader? Start at [`evidence/00_READ_ME_FIRST.md`](evidence/00_READ_ME_FIRST.md).** It maps each of the seven FE Bar boxes to the committed files that prove it ran: executed notebooks, pipeline event-log summaries and app logs. You do not have to run anything to check it.
+> **Grader? Start at [`evidence/00_READ_ME_FIRST.md`](evidence/00_READ_ME_FIRST.md).** It maps each of the six FE Bar boxes (box 4, ML or GenAI, is shown as two rows) to the committed files that prove it ran: executed notebooks, pipeline event-log summaries and app logs. You do not have to run anything to check it.
 
 ## What it is
 
@@ -8,7 +8,7 @@ An end-to-end Databricks build for the project manager of a fictional LNG build,
 
 Drawing audits eat billable engineering hours. In this build, GenAI reads 1,200 synthetic engineering drawings and checks them against five code rules¹. A Databricks App then puts the results in front of the PM. Each morning the app opens on a grounded daily brief, a KPI strip, a risk card and a Genie chat that answers as the signed-in user. Every flagged drawing opens as a PDF, with the violation highlighted and the code clause beside it.
 
-The build covers the seven FE Bar boxes: Lakeflow ingestion, Unity Catalog governance, Lakebase serving, ML (a schedule-risk forecast), GenAI (document intelligence and the daily brief), a Genie Agent and a Databricks App. It deploys as one Declarative Automation Bundle plus a short documented sequence.
+The build covers the six FE Bar boxes: Lakeflow ingestion, Unity Catalog governance, Lakebase serving, ML or GenAI (one box, evidenced twice: a schedule-risk forecast, and document intelligence plus the daily brief), a Genie Agent and a Databricks App. It deploys as one Declarative Automation Bundle plus a short documented sequence.
 
 All data is synthetic. No real customer or Bechtel data is used.
 
@@ -19,7 +19,7 @@ All data is synthetic. No real customer or Bechtel data is used.
 3. **Gold:** daily KPIs, an `ai_forecast` schedule-risk model shown as risk bands, and an `ai_query` daily brief checked by a validator. Vector Search indexes the code clauses ([`05_gold/`](05_gold/), [`04_vector_search/`](04_vector_search/)).
 4. **Govern:** Unity Catalog tags, lineage and a real row filter on `drawing_register`. The app's service principal (SP) gets least-privilege grants ([`06_governance/`](06_governance/)).
 5. **Serve:** five gold tables are synced to Lakebase Postgres for millisecond point reads (p50 3 ms, against 428 ms on the SQL warehouse). A Genie space scored 10/10 on curated questions and 5/5 on held-out ones ([`08_lakebase/`](08_lakebase/), [`07_genie_agent/`](07_genie_agent/)).
-6. **App:** React + FastAPI. Genie runs on behalf of the signed-in user (OBO) and fails closed without the user's token. It uses the managed Genie MCP server, with a guarded fallback to the Conversation API. The data routes run as the SP ([`09_app/`](09_app/)).
+6. **App:** React + FastAPI. Genie runs on behalf of the signed-in user (OBO) and fails closed without the user's token. It uses the managed Genie MCP server, with a guarded fallback to the Conversation API. MCP is verified as the app service principal; in the one live signed-in session, MCP returned 403 and the chat answered via the Conversation API fallback (still OBO). The data routes run as the SP, so in the app's own pages every user sees every discipline; only chat answers are row-filtered per user ([`09_app/`](09_app/)).
 
 For details, see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 

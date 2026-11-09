@@ -111,7 +111,7 @@ Two identities, chosen per call ([`09_app/backend/auth.py`](../09_app/backend/au
 
 - **On behalf of the user (OBO), only for Genie.** The Apps proxy forwards the user's short-lived token in `x-forwarded-access-token`. This happens because the app resource declares `user_api_scopes: [dashboards.genie, sql]` (`resources/app.yml`). `user_workspace_client(request)` builds `WorkspaceClient(token=…, auth_type="pat")` per request. `auth_type="pat"` matters because the app's environment also carries the SP's OAuth client id and secret, and without it the SDK could pick those up.
   - The client is a FastAPI dependency of `/api/chat`, so a request without the header gets **401** before the route runs.
-  - There is no SP fallback. Unit tests assert that the SP client is never constructed on the chat path and that a planted token never appears in an event or a log line.
+  - There is no SP fallback. The SP is never used for Genie (unit tests assert this); the chat's drawing-source enrichment does read Lakebase through the app SP pool. Tests also assert that a planted token never appears in an event or a log line.
   - Because Genie runs as the PM, every Genie SQL runs with that PM's Unity Catalog permissions, including the `drawing_register` row filter.
 - **App service principal for everything else.** `sp_workspace_client()` is a cached `WorkspaceClient()` built from the injected SP credentials. It covers Lakebase (a psycopg pool whose connections each get a freshly generated database credential), the warehouse (Statement Execution API with named parameters only), the Volume (Files API) and Vector Search. The SP's access is least-privilege, applied by `scripts/post_deploy_grants.sh`:
   - USE and SELECT on `bluerridge_gold_pm` and `bluerridge_agents`;

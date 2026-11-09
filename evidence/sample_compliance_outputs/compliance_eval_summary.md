@@ -1,5 +1,9 @@
 # Compliance judge scorecard: AI findings against the planted ground truth
 
+> **Note added after generation (final review, 2026-11-08; the tables below are unchanged).**
+> - **Precision and recall are in-sample.** Prompts v1 to v3 and both guardrail rounds were developed from error analysis on the same 1,200 drawings that are scored here. There is no held-out drawing split, so these are not generalization estimates.
+> - **57 FAIL rows still contradict themselves.** 57 FAIL rows in `bluerridge_gold_pm.compliance_findings` carry hedging reasons such as "...appears compliant. However...". 49 of them are not planted flaws, and 6 fall in the as-of week (example: BRL-MEC-GA-0308). Cause: the `_admits` guardrail (`03_doc_intelligence/compliance_lib.py`) checks only the last sentence, and the 400-character reason truncation often cuts it (9 rows hit the limit). The guardrails were not re-tuned. `sample_findings.jsonl` skips hedging FAILs by a fixed rule, disclosed in a markdown cell of `03b_compliance_guardrails.ipynb`.
+
 **Headline (final table, prompt v3, column C).** Of 274 planted code violations, the judge caught 222 (recall 81.0%). Of the 382 it flagged, 222 were real (precision 58.1%). F1 = 67.7%. 160 of the reported pairs are not planted flaws; 52 planted flaws were missed.
 
 The judge is `databricks-claude-sonnet-4-5`, reading each drawing's parsed text with a fixed five-rule prompt (no ground truth, no dataset values in it). The ground truth is the 274 flaws the synthetic generator planted on 240 of 1,200 drawings (`bluerridge_silver_engineering.ground_truth_findings`); it is complete only for planted flaws, so a "false positive" is a reported pair that is not planted (a judge error, or at most an unplanted ambiguity), and the numbers describe this synthetic set, not production drawings.
