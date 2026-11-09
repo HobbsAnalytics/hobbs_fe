@@ -107,16 +107,32 @@ Its scope `genie` is the one the app already has: the platform maps `dashboards.
   `w.config.authenticate()`, the SDK's own provider, the same pattern as the SQL connector's `credentials_provider`.
   Its read timeout is the remaining deadline, and it is never retried. The header exists only inside that request;
   it is never logged or stored.
-- **Conversation API kept as a guarded fallback.** It is the same space, through `w.genie.*`, and SDK 0.162 has
-  `w.genie` (the gap Task 15 hit was the serverless notebook's older SDK). It is used only when
-  `GENIE_TRANSPORT=conversation_api` is set, or when the MCP endpoint refuses the first call with 403, 404, 5xx or a
-  JSON-RPC protocol error; at that point no Genie message exists yet. A 401 or a timeout never falls back. The live
-  self-test showed `transport=mcp` with no fallback.
+- **Stateless `tools/call`, deliberately.** The client sends no `initialize` handshake and no
+  `Mcp-Session-Id`, and its `Accept` header is `application/json` only, without `text/event-stream`. The live
+  server answers that form with plain JSON (M5, M6). The response's JSON-RPC `id` is checked against the request
+  when the server sends one. A stricter, spec-literal Streamable-HTTP server would most likely reject this form with
+  HTTP 400/406/415 or JSON-RPC -32600 ("invalid request" or "session not initialized"). On the first call, those are
+  exactly the refusals that trigger the Conversation API fallback below, so the chat would keep working and log
+  `transport=conversation_api`.
+- **Conversation API kept as a guarded fallback.** It is the same space, through `w.genie.*`, called with the
+  same client, and SDK 0.162 has `w.genie` (the gap Task 15 hit was the serverless notebook's older SDK). It is used
+  only when `GENIE_TRANSPORT=conversation_api` is set, or when the MCP endpoint refuses the **first** call in a way
+  that happens before Genie can have received the question:
+  - HTTP 400, 403, 404, 405, 406 or 415;
+  - JSON-RPC -32700, -32600, -32601 or -32602;
+  - the connection could not be opened (connect timeout, refused, DNS).
+
+  Nothing else falls back: 401, 5xx, 429, a non-JSON body, other JSON-RPC codes (e.g. -32603 internal error), a
+  connection reset after the request went out, a read timeout, or any error on a poll call. In those cases Genie may
+  already hold the message, and a fallback could ask it twice, so they end in a safe error. If MCP completes with
+  SQL but no `statement_response`, the rows of that same message are read through the Conversation API; Genie is
+  not asked again. The live self-test showed `transport=mcp` with no fallback.
 - **Verified so far.** The SP, through the identical code path in the startup self-test, got `transport=mcp
   status=COMPLETED got_sql=True rows=1 headline=51` (`09_app/outputs/chat_selftest.md`). The OBO path (a PM's
   token, scope `dashboards.genie` mapping to `genie`) is verified in the browser in Task 24. If the MCP endpoint
-  rejected an OBO token's scope with a 403, the guarded fallback would answer through the Conversation API, and the
-  `chat ... transport=` log line would show it.
+  rejected an OBO token's scope with a 403 on the first call, the guarded fallback would answer through the
+  Conversation API. The final `done` event and the `chat ... transport=` log line both report which transport
+  answered.
 
 ## Service principal identity for SQL (row filter)
 

@@ -1,14 +1,18 @@
 """POST /api/chat: the PM's question to the Genie space, answered **as the signed-in user** (OBO) and streamed as
 Server-Sent Events. Contract: 09_app/API.md, "Chat (Task 20)".
 
-* Auth: the user's forwarded token only (``auth.user_workspace_client``). No token is a 401 JSON response, raised as a
-  dependency so it is decided before the body is even validated. There is no service-principal fallback.
+* Auth: Genie is called **only as the user**, with the forwarded token (``auth.user_workspace_client``). A request
+  with no token is a 401 JSON response, raised as a dependency so it is decided before the body is even validated.
+  There is no service-principal fallback for Genie. The one non-Genie read, the drawing-source enrichment below, goes
+  to Lakebase through the app's service-principal pool, the same data the Compliance page already serves.
 * Stream: every event is one ``data: <json>\\n\\n`` line, in order: status running, conversation, answer, sql, result,
-  sources, status done; or status error with a safe message. While Genie is still working, ``status running`` is
-  repeated every HEARTBEAT_S so idle proxies keep the stream open.
+  sources, then status done (with ``transport``), or instead status error with a safe message (plus ``transport`` when
+  it is known). While Genie is still working, ``status running`` is repeated every HEARTBEAT_S so idle proxies keep
+  the stream open.
 * Sources: drawing ids from a ``drawing_id`` result column are enriched with their FAIL findings from Lakebase
   (page, bbox, citation); the five code-citation labels found in the answer or the rows become ``/api/citations`` links.
-* Defense in depth: a ``slip_probability`` column is removed from the result before it is emitted.
+* Defense in depth: any column whose name contains ``slip_probability`` (case-insensitive, e.g.
+  ``max_slip_probability``) is removed from the result before it is emitted.
 """
 import asyncio
 import functools
@@ -36,7 +40,7 @@ HEARTBEAT_S = 15.0
 MAX_MESSAGE = 2000
 MAX_ROWS = 50
 MAX_DRAWINGS = 10
-STRIPPED_COLUMNS = {"slip_probability"}
+STRIPPED_SUBSTRING = "slip_probability"   # never shown as a number to the PM
 CITATION_LABELS = ("ASME B16.5 §4.2", "OSHA 1910.147", "IBC 1005.1", "ASME B31.3 §341", "ASME B31.3 §322")
 EMPTY_ANSWER = "I'm not sure which milestones you mean — try naming a discipline or specifying 'this week'."
 GENERIC_ERROR = "Something went wrong while asking Genie. Try again in a moment."
@@ -57,7 +61,7 @@ class ChatRequest(BaseModel):
 
 
 def _user_client(request: Request):
-    """Dependency: the OBO client, or a 401 before the body is looked at. Never the SP."""
+    """Dependency: the OBO client for Genie, or a 401 before the body is looked at. Never the SP."""
     return auth.user_workspace_client(request)
 
 
@@ -68,7 +72,7 @@ def _sse(event: dict) -> str:
 # --- shaping Genie's turn into events ----------------------------------------------------------------------------
 
 def _strip_columns(columns: list, rows: list):
-    keep = [i for i, c in enumerate(columns) if str(c).lower() not in STRIPPED_COLUMNS]
+    keep = [i for i, c in enumerate(columns) if STRIPPED_SUBSTRING not in str(c).lower()]
     return [columns[i] for i in keep], [[r[i] if i < len(r) else None for i in keep] for r in rows]
 
 
@@ -181,10 +185,13 @@ async def _stream(w, req: ChatRequest, email: Optional[str]):
         for event in await loop.run_in_executor(None, turn_events, t):
             yield _sse(event)
         outcome = "done"
-        yield _sse({"type": "status", "value": "done"})
+        yield _sse({"type": "status", "value": "done", "transport": t.transport})
     except genie.GenieError as e:
         outcome = f"error:{e.kind}"
-        yield _sse({"type": "status", "value": "error", "message": str(e)})
+        event = {"type": "status", "value": "error", "message": str(e)}
+        if e.transport:
+            transport = event["transport"] = e.transport
+        yield _sse(event)
     except Exception as e:  # never a traceback or exception text in the stream or the log
         outcome = f"error:{type(e).__name__}"
         yield _sse({"type": "status", "value": "error", "message": GENERIC_ERROR})

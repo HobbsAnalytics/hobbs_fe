@@ -8,7 +8,8 @@ startup. Read with ``databricks apps logs``.
 2. routes: each Task 19 route's data function called in-process with its default arguments, plus the raw Postgres
    type of a FAIL finding's ``bbox`` next to the parsed shape the API returns (Task 20).
 3. genie: one gold-only question through ``genie.ask``, the same transport code path as /api/chat, with the SP's
-   client in place of the user's (Task 20). The chat itself never uses the SP.
+   client in place of the user's (Task 20). In the chat, Genie is called only as the signed-in user; the chat's
+   drawing-source enrichment reads Lakebase through the app's SP pool (the same data the Compliance page serves).
 """
 import logging
 import threading

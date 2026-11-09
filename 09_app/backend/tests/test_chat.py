@@ -12,6 +12,8 @@ import time
 import types
 
 import pytest
+import requests
+import urllib3
 from backend import auth, genie, lakebase, selftest
 from backend.errors import DataUnavailable
 from backend.main import create_app
@@ -46,12 +48,36 @@ def types_of(events):
     return [e["type"] if e["type"] != "status" else f"status:{e['value']}" for e in events]
 
 
+def jsonrpc_error(code, message="nope"):
+    return {"jsonrpc": "2.0", "id": 1, "error": {"code": code, "message": message}}
+
+
+def conn_refused():
+    """What requests raises when the TCP connection cannot be opened (nothing was sent)."""
+    reason = urllib3.exceptions.NewConnectionError(None, "Failed to establish a new connection: refused")
+    return requests.ConnectionError(urllib3.exceptions.MaxRetryError(None, "/api/2.0/mcp/genie/space1", reason))
+
+
+def conn_reset():
+    """What requests raises when the connection drops after the request went out (Genie may have the question)."""
+    return requests.ConnectionError(urllib3.exceptions.ProtocolError("Connection aborted.",
+                                                                     ConnectionResetError(54, "reset by peer")))
+
+
 class FakeWS:
-    """Stands in for databricks.sdk.WorkspaceClient inside backend.auth; records how it was built."""
+    """Stands in for databricks.sdk.WorkspaceClient inside backend.auth; records how it was built.
+
+    ``config`` lets the real Genie layer run against it: ``authenticate()`` returns the planted token as a header, the
+    way the SDK would for a PAT client, so tests can prove that header never reaches an event or a log line.
+    """
     built = []
 
     def __init__(self, **kwargs):
         self.kwargs = kwargs
+        self.config = types.SimpleNamespace(
+            host="https://example.cloud.databricks.com",
+            authenticate=lambda: {"Authorization": f"Bearer {kwargs.get('token')}"})
+        self.genie = None
         FakeWS.built.append(self)
 
 
@@ -116,7 +142,7 @@ def _no_real_clients(monkeypatch):
 
     def no_sp():
         sp_calls.append(1)
-        raise AssertionError("chat must never use the service principal client")
+        raise AssertionError("Genie in the chat must never run as the service principal")
 
     monkeypatch.setattr(auth, "sp_workspace_client", no_sp)
     return sp_calls
@@ -206,7 +232,7 @@ def test_lakebase_down_still_finishes_with_bare_drawing_sources(client, monkeypa
     monkeypatch.setattr(lakebase, "query", FakeLake(fail=True))
     use_genie(monkeypatch, result=KNOWN)
     events = parse_sse(post(client).text)
-    assert events[-1] == {"type": "status", "value": "done"}
+    assert events[-1] == {"type": "status", "value": "done", "transport": "mcp"}
     items = next(e for e in events if e["type"] == "sources")["items"]
     assert {i["drawing_id"] for i in items if i["kind"] == "drawing"} == {"BRL-PIP-ISO-0004", "BRL-ELE-GA-0844"}
 
@@ -229,6 +255,24 @@ def test_slip_probability_column_is_stripped(client, lake, monkeypatch):
     assert res["columns"] == ["milestone_id", "risk_band"]
     assert res["rows"] == [["MS-335", "High"], ["MS-351", "High"]]
     assert "slip_probability" not in json.dumps(res) and "0.91" not in json.dumps(res)
+
+
+@pytest.mark.parametrize("col", ["SLIP_PROBABILITY", "Slip_Probability", "max_slip_probability",
+                                 "AVG_SLIP_PROBABILITY_PCT", "slip_probability_p90"])
+def test_any_column_containing_slip_probability_is_stripped(client, lake, monkeypatch, col):
+    use_genie(monkeypatch, result=turn(
+        text="Top risks", sql="SELECT 1", columns=["milestone_id", col, "risk_band"],
+        rows=[["MS-335", 0.91, "High"]], row_count=1))
+    res = next(e for e in parse_sse(post(client).text) if e["type"] == "result")
+    assert res["columns"] == ["milestone_id", "risk_band"] and res["rows"] == [["MS-335", "High"]]
+    assert "slip_probability" not in json.dumps(res).lower() and "0.91" not in json.dumps(res)
+
+
+def test_slip_days_column_is_not_stripped(client, lake, monkeypatch):
+    use_genie(monkeypatch, result=turn(text="x", sql="SELECT 1", columns=["milestone_id", "projected_slip_days"],
+                                       rows=[["MS-335", 12.5]], row_count=1))
+    res = next(e for e in parse_sse(post(client).text) if e["type"] == "result")
+    assert res["columns"] == ["milestone_id", "projected_slip_days"]
 
 
 def test_result_capped_at_50_rows_with_truncated(client, lake, monkeypatch):
@@ -358,6 +402,72 @@ def test_planted_token_never_in_events_headers_or_logs(client, lake, monkeypatch
     assert FAKE_TOKEN not in caplog.text
 
 
+@pytest.mark.parametrize("response", [
+    (502, {"message": f"bad gateway for Bearer {FAKE_TOKEN}"}),                     # 5xx branch
+    (500, f"upstream said {FAKE_TOKEN}"),
+    requests.ConnectionError(f"reset by peer while sending Authorization: Bearer {FAKE_TOKEN}"),  # RequestException
+    conn_reset(), conn_refused(),
+    (200, {"jsonrpc": "2.0", "id": 1, "error": f"denied {FAKE_TOKEN}"}),
+    RuntimeError(f"unexpected {FAKE_TOKEN}")])
+def test_planted_token_never_leaks_through_the_real_genie_layer(client, lake, monkeypatch, caplog, response):
+    srv = McpServer([response])
+    monkeypatch.setattr(genie, "_post", srv)
+    monkeypatch.setattr(genie, "_conv_ask", lambda *a, **k: (_ for _ in ()).throw(genie.GenieError("unavailable")))
+    with caplog.at_level(logging.DEBUG):
+        r = post(client)
+    events = parse_sse(r.text)
+    assert events[-1]["value"] == "error"
+    assert srv.requests[0]["headers"]["Authorization"] == f"Bearer {FAKE_TOKEN}"   # the header really was there
+    assert FAKE_TOKEN not in r.text and FAKE_TOKEN not in json.dumps(events)
+    assert all(FAKE_TOKEN not in v for v in r.headers.values())
+    assert FAKE_TOKEN not in caplog.text
+
+
+# --- transport reported in the stream ------------------------------------------------------------------------------
+
+@pytest.mark.parametrize("transport", ["mcp", "conversation_api"])
+def test_done_event_carries_transport(client, lake, monkeypatch, transport):
+    use_genie(monkeypatch, result=turn(transport=transport, text="ok"))
+    events = parse_sse(post(client).text)
+    assert events[-1] == {"type": "status", "value": "done", "transport": transport}
+
+
+def test_error_event_carries_transport_when_known(client, lake, monkeypatch):
+    err = genie.GenieError("forbidden")
+    err.transport = "conversation_api"
+    use_genie(monkeypatch, exc=err)
+    last = parse_sse(post(client).text)[-1]
+    assert last == {"type": "status", "value": "error", "message": genie.SAFE_MESSAGES["forbidden"],
+                    "transport": "conversation_api"}
+
+
+def test_error_event_without_known_transport_has_no_transport_key(client, lake, monkeypatch):
+    use_genie(monkeypatch, exc=RuntimeError("x"))
+    assert "transport" not in parse_sse(post(client).text)[-1]
+    monkeypatch.setattr(chat, "CHAT_TIMEOUT_S", 0.2)
+    use_genie(monkeypatch, result=KNOWN, sleep=0.8)
+    assert "transport" not in parse_sse(post(client).text)[-1]
+
+
+def test_route_fallback_runs_with_the_same_user_client(client, lake, monkeypatch, _no_real_clients):
+    monkeypatch.setattr(genie, "_post", McpServer([(403, None)]))
+    called = []
+    monkeypatch.setattr(genie, "_conv_ask", conv_recorder(called))
+    events = parse_sse(post(client).text)
+    assert len(FakeWS.built) == 1 and called[0][0] is FakeWS.built[0]
+    assert FakeWS.built[0].kwargs == {"token": FAKE_TOKEN, "auth_type": "pat"}
+    assert events[-1] == {"type": "status", "value": "done", "transport": "conversation_api"}
+    assert _no_real_clients == []
+
+
+def test_route_mcp_error_event_reports_mcp(client, lake, monkeypatch):
+    monkeypatch.setattr(genie, "_post", McpServer([(502, None)]))
+    monkeypatch.setattr(genie, "_conv_ask", no_fallback)
+    last = parse_sse(post(client).text)[-1]
+    assert last["value"] == "error" and last["transport"] == "mcp"
+    assert last["message"] == genie.SAFE_MESSAGES["unavailable"]
+
+
 def test_mcp_layer_never_leaks_token(monkeypatch, caplog):
     w = mcp_ws(FAKE_TOKEN)
     monkeypatch.setattr(genie, "_post", lambda url, headers, payload, timeout: (403, {"error": f"denied {FAKE_TOKEN}"}))
@@ -401,15 +511,34 @@ MCP_CONTENT = {
 
 
 class McpServer:
-    """Fake JSON-RPC endpoint: a scripted list of (status, body) responses; records every request."""
+    """Fake JSON-RPC endpoint: a scripted list of (status, body) responses or exceptions to raise; records every
+    request. JSON-RPC bodies echo the request id (as the live server does) unless ``echo_id=False``."""
 
-    def __init__(self, responses):
+    def __init__(self, responses, repeat_last=False, echo_id=True):
         self.responses = list(responses)
+        self.repeat_last, self.echo_id = repeat_last, echo_id
         self.requests = []
 
     def __call__(self, url, headers, payload, timeout):
         self.requests.append({"url": url, "headers": headers, "payload": payload, "timeout": timeout})
-        return self.responses.pop(0)
+        r = self.responses[0] if (self.repeat_last and len(self.responses) == 1) else self.responses.pop(0)
+        if isinstance(r, BaseException):
+            raise r
+        status, body = r
+        if self.echo_id and isinstance(body, dict) and "jsonrpc" in body:
+            body = {**body, "id": payload["id"]}
+        return status, body
+
+
+def conv_recorder(called, transport="conversation_api"):
+    def fake_conv(w, space_id, message, conversation_id, deadline, on_conversation):
+        called.append((w, space_id, message, conversation_id))
+        return turn(transport=transport, text="ok")
+    return fake_conv
+
+
+def no_fallback(*a, **k):
+    pytest.fail("must not fall back to the Conversation API")
 
 
 def test_mcp_query_then_poll_until_completed(monkeypatch):
@@ -455,9 +584,11 @@ def test_mcp_plain_list_rows_and_text_only_payload(monkeypatch):
 
 def test_mcp_deadline_raises_timeout(monkeypatch):
     monkeypatch.setattr(genie, "POLL_INTERVAL_S", 0.01)
-    monkeypatch.setattr(genie, "_post", lambda url, headers, payload, timeout: (200, mcp_body("EXECUTING_QUERY")))
-    with pytest.raises(genie.GenieTimeout):
+    monkeypatch.setattr(genie, "_post", McpServer([(200, mcp_body("EXECUTING_QUERY"))], repeat_last=True))
+    monkeypatch.setattr(genie, "_conv_ask", no_fallback)
+    with pytest.raises(genie.GenieTimeout) as ei:
         genie.ask(mcp_ws(), "q", space_id="space1", deadline_s=0.2)
+    assert ei.value.transport == "mcp"
 
 
 def test_mcp_failed_status_is_genie_error(monkeypatch):
@@ -475,23 +606,159 @@ def test_mcp_401_is_not_retried_on_another_transport(monkeypatch):
     assert ei.value.kind == "unauthenticated"
 
 
-@pytest.mark.parametrize("response", [(403, {"error_code": "PERMISSION_DENIED"}), (404, None),
-                                      (200, {"jsonrpc": "2.0", "id": 1, "error": {"code": -32601, "message": "nope"}})])
-def test_mcp_refused_falls_back_to_conversation_api(monkeypatch, response, caplog):
+# Refusals that happen before Genie can have received the question: the only cases that may fall back.
+@pytest.mark.parametrize("response", [
+    (403, {"error_code": "PERMISSION_DENIED"}), (404, None), (400, {"error": "bad request"}), (405, None),
+    (406, {"error": "Not Acceptable: client must accept text/event-stream"}), (415, None),
+    (200, jsonrpc_error(-32601)), (200, jsonrpc_error(-32600, "session not initialized")),
+    (200, jsonrpc_error(-32602)), (200, jsonrpc_error(-32700)),
+    requests.ConnectTimeout("connect timed out"), conn_refused()])
+def test_mcp_refused_before_send_falls_back_with_same_client(monkeypatch, response, caplog):
     monkeypatch.setattr(genie, "_post", McpServer([response]))
     called = []
+    monkeypatch.setattr(genie, "_conv_ask", conv_recorder(called))
+    w = mcp_ws()
+    with caplog.at_level(logging.WARNING, logger="bluerridge"):
+        t = genie.ask(w, "q", space_id="space1")
+    assert t.transport == "conversation_api"
+    assert len(called) == 1 and called[0][0] is w and called[0][1:] == ("space1", "q", None)
+    assert "falling back to conversation_api" in caplog.text
 
-    def fake_conv(w, space_id, message, conversation_id, deadline, on_conversation):
-        called.append((space_id, message, conversation_id))
-        return genie.GenieTurn(transport="conversation_api", conversation_id=CID, message_id=MID, status="COMPLETED",
-                               text="ok", description="", sql=None, columns=[], rows=[], row_count=0,
-                               truncated=False, suggested=[])
 
-    monkeypatch.setattr(genie, "_conv_ask", fake_conv)
+# Failures after the request may have reached Genie: falling back could ask the question twice, so never.
+@pytest.mark.parametrize("response,kind", [
+    ((500, None), "unavailable"), ((502, {"message": "bad gateway"}), "unavailable"), ((504, None), "unavailable"),
+    ((429, None), "unavailable"), ((200, None), "unavailable"), ((200, "not json-rpc"), "unavailable"),
+    ((200, jsonrpc_error(-32603, "internal error")), "protocol"), ((200, jsonrpc_error(-32000)), "protocol"),
+    (conn_reset(), "unavailable")])
+def test_mcp_first_call_never_falls_back_once_genie_may_have_the_question(monkeypatch, response, kind):
+    monkeypatch.setattr(genie, "_post", McpServer([response]))
+    monkeypatch.setattr(genie, "_conv_ask", no_fallback)
+    with pytest.raises(genie.GenieError) as ei:
+        genie.ask(mcp_ws(), "q", space_id="space1")
+    assert ei.value.kind == kind and ei.value.transport == "mcp"
+    assert not isinstance(ei.value, genie.GenieTimeout)
+
+
+@pytest.mark.parametrize("exc", [requests.ReadTimeout("read timed out"), requests.Timeout("timed out")])
+def test_mcp_first_call_read_timeout_is_timeout_without_fallback(monkeypatch, exc):
+    monkeypatch.setattr(genie, "_post", McpServer([exc]))
+    monkeypatch.setattr(genie, "_conv_ask", no_fallback)
+    with pytest.raises(genie.GenieTimeout):
+        genie.ask(mcp_ws(), "q", space_id="space1")
+
+
+@pytest.mark.parametrize("poll_response", [(403, None), (404, None), (406, None), (502, None), (500, None),
+                                           (200, jsonrpc_error(-32601)), conn_refused(), conn_reset()])
+def test_mcp_poll_errors_never_fall_back(monkeypatch, poll_response):
+    monkeypatch.setattr(genie, "POLL_INTERVAL_S", 0.01)
+    monkeypatch.setattr(genie, "_post", McpServer([(200, mcp_body("EXECUTING_QUERY")), poll_response]))
+    monkeypatch.setattr(genie, "_conv_ask", no_fallback)
+    with pytest.raises(genie.GenieError) as ei:
+        genie.ask(mcp_ws(), "q", space_id="space1")
+    assert ei.value.transport == "mcp"
+
+
+@pytest.mark.parametrize("err", ["boom", ["a"], 42, {}, True])
+def test_mcp_non_object_jsonrpc_error_is_safe_protocol_error(monkeypatch, err, caplog):
+    monkeypatch.setattr(genie, "_post", McpServer([(200, {"jsonrpc": "2.0", "id": 1, "error": err})]))
+    monkeypatch.setattr(genie, "_conv_ask", no_fallback)
+    with caplog.at_level(logging.WARNING, logger="bluerridge"), pytest.raises(genie.GenieError) as ei:
+        genie.ask(mcp_ws(), "q", space_id="space1")
+    assert ei.value.kind == "protocol" and str(ei.value) == genie.SAFE_MESSAGES["protocol"]
+    assert "boom" not in caplog.text
+
+
+def test_mcp_response_id_mismatch_is_protocol_error(monkeypatch):
+    srv = McpServer([(200, {**mcp_body("COMPLETED", MCP_CONTENT), "id": "someone-else"})], echo_id=False)
+    monkeypatch.setattr(genie, "_post", srv)
+    monkeypatch.setattr(genie, "_conv_ask", no_fallback)
+    with pytest.raises(genie.GenieError) as ei:
+        genie.ask(mcp_ws(), "q", space_id="space1")
+    assert ei.value.kind == "protocol"
+
+
+def test_mcp_response_without_id_is_accepted(monkeypatch):
+    body = {k: v for k, v in mcp_body("COMPLETED", MCP_CONTENT).items() if k != "id"}
+    monkeypatch.setattr(genie, "_post", McpServer([(200, body)], echo_id=False))
+    assert genie.ask(mcp_ws(), "q", space_id="space1").headline() == 51
+
+
+def test_errors_after_fallback_carry_conversation_api_transport(monkeypatch):
+    monkeypatch.setattr(genie, "_post", McpServer([(403, None)]))
+    api = FakeGenieAPI(statuses=("FAILED",))
+    w = types.SimpleNamespace(config=mcp_ws().config, genie=api)
+    with pytest.raises(genie.GenieError) as ei:
+        genie.ask(w, "q", space_id="space1")
+    assert ei.value.kind == "failed" and ei.value.transport == "conversation_api"
+    assert api.calls[0] == ("start", "space1", "q")
+
+
+# --- Genie layer: silent-parse cases (key names only in the log) ---------------------------------------------------
+
+SQL_TEXT = "SELECT COUNT(DISTINCT drawing_id) AS drawings_failed FROM secret_table_name"
+
+
+def test_mcp_sql_without_statement_response_warns_and_fetches_rows(monkeypatch, caplog):
+    content = {"queryAttachments": [{"query": SQL_TEXT, "description": "VALUE-DESC"}],
+               "textAttachments": ["VALUE-TEXT 51"]}
+    monkeypatch.setattr(genie, "_post", McpServer([(200, mcp_body("COMPLETED", content))]))
+    api = FakeGenieAPI(statuses=("COMPLETED",))
+    w = types.SimpleNamespace(config=mcp_ws().config, genie=api)
+    with caplog.at_level(logging.WARNING, logger="bluerridge"):
+        t = genie.ask(w, "q", space_id="space1")
+    assert t.transport == "mcp" and t.sql == SQL_TEXT
+    assert t.columns == ["drawings_failed"] and t.rows == [[51]] and t.headline() == 51
+    assert ("get", CID, MID) in api.calls and ("result", "att-q") in api.calls
+    warning = caplog.text
+    assert "statement_response" in warning and "description" in warning and "query" in warning
+    for value in ("secret_table_name", "VALUE-DESC", "VALUE-TEXT"):
+        assert value not in warning
+
+
+def test_mcp_result_fetch_failure_keeps_answer_and_logs_class_only(monkeypatch, caplog):
+    content = {"queryAttachments": [{"query": SQL_TEXT}], "textAttachments": ["Fifty-one."]}
+    monkeypatch.setattr(genie, "_post", McpServer([(200, mcp_body("COMPLETED", content))]))
+
+    class Broken:
+        def get_message(self, *a):
+            raise RuntimeError("secret_table_name is gone")
+
+    w = types.SimpleNamespace(config=mcp_ws().config, genie=Broken())
+    with caplog.at_level(logging.WARNING, logger="bluerridge"):
+        t = genie.ask(w, "q", space_id="space1")
+    assert t.text == "Fifty-one." and t.sql == SQL_TEXT and t.rows == [] and t.columns == []
+    assert "RuntimeError" in caplog.text and "secret_table_name" not in caplog.text
+
+
+def test_mcp_nothing_parsed_warns_with_key_names_only(monkeypatch, caplog):
+    content = {"unexpectedAttachments": ["VALUE-X"], "otherThing": {"k": "VALUE-Y"}}
+    monkeypatch.setattr(genie, "_post", McpServer([(200, mcp_body("COMPLETED", content))]))
     with caplog.at_level(logging.WARNING, logger="bluerridge"):
         t = genie.ask(mcp_ws(), "q", space_id="space1")
-    assert t.transport == "conversation_api" and called == [("space1", "q", None)]
-    assert "falling back to conversation_api" in caplog.text
+    assert not (t.text or t.sql or t.rows)
+    assert "nothing parsed" in caplog.text and "unexpectedAttachments" in caplog.text
+    assert "VALUE-X" not in caplog.text and "VALUE-Y" not in caplog.text
+
+
+def test_mcp_normal_answer_logs_no_parse_warning(monkeypatch, caplog):
+    monkeypatch.setattr(genie, "_post", McpServer([(200, mcp_body("COMPLETED", MCP_CONTENT))]))
+    with caplog.at_level(logging.WARNING, logger="bluerridge"):
+        genie.ask(mcp_ws(), "q", space_id="space1")
+    assert caplog.records == []
+
+
+def test_conversation_api_nothing_parsed_warns_with_key_names_only(monkeypatch, caplog):
+    class Empty(FakeGenieAPI):
+        def get_message(self, space_id, conversation_id, message_id):
+            return GenieMessage.from_dict({"conversation_id": CID, "message_id": MID, "status": "COMPLETED",
+                                           "content": "VALUE-QUESTION", "attachments": []})
+
+    w = types.SimpleNamespace(genie=Empty(), config=None)
+    with caplog.at_level(logging.WARNING, logger="bluerridge"):
+        t = genie.ask(w, "q", space_id="space1", transport="conversation_api")
+    assert not (t.text or t.sql or t.rows)
+    assert "nothing parsed" in caplog.text and "VALUE-QUESTION" not in caplog.text
 
 
 def test_transport_env_selects_conversation_api(monkeypatch):

@@ -3,7 +3,7 @@
 Task 20 extends the deployed app's background startup self-test (`09_app/backend/selftest.py`) with two stages after the Task 19 data-source checks:
 
 1. **routes**: each Task 19 route's data function is called in-process with its default arguments. One line each, counts only. For the first FAIL finding this week, the line also gives the raw Postgres type of `bbox` next to the parsed shape the API returns.
-2. **genie**: one gold-only question, "How many drawings failed this week?", sent through `genie.ask`. That is the same transport code as `POST /api/chat`, but called with the app service principal's client instead of the user's. The chat route itself never uses the service principal; it is OBO only.
+2. **genie**: one gold-only question, "How many drawings failed this week?", sent through `genie.ask`. That is the same transport code as `POST /api/chat`, but called with the app service principal's client instead of the user's. In the chat itself, Genie is called only as the signed-in user (OBO). The chat's drawing-source enrichment reads Lakebase through the app's service-principal pool, the same data the Compliance page already serves.
 
 Every line contains counts, types and identities only. No row content, SQL, answer text, tokens or credentials are logged.
 
@@ -36,7 +36,7 @@ The same boot logged no `WARNING`, `ERROR` or `Traceback` lines. That means no M
 | Check | Live result | Expected / matches |
 |---|---|---|
 | `compliance_summary()` | reviewed 238, failed 51 | the week's drawing-level 238 / 51 (Task 19, `API.md`) |
-| `compliance_findings(scope="week", status="FAIL")` | 85 FAIL findings this week. The first one's `bbox` is a Python `list` straight from Postgres (column type `jsonb`), and the API returns it as a `list` of 4 floats. | four floats `[x0, y0, x1, y1]` for the PDF highlight |
+| `compliance_findings(scope="week", status="FAIL")` | 85 FAIL findings this week. The first one's `bbox` is a Python `list` straight from Postgres (column type `jsonb`), and the API returns it as a `list` of 4 floats. | four floats, the project convention: normalized `[x, y, w, h]`, top-left origin (what the PDF viewer draws) |
 | `risk_top(limit=5)` | 5 items, 26 High | the 26 High in `risk_forecast` |
 | `schedule_overdue()` | 6 late, 1 due today | the 7 rows in `schedule_overdue_synced` |
 | `kpi_today()`, `brief_today()` | both return a row | |
@@ -50,6 +50,6 @@ So Task 19's parser already worked on live data. Task 20 hardens it anyway: `_bb
 
 ## Genie as the SP
 
-The service principal (`02a6516a-…`) has CAN_RUN on the Genie space through the app's `genie-space` resource binding, CAN_USE on the warehouse, and SELECT on `bluerridge_gold_pm`. That is enough for this gold-only question. It has no grant on `bluerridge_silver_engineering`, so the SP could not answer schedule, NCR or change-order questions. That does not matter, because `/api/chat` always runs as the signed-in user (OBO). The self-test only proves that the transport and parsing work end to end against the live space.
+The service principal (`02a6516a-…`) has CAN_RUN on the Genie space through the app's `genie-space` resource binding, CAN_USE on the warehouse, and SELECT on `bluerridge_gold_pm`. That is enough for this gold-only question. It has no grant on `bluerridge_silver_engineering`, so the SP could not answer schedule, NCR or change-order questions. That does not matter, because `/api/chat` calls Genie as the signed-in user (OBO), never as the SP. The self-test only proves that the transport and parsing work end to end against the live space.
 
 The OBO path itself (a PM's token through the Apps proxy) cannot be exercised headlessly: the workspace's Okta login requires a managed device. It is verified in the browser in Task 24.

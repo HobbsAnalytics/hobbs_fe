@@ -1,6 +1,6 @@
 # Backend API (Tasks 19 and 20)
 
-All data endpoints run as the app's **service principal** (SP). None of them use the forwarded user token: only the Genie chat, `POST /api/chat` (below), does, and it uses nothing else. Errors are always JSON `{"error", "detail"}` with 401, 404, 422, 500 or 503, never a stack trace. A Lakebase or warehouse outage returns 503.
+All data endpoints run as the app's **service principal** (SP). None of them use the forwarded user token. Only the Genie chat, `POST /api/chat` (below), does: Genie is called **only as the signed-in user**. The chat's drawing-source enrichment reads Lakebase through the app's SP pool, the same data `GET /api/compliance/findings` already serves. Errors are always JSON `{"error", "detail"}` with 401, 404, 422, 500 or 503, never a stack trace. A Lakebase or warehouse outage returns 503.
 
 | Route | Source | Notes |
 |---|---|---|
@@ -23,7 +23,7 @@ Data layers (`09_app/backend/`): `lakebase.py` (psycopg pool; each new connectio
 
 The PM's question goes to the Genie space `01f1db9edffa1a298195db2806ce45e3` **as the signed-in user** (on behalf of user, OBO), so Genie applies that PM's own Unity Catalog permissions, including the `drawing_register` row filter. Code: `backend/routes/chat.py` (the route and its SSE stream) and `backend/genie.py` (the Genie layer, which takes any `WorkspaceClient`).
 
-**Auth.** The route only uses `auth.user_workspace_client(request)`. It runs as a FastAPI dependency, so a request without `x-forwarded-access-token` gets a **401** JSON `{"error":"unauthorized",...}` before the body is even validated. There is no service-principal fallback, and the token is never logged or echoed.
+**Auth.** Genie is called only with `auth.user_workspace_client(request)`, the signed-in user's client. That client is built in a FastAPI dependency, so a request without `x-forwarded-access-token` gets a **401** JSON `{"error":"unauthorized",...}` before the body is even validated. There is no service-principal fallback for Genie, and the token is never logged or echoed. The only other read is the drawing-source enrichment (below): one parameterized Lakebase query through the app's SP pool, for the same `compliance_findings_synced` rows the Compliance page shows.
 
 **Request.** `{"message": str, "conversation_id": str | null}`:
 - `message` is stripped and must be 1 to 2,000 characters.
@@ -38,10 +38,10 @@ The PM's question goes to the Genie space `01f1db9edffa1a298195db2806ce45e3` **a
 | `{"type":"conversation","conversation_id":"..."}` | As soon as Genie returns the conversation id. |
 | `{"type":"answer","text":"..."}` | Genie's text, which may be a clarifying question; Genie's query description is used if there is no text. When there is no text, no SQL and no rows: `"I'm not sure which milestones you mean — try naming a discipline or specifying 'this week'."` |
 | `{"type":"sql","query":"..."}` | When Genie generated SQL. |
-| `{"type":"result","columns":[...],"rows":[[...]],"row_count":n,"truncated":bool}` | When the SQL produced a result. At most 50 rows; `row_count` is Genie's total; `truncated` is true when rows were cut here or upstream. A `slip_probability` column is removed from `columns` and `rows`. |
+| `{"type":"result","columns":[...],"rows":[[...]],"row_count":n,"truncated":bool}` | When the SQL produced a result. At most 50 rows; `row_count` is Genie's total; `truncated` is true when rows were cut here or upstream. Any column whose name contains `slip_probability`, case-insensitive (e.g. `max_slip_probability`), is removed from `columns` and `rows`. |
 | `{"type":"sources","items":[...]}` | Only when there is at least one source (below). |
-| `{"type":"status","value":"done"}` | Last, on success. |
-| `{"type":"status","value":"error","message":"..."}` | Instead of the rest, on failure. `message` is a fixed, safe sentence (expired session, no access to the space, Genie unavailable, Genie could not answer, no data access, or "did not answer within 110 seconds"). It never contains a stack trace, SQL, a host or exception text. |
+| `{"type":"status","value":"done","transport":"mcp"\|"conversation_api"}` | Last, on success. `transport` says which Genie path answered. |
+| `{"type":"status","value":"error","message":"...","transport":"mcp"\|"conversation_api"}` | Instead of the rest, on failure. `message` is a fixed, safe sentence (expired session, no access to the space, Genie unavailable, Genie could not answer, no data access, or "did not answer within 110 seconds"). It never contains a stack trace, SQL, a host or exception text. `transport` is present only when the failure came from a Genie transport; it is absent, for example, when the route's own 110 s wall clock fires. |
 
 **Sources.**
 - **Drawing items.** When a result column is named `drawing_id` (case-insensitive), up to 10 distinct, well-formed ids (`BRL-[A-Z]{3}-[A-Z]{2,4}-[0-9]{4}`) are taken from the shown rows in first-seen order. Their FAIL findings are then looked up in Lakebase with a single parameterized query (`... compliance_findings_synced WHERE status = %s AND drawing_id = ANY(%s)`). Each FAIL finding becomes `{"kind":"drawing","drawing_id","finding_id","page_num","bbox","citation"}`, with `bbox` as four floats. A drawing with no FAIL finding is still listed, with nulls, so it stays clickable. If Lakebase is down, every drawing is listed with nulls and the stream still ends with `done`.
@@ -58,7 +58,14 @@ The app speaks MCP's JSON-RPC `tools/call` directly:
 
 It does not use the `databricks-mcp` client library, which brings about 108 packages (full `mlflow` among them). The **Genie Conversation API** on the same space (`w.genie.start_conversation` / `create_message` → `get_message` → `get_message_attachment_query_result`) is wired in for two cases:
 - as the transport, when `GENIE_TRANSPORT=conversation_api` is set;
-- as a fallback, automatically, when the MCP endpoint refuses the *first* call (403, 404, 5xx or a JSON-RPC protocol error). No Genie message exists at that point, so the question is never asked twice.
+- as a fallback, automatically and with the same user client, only when the MCP endpoint refuses the *first* call in a way that happens before Genie can have received the question:
+  - HTTP 400, 403, 404, 405, 406 or 415;
+  - JSON-RPC -32700, -32600, -32601 or -32602 (parse error, invalid request, unknown method, invalid params);
+  - the connection could not be opened (connect timeout, refused, DNS).
+
+  Nothing else falls back: 5xx, 429, a non-JSON body, other JSON-RPC codes, a connection dropped after the request went out, a read timeout, or any error on a poll call. In those cases Genie may already hold the message, so they end in the safe `error` event instead of risking a second ask.
+
+  If MCP completes with SQL but without a `statement_response`, the rows are read for that same message through the Conversation API (`get_message` → `get_message_attachment_query_result`), and a warning with key names only is logged. Genie is not asked again.
 
 The live self-test answered through `transport=mcp`. The research and evidence are in `backend/AUTH_NOTES.md`, "Genie transport for the chat", and `outputs/chat_selftest.md`.
 
