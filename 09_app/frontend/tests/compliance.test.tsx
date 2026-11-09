@@ -103,6 +103,15 @@ describe('CompliancePage / FindingsTable', () => {
   });
 });
 
+describe('CompliancePage REVIEW card', () => {
+  it('labels REVIEW as judge output unusable, not low-confidence findings', async () => {
+    mockFetch({ '/api/compliance/summary': { ...fx.complianceSummary, review: 3 }, '/api/compliance/findings': findingsTotal85, '/api/citations/*': fx.citations['ASME B31.3 §341'] });
+    renderWithProviders(<CompliancePage />, { route: '/compliance' });
+    expect(await screen.findByText('Needs review (judge output unusable)')).toBeInTheDocument();
+    expect(screen.queryByText(/Low-confidence/)).not.toBeInTheDocument();
+  });
+});
+
 describe('DrawingPage', () => {
   it('builds /api/drawings/:id/pdf from the route param and renders ?page (0-based) as pdf page 1', async () => {
     const f = mockFetch({ '/api/drawings/BRL-PIP-ISO-0664': fx.drawingDetail });
@@ -112,6 +121,14 @@ describe('DrawingPage', () => {
     expect(screen.getByTestId('pdf-page')).toHaveAttribute('data-page', '1');
     expect(calledUrls(f).map((u) => u.pathname)).toContain('/api/drawings/BRL-PIP-ISO-0664');
     expect(await screen.findByText(/Weld W3 is a fillet weld/)).toBeInTheDocument();
+  });
+
+  it('counts only FAIL/REVIEW rows: a PASS-only drawing shows "Findings (0)" and "No violations found"', async () => {
+    const pass = { ...fx.findings[0], finding_id: 'BRL-PIP-ISO-0001-PASS', drawing_id: 'BRL-PIP-ISO-0001', status: 'PASS' as const };
+    mockFetch({ '/api/drawings/BRL-PIP-ISO-0001': { ...fx.drawingDetail, drawing_id: 'BRL-PIP-ISO-0001', fail_count: 0, findings: [pass] } });
+    renderWithProviders(<DrawingPage />, { route: '/drawings/BRL-PIP-ISO-0001', path: '/drawings/:id' });
+    expect(await screen.findByText('Findings (0)')).toBeInTheDocument();
+    expect(screen.getByText('No violations found')).toBeInTheDocument();
   });
 
   it('a 404 from the drawing API shows an inline error, not a blank page', async () => {

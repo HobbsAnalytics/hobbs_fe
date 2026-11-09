@@ -60,7 +60,7 @@ const SummaryTiles: React.FC = () => {
         <MetricCard variant="full" index={0} label="Drawings reviewed" value={formatNumber(data.reviewed)} sub={week} icon={<ClipboardList size={18} />} />
         <MetricCard variant="full" index={1} label="Passed" value={formatNumber(data.passed)} sub="No FAIL or REVIEW finding" icon={<CheckCircle2 size={18} />} tone="good" />
         <MetricCard variant="full" index={2} label="Failed" value={formatNumber(data.failed)} sub="At least one FAIL finding" icon={<AlertTriangle size={18} />} tone={data.failed > 0 ? 'bad' : 'good'} />
-        <MetricCard variant="full" index={3} label="Needs review" value={formatNumber(data.review)} sub="Low-confidence findings" icon={<FileSearch size={18} />} tone={data.review > 0 ? 'warn' : 'neutral'} />
+        <MetricCard variant="full" index={3} label="Needs review" value={formatNumber(data.review)} sub="Needs review (judge output unusable)" icon={<FileSearch size={18} />} tone={data.review > 0 ? 'warn' : 'neutral'} />
       </div>
       {data.fails_by_citation.length > 0 && (
         <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">

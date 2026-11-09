@@ -42,9 +42,11 @@ const DrawingPage: React.FC = () => {
     setSp(next, { replace: true });
   };
 
+  // A drawing with no violations still carries one PASS sentinel row; only FAIL/REVIEW rows count as findings.
+  const violations = useMemo(() => findings.filter((f) => f.status === 'FAIL' || f.status === 'REVIEW'), [findings]);
   const sorted = useMemo(
-    () => [...findings].sort((a, b) => (a.status === b.status ? a.finding_id.localeCompare(b.finding_id) : a.status === 'FAIL' ? -1 : 1)),
-    [findings],
+    () => [...violations].sort((a, b) => (a.status === b.status ? a.finding_id.localeCompare(b.finding_id) : a.status === 'FAIL' ? -1 : 1)),
+    [violations],
   );
   const codes = drawingCodes(id);
 
@@ -118,9 +120,9 @@ const DrawingPage: React.FC = () => {
             </div>
 
             <aside className="rail-card" aria-label="Findings on this drawing">
-              <div className="rail-title">Findings ({findings.length})</div>
+              <div className="rail-title">Findings ({violations.length})</div>
               {sorted.length === 0 ? (
-                <EmptyState compact title="No findings on this drawing" description="It passed review. Ask the Co-Pilot about related drawings." />
+                <EmptyState compact title="No violations found" description="It passed review. Ask the Co-Pilot about related drawings." />
               ) : (
                 <ul className="space-y-2">
                   {sorted.map((f) => {
