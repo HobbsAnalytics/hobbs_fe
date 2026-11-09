@@ -1,33 +1,51 @@
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { afterEach, vi } from 'vitest';
 import App from './App';
 
-describe('App shell', () => {
-  it('renders the sidebar logo block and the co-pilot placeholder at /', () => {
-    render(
-      <MemoryRouter initialEntries={['/']}>
+vi.mock('react-pdf', () => ({
+  pdfjs: { GlobalWorkerOptions: {} },
+  Document: () => <div data-testid="pdf-document" />,
+  Page: () => null,
+}));
+
+function renderAt(route: string) {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () => new Response(JSON.stringify({ error: 'not_found', detail: 'Not found' }), { status: 404 })),
+  );
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(
+    <QueryClientProvider client={qc}>
+      <MemoryRouter initialEntries={[route]}>
         <App />
       </MemoryRouter>
-    );
-    expect(screen.getAllByText('Blue Ridge LNG').length).toBeGreaterThanOrEqual(1);
+    </QueryClientProvider>,
+  );
+}
+
+afterEach(() => vi.unstubAllGlobals());
+
+describe('App shell', () => {
+  it('renders the sidebar logo block and the co-pilot page at /', async () => {
+    renderAt('/');
+    expect(screen.getByText('Blue Ridge LNG')).toBeInTheDocument();
     expect(screen.getByText('BR')).toBeInTheDocument();
-    expect(screen.getByText('Project Intelligence')).toBeInTheDocument();
-    expect(screen.getByTestId('page-copilot')).toBeInTheDocument();
+    expect(screen.getAllByText('Project Intelligence').length).toBeGreaterThanOrEqual(1);
+    expect(await screen.findByTestId('page-copilot')).toBeInTheDocument();
   });
 
-  it('routes /compliance and /drawings/:id to their placeholders', () => {
-    const { unmount } = render(
-      <MemoryRouter initialEntries={['/compliance']}>
-        <App />
-      </MemoryRouter>
-    );
-    expect(screen.getByTestId('page-compliance')).toBeInTheDocument();
+  it('routes /compliance and /drawings/:id to their pages', async () => {
+    const { unmount } = renderAt('/compliance');
+    expect(await screen.findByTestId('page-compliance')).toBeInTheDocument();
     unmount();
-    render(
-      <MemoryRouter initialEntries={['/drawings/DWG-001']}>
-        <App />
-      </MemoryRouter>
-    );
-    expect(screen.getByTestId('page-drawing')).toHaveTextContent('DWG-001');
+    renderAt('/drawings/BRL-PIP-ISO-0004');
+    expect(await screen.findByTestId('page-drawing')).toHaveTextContent('BRL-PIP-ISO-0004');
+  });
+
+  it('unknown routes get a not-found page, not a blank screen', async () => {
+    renderAt('/nope');
+    expect(await screen.findByTestId('page-notfound')).toBeInTheDocument();
   });
 });
