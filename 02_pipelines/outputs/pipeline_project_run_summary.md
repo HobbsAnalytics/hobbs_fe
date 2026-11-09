@@ -71,18 +71,20 @@ Result: 15 expectations, 0 failed records, 0 dropped rows, update not failed. Th
 - **Silver**: explicit types (dates, `INT`, `BIGINT` for whole-dollar amounts, `BOOLEAN`), trimmed strings with blanks as NULL, lower-cased enumerations, lineage columns kept, `_rescued_data` left behind. `schedule` also gets `slip_days` and `depends_on_ids`.
 - **Re-runs**: Auto Loader reads each file path once, so a plain update after the first load adds nothing (see the table below). After regenerating the CSVs with different content, run `databricks bundle run pipeline_project -t demo --full-refresh-all --profile DEFAULT`.
 
-## Other updates of this pipeline
+## Every update of this pipeline
 
-All COMPLETED. After the first dry run the module changed only in table comments, code comments and formatting, never in datasets, options, expressions or expectations.
+Eight updates in all: one FAILED, seven COMPLETED. Task 24 corrected this list from the pipeline's event log, with `SELECT origin.update_id, min(timestamp), max_by(details:update_progress.state, timestamp) FROM event_log('1d76045d-1abc-47f3-8336-f3bc6eb8d077') WHERE event_type = 'update_progress' GROUP BY 1`. The earlier version of this table said "all COMPLETED" and left out the first and seventh rows. After the first successful dry run, the module changed only in table comments, code comments and formatting. Datasets, options, expressions and expectations never changed.
 
-| update_id | What | Outcome |
-|---|---|---|
-| `af16957e-6c83-4021-ba13-93557ce97f8c` | `--validate-only` dry run | Graph valid: 6 streaming tables and 6 materialized views, written to two schemas |
-| `0dd33b4c-2db0-45a9-9c3d-aafa7bc22274` | Initial load | The same twelve counts as above, 0 dropped |
-| `ccde86ad-f88b-469c-866e-fa42ea48290a` | Re-run with no new files | Counts unchanged: no duplicates |
-| `ba13c9e3-a676-49ad-9b67-51da3ee721a2` | Re-run after rewriting `schedule.csv` with identical bytes (new modification time) | `schedule_raw` still 500 rows, 500 distinct `milestone_id`: a touched file is not re-read |
-| `9cc6e9fa-047e-4da2-9e0f-444e6b3ae099` | Full refresh (this document) | Twelve tables rebuilt from the Volume |
-| `965b2418-3741-4bcd-aece-cab8f89d83e8` | `--validate-only` on the committed file, run after the last comment and formatting edits | Graph valid, so the committed bytes load |
+| update_id | Started (UTC, 2026-11-07) | What | Outcome |
+|---|---|---|---|
+| `272cdae9-18d3-406d-b84b-bb178d70d9b5` | 02:30:21 | First `--validate-only` dry run, before a fix | **FAILED**: `.load(".../schedule.csv")` is "not a directory" (Auto Loader reads folders). Fixed by loading the folder with `pathGlobFilter=<dataset>.csv` |
+| `af16957e-6c83-4021-ba13-93557ce97f8c` | 02:31:47 | `--validate-only` dry run after the fix | COMPLETED. Graph valid: 6 streaming tables and 6 materialized views, written to two schemas |
+| `0dd33b4c-2db0-45a9-9c3d-aafa7bc22274` | 02:32:56 | Initial load | COMPLETED. The same twelve counts as above, 0 dropped |
+| `ccde86ad-f88b-469c-866e-fa42ea48290a` | 02:36:41 | Re-run with no new files | COMPLETED. Counts unchanged: no duplicates |
+| `ba13c9e3-a676-49ad-9b67-51da3ee721a2` | 02:39:14 | Re-run after rewriting `schedule.csv` with identical bytes (new modification time) | COMPLETED. `schedule_raw` still 500 rows, 500 distinct `milestone_id`: a touched file is not re-read |
+| `9cc6e9fa-047e-4da2-9e0f-444e6b3ae099` | 02:41:18 | Full refresh (this document) | COMPLETED. Twelve tables rebuilt from the Volume |
+| `efebb8dd-e2a7-4dc9-8571-9f2313a7d8f9` | 02:46:54 | `--validate-only` after a comment and formatting edit | COMPLETED. Graph valid |
+| `965b2418-3741-4bcd-aece-cab8f89d83e8` | 02:49:34 | `--validate-only` on the committed file, run after the last comment and formatting edits | COMPLETED. Graph valid, so the committed bytes load |
 
 ## How these numbers were read
 

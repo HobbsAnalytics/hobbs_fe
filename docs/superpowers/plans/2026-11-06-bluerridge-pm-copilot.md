@@ -33,7 +33,7 @@
 
 Five input classes the spec implies but no task's happy path exercises, most-likely-to-bite first. Each line has a dedicated test in the owning task:
 
-1. **Non-PDF or malformed file dropped into the drawings Volume.** Auto Loader must `rescuedDataColumn` it, not crash. (Owner: Task 5, Step "test malformed file.")
+1. **Non-PDF or malformed file dropped into the drawings Volume.** Auto Loader must `rescuedDataColumn` it, not crash. (Owner: Task 5, Step "test malformed file.") *(Superseded for `binaryFile`: it has no `_rescued_data` and rejects `schemaEvolutionMode=rescue`, so `pipeline_drawings.py` flags non-PDFs itself; see the `docs/BUILD.md` gotcha.)*
 2. **`ai_query` returns malformed JSON for a drawing.** Compliance pipeline must emit a `REVIEW` row with a null-safe `reason`, not fail the whole run. (Owner: Task 8.)
 3. **Drawing with multiple compliance violations.** Pipeline emits N rows in `compliance_findings`, not one row with a nested array. (Owner: Task 8.)
 4. **Genie Space returns an ambiguous or empty result.** Chat UI shows an `Empty` state with a next-step suggestion, never a frozen spinner. (Owner: Task 20.)
@@ -291,7 +291,7 @@ def test_malformed_file_is_quarantined_not_crashed():
 ```
 
 - [ ] **Step 2:** Run the test — expect FAIL (pipeline not yet deployed).
-- [ ] **Step 3:** Implement `pipeline_drawings.py` with `cloudFiles.format=binaryFile`, `rescuedDataColumn`, `cloudFiles.schemaEvolutionMode=rescue`. Extract `drawing_id` from filename at silver.
+- [ ] **Step 3:** Implement `pipeline_drawings.py` with `cloudFiles.format=binaryFile`, `rescuedDataColumn`, `cloudFiles.schemaEvolutionMode=rescue`. Extract `drawing_id` from filename at silver. *(Superseded: `binaryFile` rejects `schemaEvolutionMode=rescue` and adds no `_rescued_data`; the code uses `none` and sets `_rescued_data` itself for files without the `%PDF-` header. See the `docs/BUILD.md` gotcha.)*
 - [ ] **Step 4:** Write `resources/pipeline-drawings.yml`; include it in `databricks.yml`.
 - [ ] **Step 5:** `databricks bundle deploy -t demo` + `databricks bundle run pipeline_drawings -t demo`. Confirm `bronze_drawings.raw_files` has 1,200 rows.
 - [ ] **Step 6:** Re-run the malformed-file test — expect PASS.

@@ -7796,7 +7796,7 @@ a.anchor-link {
 <!-- End of mermaid configuration --></head>
 <body class="jp-Notebook" data-jp-theme-light="true" data-jp-theme-name="JupyterLab Light">
 <main>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=462a53bd">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=5251c453">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7812,6 +7812,7 @@ a.anchor-link {
 <li><strong>Write</strong> <code>mfg_mc_se_sa.bluerridge_gold_pm.daily_brief</code> (primary key <code>project_id, brief_date</code>) with <code>CREATE OR REPLACE TABLE</code>, read the row back, re-validate it from the stored <code>context_json</code>, and write <code>outputs/daily_brief_today.md</code> from that row.</li>
 </ol>
 <h2 id="Prompt-history-(two-disclosed-revisions,-both-from-human-review)">Prompt history (two disclosed revisions, both from human review)<a class="anchor-link" href="#Prompt-history-(two-disclosed-revisions,-both-from-human-review)">¶</a></h2><p>The prompt was revised twice by hand, v1 to v2 to v3. Each revision fixed a factual error that a person found when reading a brief that had <strong>passed</strong> the validator of the time; nothing was tuned automatically or in a loop. The history table in <code>outputs/daily_brief_today.md</code> and the preserved briefs in <code>outputs/daily_brief_history/</code> show each version's text and why it changed. In short: v1 said "three milestones are late" because the context held only the top 3 of the overdue list; v2 said "7 already late" (it counted the milestone due today as late), counted High-risk milestones from the top-3 list, put NCRs under the Risk label and generalised from five sample reasons; v3 adds the true totals to the context, deterministic count-adjacency and section checks to the validator, and exact required phrasings to the prompt.</p>
+<p><strong>Two v3 runs, disclosed.</strong> The first v3 run (job run <code>1033792965100685</code>) had its first draft rejected by the new time-phrase check ("in January" is not in the context), and the one retry passed (<code>pass_after_retry</code>). The notebook was then run again with the identical prompt and validator, only to clean up the claim-to-context trace (the first trace listed arbitrary matches, for example <code>6</code> -&gt; <code>as_of_date</code>). The outputs below are from that second run (<code>1067568868183925</code>, passed on the first attempt). The first run's brief is kept verbatim in <code>outputs/daily_brief_history/v3_run1.md</code>.</p>
 <h2 id="Decisions-worth-knowing">Decisions worth knowing<a class="anchor-link" href="#Decisions-worth-knowing">¶</a></h2><ul>
 <li><strong>One brief, for 2026-11-06 only.</strong> <code>risk_forecast</code> and <code>schedule_overdue</code> are as-of tables: they hold today's view, not a history. A brief for an earlier date would have to mix that date's KPIs with today's risks and overdue list, so it could not be point-in-time. Rather than back-fill briefs that look right but are not, the table holds the one date it can honestly produce. A daily job would add one row per day from here.</li>
 <li><strong>Risk is shown as a band, never a score.</strong> The risk score is a heuristic: in its backtest the 80 percent interval covered about 14 percent of held-out weeks (target 80), so it is overconfident. <code>slip_probability</code> is <strong>not in the context</strong>, so the model cannot quote it; the validator also rejects any percentage near risk wording.</li>
@@ -7823,7 +7824,7 @@ a.anchor-link {
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=8d46ab1e">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=e60e7ed4">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7879,7 +7880,7 @@ as_of 2026-11-06 | compliance week 2026-10-31 to 2026-11-06 | model databricks-c
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=744e6705">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=ce91b04b">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7889,7 +7890,7 @@ as_of 2026-11-06 | compliance week 2026-10-31 to 2026-11-06 | model databricks-c
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=5e7a90b0">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=e94840a2">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8109,7 +8110,7 @@ as_of 2026-11-06 | compliance week 2026-10-31 to 2026-11-06 | model databricks-c
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=ba739949">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=98f6372d">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8119,7 +8120,7 @@ as_of 2026-11-06 | compliance week 2026-10-31 to 2026-11-06 | model databricks-c
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=25955077">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=db588218">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8327,7 +8328,7 @@ CONTEXT (JSON)
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=69b2817d">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=466c56c3">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8337,7 +8338,7 @@ CONTEXT (JSON)
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=927b6f24">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=bb957677">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8405,7 +8406,7 @@ FINAL validation_status: pass | attempts: 1
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=5f3cb030">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=4e77f1db">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8415,7 +8416,7 @@ FINAL validation_status: pass | attempts: 1
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=c07bc4d4">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=d6f8600e">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8465,7 +8466,7 @@ FINAL validation_status: pass | attempts: 1
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=98c96ad6">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=108f7419">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8475,7 +8476,7 @@ FINAL validation_status: pass | attempts: 1
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=49f2b0b6">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=1506ff8b">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8543,7 +8544,7 @@ Where would you like to focus first?
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=166655a2">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=96d196fa">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8553,7 +8554,7 @@ Where would you like to focus first?
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=d261fea4">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=ac151651">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>

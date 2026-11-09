@@ -38,7 +38,7 @@ GRANT SELECT ON bluerridge_app.daily_brief_synced         TO "${APP_SP_ROLE}";
 -- setting them FOR that role is refused to the project owner ("permission denied to change default privileges"),
 -- and setting them for the owner's own role would not match anything. If a SNAPSHOT re-sync ever drops and
 -- recreates a table (the grant on it is then lost), simply re-run this file: it is idempotent. The app's
--- /healthz check in Task 19 should query one synced table so a lost grant is noticed at once.
+-- startup self-test (backend/selftest.py) counts every synced table, so a lost grant shows up in the boot log at once.
 
 -- Verify (as the owner):
 --   SELECT grantee, table_name, privilege_type FROM information_schema.role_table_grants
