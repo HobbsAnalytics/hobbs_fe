@@ -8,6 +8,8 @@ import pytest
 from backend import lakebase, selftest, vector_search, volume, warehouse
 from backend.errors import DataUnavailable
 
+PLANTED_CRED = "cred-value-1"  # fake value planted by tests; never a real credential
+
 
 # --- warehouse -------------------------------------------------------------------------------------------------
 
@@ -68,16 +70,16 @@ def test_lakebase_query_uses_parameters_and_returns_dicts(monkeypatch):
 def test_lakebase_connection_error_is_unavailable(monkeypatch):
     import psycopg
     pool = MagicMock()
-    pool.connection.side_effect = psycopg.OperationalError("boom with password=hunter2")
+    pool.connection.side_effect = psycopg.OperationalError("boom with connection detail planted-detail-x9")
     monkeypatch.setattr(lakebase, "get_pool", lambda: pool)
     with pytest.raises(DataUnavailable) as e:
         lakebase.query("SELECT 1")
-    assert "hunter2" not in str(e.value)
+    assert "planted-detail-x9" not in str(e.value)
 
 
 def test_lakebase_credential_generated_per_connection(monkeypatch):
     ws = MagicMock()
-    ws.postgres.generate_database_credential.return_value = types.SimpleNamespace(token="tok-1")
+    ws.postgres.generate_database_credential.return_value = types.SimpleNamespace(token=PLANTED_CRED)
     monkeypatch.setattr(lakebase, "sp_workspace_client", lambda: ws)
     monkeypatch.setenv("LAKEBASE_ENDPOINT", "projects/p/branches/b/endpoints/e")
     monkeypatch.setattr(lakebase, "config", types.SimpleNamespace(LAKEBASE_ENDPOINT="projects/p/branches/b/endpoints/e",
@@ -94,7 +96,7 @@ def test_lakebase_credential_generated_per_connection(monkeypatch):
     assert lakebase._connect_with_fresh_credential() == "conn"
     ws.postgres.generate_database_credential.assert_called_once_with(endpoint="projects/p/branches/b/endpoints/e")
     assert seen["sslmode"] == "require" and seen["host"] == "h" and seen["user"] == "sp-id"
-    assert seen["password"] == "tok-1"
+    assert seen["password"] == PLANTED_CRED
 
 
 # --- volume ----------------------------------------------------------------------------------------------------
@@ -148,17 +150,17 @@ def test_vector_search_exact_uses_filter(monkeypatch):
 
 # --- self-test -------------------------------------------------------------------------------------------------
 
-SECRETISH = ("SECRET-ROW-CONTENT", "eyJ", "dapi", "Bearer", "tok-1")
+LEAK_MARKERS = ("row-content-marker", "eyJ", "dapi", "Bearer", PLANTED_CRED)
 
 
 def _patch_ok(monkeypatch):
     monkeypatch.setattr(selftest.lakebase, "query",
-                        lambda sql, params=None: [{"n": 5, "payload": "SECRET-ROW-CONTENT"}])
+                        lambda sql, params=None: [{"n": 5, "payload": "row-content-marker"}])
     monkeypatch.setattr(selftest.warehouse, "query", lambda sql, params=None: [
-        {"current_user": "sp-app-id", "n": "1200", "payload": "SECRET-ROW-CONTENT"}])
+        {"current_user": "sp-app-id", "n": "1200", "payload": "row-content-marker"}])
     monkeypatch.setattr(selftest.volume, "stat", lambda path: (True, 1234))
-    monkeypatch.setattr(selftest.vector_search, "exact", lambda label: {"citation_label": label, "text": "SECRET-ROW-CONTENT"})
-    monkeypatch.setattr(selftest.vector_search, "related", lambda label, text, k=3: [{"text": "SECRET-ROW-CONTENT"}] * 3)
+    monkeypatch.setattr(selftest.vector_search, "exact", lambda label: {"citation_label": label, "text": "row-content-marker"})
+    monkeypatch.setattr(selftest.vector_search, "related", lambda label, text, k=3: [{"text": "row-content-marker"}] * 3)
     monkeypatch.setattr(selftest.vector_search, "mode", lambda: "vs")
     # Task 20 stages (route data functions, Genie as the SP) are covered in test_chat.py.
     monkeypatch.setattr(selftest, "run_routes", lambda: True, raising=False)
@@ -178,7 +180,7 @@ def test_selftest_logs_counts_only(monkeypatch, caplog):
     assert "selftest volume " in text and "exists=True size=1234" in text
     assert "selftest vector_search mode=vs hits=" in text
     assert msgs[-1] == "selftest done ok=True"
-    for bad in SECRETISH:
+    for bad in LEAK_MARKERS:
         assert bad not in text
 
 

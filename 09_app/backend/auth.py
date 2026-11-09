@@ -19,7 +19,7 @@ from databricks.sdk import WorkspaceClient
 from fastapi import HTTPException, Request
 
 # Exact header names (Databricks Apps docs: dev-tools/databricks-apps/auth and /http-headers).
-USER_TOKEN_HEADER = "x-forwarded-access-token"
+OBO_HEADER = "x-forwarded-access-token"
 EMAIL_HEADER = "x-forwarded-email"
 USER_HEADER = "x-forwarded-user"
 PREFERRED_USERNAME_HEADER = "x-forwarded-preferred-username"
@@ -35,7 +35,7 @@ def _header(request: Request, name: str) -> Optional[str]:
 
 def get_user_token(request: Request) -> Optional[str]:
     """The signed-in user's forwarded access token, or None (local dev, or user authorization not configured)."""
-    return _header(request, USER_TOKEN_HEADER)
+    return _header(request, OBO_HEADER)
 
 
 def user_workspace_client(request: Request) -> WorkspaceClient:

@@ -67,12 +67,12 @@ def test_path_traversal_never_leaks_outside_static_root(tmp_path, path):
     static = tmp_path / "dist"
     (static / "assets").mkdir(parents=True)
     (static / "index.html").write_text("<html><body>SPA-SHELL</body></html>")
-    (tmp_path / "secret.txt").write_text("TOP-SECRET")
+    (tmp_path / "secret.txt").write_text("planted-outside-root")
     (tmp_path / "config_marker.py").write_text("CATALOG = 'LEAKED'")
     c = TestClient(create_app(static_dir=static))
     r = c.get(path)
     assert r.status_code in (200, 404)
-    assert "TOP-SECRET" not in r.text
+    assert "planted-outside-root" not in r.text
     assert "LEAKED" not in r.text
     assert "root:" not in r.text
     if r.status_code == 200:

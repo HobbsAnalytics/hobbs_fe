@@ -13,13 +13,13 @@ from backend import auth
 from backend.main import create_app
 
 # A recognizable fake; it must never appear in any response body, response header or log line.
-FAKE_TOKEN = "FAKE-OBO-TOKEN-do-not-leak-7c1e9a"
+PLANTED_VALUE = "planted-obo-value-7c1e9a"
 
 OBO_HEADERS = {
     "x-forwarded-email": "joseph.hobbs@databricks.com",
     "x-forwarded-user": "4242424242@1111",
     "x-forwarded-preferred-username": "joseph.hobbs@databricks.com",
-    "x-forwarded-access-token": FAKE_TOKEN,
+    "x-forwarded-access-token": PLANTED_VALUE,
 }
 
 
@@ -78,11 +78,11 @@ def test_whoami_never_returns_or_logs_the_token(client, caplog):
     caplog.set_level(logging.DEBUG)
     r = client.get("/api/whoami", headers=OBO_HEADERS)
     assert r.status_code == 200
-    assert FAKE_TOKEN not in r.text
+    assert PLANTED_VALUE not in r.text
     assert set(r.json()) == {"email", "user_name", "auth_mode"}
     for name, value in r.headers.items():
-        assert FAKE_TOKEN not in value, name
-    assert FAKE_TOKEN not in caplog.text
+        assert PLANTED_VALUE not in value, name
+    assert PLANTED_VALUE not in caplog.text
     # The request log does record who and how (email + auth_mode), just never the token.
     assert "joseph.hobbs@databricks.com" in caplog.text
     assert "OBO" in caplog.text
@@ -101,8 +101,8 @@ def test_whoami_is_not_swallowed_by_the_spa(client):
 # --- backend.auth --------------------------------------------------------------------------------------------------
 
 def test_get_user_token_reads_forwarded_header():
-    assert auth.get_user_token(_request(OBO_HEADERS)) == FAKE_TOKEN
-    assert auth.get_user_token(_request({"X-Forwarded-Access-Token": FAKE_TOKEN})) == FAKE_TOKEN
+    assert auth.get_user_token(_request(OBO_HEADERS)) == PLANTED_VALUE
+    assert auth.get_user_token(_request({"X-Forwarded-Access-Token": PLANTED_VALUE})) == PLANTED_VALUE
     assert auth.get_user_token(_request({})) is None
     assert auth.get_user_token(_request({"x-forwarded-access-token": ""})) is None
 
@@ -119,15 +119,15 @@ def test_user_workspace_client_uses_pat_auth_with_the_forwarded_token(monkeypatc
     monkeypatch.setattr(auth, "WorkspaceClient", lambda **kw: calls.append(kw) or object())
     auth.user_workspace_client(_request(OBO_HEADERS))
     # auth_type="pat" is mandatory: the app env also holds the SP's client id/secret (see AUTH_NOTES.md).
-    assert calls == [{"token": FAKE_TOKEN, "auth_type": "pat"}]
+    assert calls == [{"token": PLANTED_VALUE, "auth_type": "pat"}]
 
 
 def test_user_workspace_client_is_built_per_request(monkeypatch):
     built = []
     monkeypatch.setattr(auth, "WorkspaceClient", lambda **kw: built.append(kw["token"]) or object())
-    auth.user_workspace_client(_request({"x-forwarded-access-token": "tok-a"}))
-    auth.user_workspace_client(_request({"x-forwarded-access-token": "tok-b"}))
-    assert built == ["tok-a", "tok-b"]
+    auth.user_workspace_client(_request({"x-forwarded-access-token": "planted-a"}))
+    auth.user_workspace_client(_request({"x-forwarded-access-token": "planted-b"}))
+    assert built == ["planted-a", "planted-b"]
 
 
 def test_sp_workspace_client_is_default_auth_and_cached(monkeypatch):

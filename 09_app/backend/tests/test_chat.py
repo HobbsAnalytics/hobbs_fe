@@ -24,8 +24,8 @@ from databricks.sdk.service.dashboards import (
 )
 from fastapi.testclient import TestClient
 
-FAKE_TOKEN = "FAKE-OBO-TOKEN-chat-do-not-leak-91b3"
-OBO = {"x-forwarded-access-token": FAKE_TOKEN, "x-forwarded-email": "pm@example.com"}
+PLANTED_VALUE = "planted-obo-value-91b3"
+OBO = {"x-forwarded-access-token": PLANTED_VALUE, "x-forwarded-email": "pm@example.com"}
 CID = "0" * 31 + "1"
 MID = "0" * 31 + "2"
 
@@ -322,7 +322,7 @@ def test_chat_uses_user_client_never_sp(client, lake, monkeypatch, _no_real_clie
     assert post(client).status_code == 200
     assert len(FakeWS.built) == 1
     built = FakeWS.built[0]
-    assert built.kwargs == {"token": FAKE_TOKEN, "auth_type": "pat"}
+    assert built.kwargs == {"token": PLANTED_VALUE, "auth_type": "pat"}
     assert g.calls[0]["w"] is built
     assert _no_real_clients == []                # sp_workspace_client() was never called
 
@@ -393,22 +393,22 @@ def test_heartbeat_repeats_running_while_waiting(client, lake, monkeypatch):
 # --- token hygiene -------------------------------------------------------------------------------------------------
 
 def test_planted_token_never_in_events_headers_or_logs(client, lake, monkeypatch, caplog):
-    for result, exc in ((KNOWN, None), (None, genie.GenieError("unavailable")), (None, RuntimeError(FAKE_TOKEN))):
+    for result, exc in ((KNOWN, None), (None, genie.GenieError("unavailable")), (None, RuntimeError(PLANTED_VALUE))):
         use_genie(monkeypatch, result=result, exc=exc)
         with caplog.at_level(logging.DEBUG):
             r = post(client)
-        assert FAKE_TOKEN not in r.text
-        assert all(FAKE_TOKEN not in v for v in r.headers.values())
-    assert FAKE_TOKEN not in caplog.text
+        assert PLANTED_VALUE not in r.text
+        assert all(PLANTED_VALUE not in v for v in r.headers.values())
+    assert PLANTED_VALUE not in caplog.text
 
 
 @pytest.mark.parametrize("response", [
-    (502, {"message": f"bad gateway for Bearer {FAKE_TOKEN}"}),                     # 5xx branch
-    (500, f"upstream said {FAKE_TOKEN}"),
-    requests.ConnectionError(f"reset by peer while sending Authorization: Bearer {FAKE_TOKEN}"),  # RequestException
+    (502, {"message": f"bad gateway for Bearer {PLANTED_VALUE}"}),                     # 5xx branch
+    (500, f"upstream said {PLANTED_VALUE}"),
+    requests.ConnectionError(f"reset by peer while sending Authorization: Bearer {PLANTED_VALUE}"),  # RequestException
     conn_reset(), conn_refused(),
-    (200, {"jsonrpc": "2.0", "id": 1, "error": f"denied {FAKE_TOKEN}"}),
-    RuntimeError(f"unexpected {FAKE_TOKEN}")])
+    (200, {"jsonrpc": "2.0", "id": 1, "error": f"denied {PLANTED_VALUE}"}),
+    RuntimeError(f"unexpected {PLANTED_VALUE}")])
 def test_planted_token_never_leaks_through_the_real_genie_layer(client, lake, monkeypatch, caplog, response):
     srv = McpServer([response])
     monkeypatch.setattr(genie, "_post", srv)
@@ -417,10 +417,10 @@ def test_planted_token_never_leaks_through_the_real_genie_layer(client, lake, mo
         r = post(client)
     events = parse_sse(r.text)
     assert events[-1]["value"] == "error"
-    assert srv.requests[0]["headers"]["Authorization"] == f"Bearer {FAKE_TOKEN}"   # the header really was there
-    assert FAKE_TOKEN not in r.text and FAKE_TOKEN not in json.dumps(events)
-    assert all(FAKE_TOKEN not in v for v in r.headers.values())
-    assert FAKE_TOKEN not in caplog.text
+    assert srv.requests[0]["headers"]["Authorization"] == f"Bearer {PLANTED_VALUE}"   # the header really was there
+    assert PLANTED_VALUE not in r.text and PLANTED_VALUE not in json.dumps(events)
+    assert all(PLANTED_VALUE not in v for v in r.headers.values())
+    assert PLANTED_VALUE not in caplog.text
 
 
 # --- transport reported in the stream ------------------------------------------------------------------------------
@@ -455,7 +455,7 @@ def test_route_fallback_runs_with_the_same_user_client(client, lake, monkeypatch
     monkeypatch.setattr(genie, "_conv_ask", conv_recorder(called))
     events = parse_sse(post(client).text)
     assert len(FakeWS.built) == 1 and called[0][0] is FakeWS.built[0]
-    assert FakeWS.built[0].kwargs == {"token": FAKE_TOKEN, "auth_type": "pat"}
+    assert FakeWS.built[0].kwargs == {"token": PLANTED_VALUE, "auth_type": "pat"}
     assert events[-1] == {"type": "status", "value": "done", "transport": "conversation_api"}
     assert _no_real_clients == []
 
@@ -469,12 +469,12 @@ def test_route_mcp_error_event_reports_mcp(client, lake, monkeypatch):
 
 
 def test_mcp_layer_never_leaks_token(monkeypatch, caplog):
-    w = mcp_ws(FAKE_TOKEN)
-    monkeypatch.setattr(genie, "_post", lambda url, headers, payload, timeout: (403, {"error": f"denied {FAKE_TOKEN}"}))
+    w = mcp_ws(PLANTED_VALUE)
+    monkeypatch.setattr(genie, "_post", lambda url, headers, payload, timeout: (403, {"error": f"denied {PLANTED_VALUE}"}))
     monkeypatch.setattr(genie, "_conv_ask", lambda *a, **k: (_ for _ in ()).throw(genie.GenieError("forbidden")))
     with caplog.at_level(logging.DEBUG), pytest.raises(genie.GenieError) as ei:
         genie.ask(w, "q", space_id="space1")
-    assert FAKE_TOKEN not in str(ei.value) and FAKE_TOKEN not in caplog.text
+    assert PLANTED_VALUE not in str(ei.value) and PLANTED_VALUE not in caplog.text
 
 
 # --- Genie layer: MCP transport (payload shapes from the live server) ----------------------------------------------
@@ -867,7 +867,7 @@ def test_bbox_unparseable_is_none_and_warns_once(raw, fresh_bbox_warning, caplog
 
 # --- extended startup self-test ------------------------------------------------------------------------------------
 
-SECRET = "SECRET-ROW-CONTENT"
+ROW_MARKER = "row-content-marker"
 
 
 class SelftestLake:
@@ -880,31 +880,31 @@ class SelftestLake:
         if "GROUP BY drawing_id" in s:
             return [{"status": "PASS", "n": 187}, {"status": "FAIL", "n": 51}]
         if "GROUP BY citation" in s:
-            return [{"citation": SECRET, "fails": 30}]
+            return [{"citation": ROW_MARKER, "fails": 30}]
         if "count(*) AS total" in s:
             return [{"total": 77}]
         if "compliance_findings_synced" in s:
             return [{"drawing_id": "BRL-PIP-ISO-0004", "finding_id": "F-1", "status": "FAIL", "severity": "high",
-                     "citation": SECRET, "reason": SECRET, "evidence_text": SECRET, "page_num": 0,
+                     "citation": ROW_MARKER, "reason": ROW_MARKER, "evidence_text": ROW_MARKER, "page_num": 0,
                      "bbox": "[0.1, 0.2, 0.3, 0.4]", "bbox_source": "gt", "review_date": "2026-11-05"}]
         if "GROUP BY risk_band" in s:
             return [{"risk_band": "High", "n": 26}, {"risk_band": "Medium", "n": 20}, {"risk_band": "Low", "n": 18}]
         if "risk_forecast_synced" in s:
             keys = [k.strip() for k in ["milestone_id", " name", " discipline", " criticality", " planned_end", " risk_band", " risk_rank", " projected_slip_days", " forecast_confidence_lower", " forecast_confidence_upper", " upstream_delay_days", " upstream_milestone_id"]]
-            return [{k: SECRET for k in keys} for _ in range(5)]
+            return [{k: ROW_MARKER for k in keys} for _ in range(5)]
         if "schedule_overdue_synced" in s:
-            return [{"milestone_id": SECRET, "name": SECRET, "discipline": "p", "criticality": "h",
+            return [{"milestone_id": ROW_MARKER, "name": ROW_MARKER, "discipline": "p", "criticality": "h",
                      "planned_end": "2026-11-01", "days_late": d, "downstream_open_count": 0}
                     for d in (15, 9, 7, 5, 3, 2, 0)]
         if "kpi_daily_synced" in s:
-            return [{k: SECRET for k in (
+            return [{k: ROW_MARKER for k in (
                 "project_id", "snapshot_date", "schedule_status", "milestones_hit", "milestones_total",
                 "slipped_milestone_id", "slipped_days", "budget_total_usd", "budget_overrun_usd", "budget_eac_pct",
                 "safety_days_without_incident", "recordables_28d", "trir_28d", "open_ncrs", "open_ncrs_compliance",
                 "open_ncrs_workmanship", "compliance_reviewed_week", "compliance_passed_week",
                 "compliance_failed_week")}]
         if "daily_brief_synced" in s:
-            return [{"brief_md": SECRET, "brief_date": "2026-11-06", "validation_status": "PASSED",
+            return [{"brief_md": ROW_MARKER, "brief_date": "2026-11-06", "validation_status": "PASSED",
                      "prompt_version": "v3", "generated_at": "x"}]
         raise AssertionError(f"unexpected SQL: {s}")
 
@@ -926,13 +926,13 @@ def test_selftest_route_lines_counts_and_bbox_shape(monkeypatch, caplog, fresh_b
     assert "selftest route overdue late=6 due_today=1" in text
     assert "selftest route kpi_today ok=True" in text
     assert "selftest route brief_today ok=True" in text
-    assert SECRET not in text
+    assert ROW_MARKER not in text
 
 
 def test_selftest_genie_as_sp_same_transport_counts_only(monkeypatch, caplog):
     sp = object()
     monkeypatch.setattr(selftest, "sp_workspace_client", lambda: sp)
-    g = FakeGenie(result=turn(text=SECRET, sql=f"SELECT '{SECRET}'", columns=["drawings_failed"], rows=[[51]],
+    g = FakeGenie(result=turn(text=ROW_MARKER, sql=f"SELECT '{ROW_MARKER}'", columns=["drawings_failed"], rows=[[51]],
                               row_count=1))
     monkeypatch.setattr(genie, "ask", g)
     with caplog.at_level(logging.INFO, logger="bluerridge"):
@@ -940,7 +940,7 @@ def test_selftest_genie_as_sp_same_transport_counts_only(monkeypatch, caplog):
     text = _log_text(caplog)
     assert ok is True and g.calls[0]["w"] is sp and g.calls[0]["message"] == "How many drawings failed this week?"
     assert "selftest genie transport=mcp status=COMPLETED got_sql=True rows=1 headline=51" in text
-    assert SECRET not in text
+    assert ROW_MARKER not in text
 
 
 def test_selftest_genie_failure_logs_class_and_continues(monkeypatch, caplog):
