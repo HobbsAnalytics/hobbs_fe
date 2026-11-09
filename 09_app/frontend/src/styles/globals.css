@@ -56,6 +56,161 @@
   .chart-container {
     @apply bg-white rounded-xl border border-slate-200 p-5 shadow-sm;
   }
+
+  /* --- dashboard-v3-chat mockup vocabulary --- */
+  .kpi-mini {
+    @apply bg-white border border-slate-200 rounded-xl px-4 py-3 flex items-center gap-3;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  }
+  .kpi-icon {
+    @apply w-9 h-9 rounded-[10px] bg-slate-50 flex items-center justify-center text-slate-400 flex-shrink-0;
+  }
+  .kpi-icon-good {
+    @apply bg-emerald-50 text-emerald-600;
+  }
+  .kpi-icon-warn {
+    @apply bg-amber-50 text-amber-700;
+  }
+  .kpi-icon-bad {
+    @apply bg-red-50 text-red-600;
+  }
+  .kpi-label {
+    @apply text-[11px] text-slate-500 font-medium uppercase tracking-[0.04em];
+  }
+  .kpi-value {
+    @apply text-lg font-bold text-slate-900 mt-0.5 leading-tight;
+  }
+  .kpi-sub {
+    @apply text-[11px] text-slate-500 mt-0.5;
+  }
+
+  .rail-card {
+    @apply bg-white border border-slate-200 rounded-xl p-4;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  }
+  .rail-title {
+    @apply text-[11px] text-slate-500 uppercase tracking-[0.06em] font-bold mb-2.5;
+  }
+  .action-btn {
+    @apply block w-full text-left px-3 py-2.5 border border-slate-200 rounded-lg bg-white text-[13px] text-slate-800
+      font-medium transition-all duration-150 hover:border-emerald-500 hover:bg-emerald-50 hover:text-emerald-700
+      disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .action-sub {
+    @apply block text-[11px] text-slate-500 mt-0.5 font-normal;
+  }
+
+  .msg-bubble {
+    @apply bg-white border border-slate-200 px-4 py-3.5 text-sm text-slate-800;
+    border-left: 3px solid #10b981;
+    border-radius: 4px 10px 10px 10px;
+    line-height: 1.55;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  }
+  .msg-bubble-user {
+    @apply bg-slate-900 text-white px-4 py-3 text-sm whitespace-pre-wrap;
+    border-radius: 10px 4px 10px 10px;
+    line-height: 1.55;
+  }
+  .msg-meta-tag {
+    @apply bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-[10px] font-semibold uppercase text-[10px] tracking-[0.04em];
+  }
+  .card-subtitle {
+    @apply text-[11px] text-slate-500 uppercase tracking-[0.06em] font-semibold;
+  }
+  .quick-pill {
+    @apply px-3 py-1.5 rounded-full bg-slate-50 border border-slate-200 text-xs text-slate-700 transition-colors
+      hover:bg-emerald-50 hover:border-emerald-200 hover:text-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+}
+
+/* Markdown answers (react-markdown, no raw HTML) */
+.markdown-body p {
+  margin: 0 0 0.6em;
+}
+.markdown-body p:last-child {
+  margin-bottom: 0;
+}
+.markdown-body ul,
+.markdown-body ol {
+  margin: 0.25em 0 0.6em;
+  padding-left: 1.2em;
+}
+.markdown-body ul {
+  list-style: disc;
+}
+.markdown-body ol {
+  list-style: decimal;
+}
+.markdown-body li {
+  margin: 0.2em 0;
+}
+.markdown-body li > p {
+  margin: 0;
+}
+.markdown-body strong {
+  font-weight: 600;
+  color: #0f172a;
+}
+.markdown-body code {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.85em;
+  background: #f1f5f9;
+  padding: 0.05em 0.3em;
+  border-radius: 4px;
+}
+.markdown-body a {
+  color: #059669;
+  text-decoration: underline;
+}
+
+/* Typing indicator (mockup) */
+.typing-dots {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+}
+.typing-dots span {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #10b981;
+  animation: typing 1.4s infinite ease-in-out;
+}
+.typing-dots span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.typing-dots span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+@keyframes typing {
+  0%,
+  80%,
+  100% {
+    opacity: 0.3;
+    transform: scale(0.9);
+  }
+  40% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.live-pulse {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #10b981;
+  animation: livePulse 2s infinite;
+}
+@keyframes livePulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
 }
 
 @layer utilities {

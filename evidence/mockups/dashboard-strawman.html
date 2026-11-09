@@ -1,0 +1,89 @@
+<h2>Project Manager Dashboard — strawman</h2>
+<p class="subtitle">One screen. The compliance panel you described is the hero. Everything else is a guess — react to it.</p>
+
+<div class="mockup">
+  <div class="mockup-header">Blue Ridge LNG Terminal — Phase 2 · Executive View</div>
+  <div class="mockup-body" style="padding:16px;background:#f5f3ef">
+
+    <!-- Top health strip -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px">
+      <div style="background:#fff;border:1px solid #ddd;padding:12px;border-radius:4px">
+        <div class="label">Schedule</div>
+        <div style="font-size:1.3em;font-weight:600;color:#2d7f3f;margin:4px 0">On track</div>
+        <small style="color:#555">AI: "6 of 11 milestones hit. Cryogenic tank install slipped 4d."</small>
+      </div>
+      <div style="background:#fff;border:1px solid #ddd;padding:12px;border-radius:4px">
+        <div class="label">Budget</div>
+        <div style="font-size:1.3em;font-weight:600;color:#c08c00;margin:4px 0">+2.3% EAC</div>
+        <small style="color:#555">AI: "Materials inflation driving overrun. See change orders 112-118."</small>
+      </div>
+      <div style="background:#fff;border:1px solid #ddd;padding:12px;border-radius:4px">
+        <div class="label">Safety</div>
+        <div style="font-size:1.3em;font-weight:600;color:#2d7f3f;margin:4px 0">0 TRIR</div>
+        <small style="color:#555">AI: "28 days incident-free. Weekly audit due Fri."</small>
+      </div>
+      <div style="background:#fff;border:1px solid #ddd;padding:12px;border-radius:4px">
+        <div class="label">Quality</div>
+        <div style="font-size:1.3em;font-weight:600;color:#c23a3a;margin:4px 0">24 open NCRs</div>
+        <small style="color:#555">AI: "9 compliance failures (see panel). 15 workmanship."</small>
+      </div>
+    </div>
+
+    <!-- Main grid -->
+    <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px">
+
+      <!-- Document Compliance (HERO) -->
+      <div style="background:#fff;border:1px solid #ddd;padding:16px;border-radius:4px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <h4 style="margin:0">Document Compliance · this week</h4>
+          <span class="label" style="background:#eef2ff;color:#3730a3;padding:2px 8px;border-radius:10px">AI-reviewed</span>
+        </div>
+        <div style="display:flex;gap:24px;margin-bottom:16px;padding:12px;background:#fafafa;border-radius:4px">
+          <div><div style="font-size:1.8em;font-weight:700">238</div><small>docs reviewed</small></div>
+          <div><div style="font-size:1.8em;font-weight:700;color:#2d7f3f">214</div><small>passed</small></div>
+          <div><div style="font-size:1.8em;font-weight:700;color:#c23a3a">24</div><small>failed</small></div>
+        </div>
+        <table style="width:100%;font-size:0.9em;border-collapse:collapse">
+          <tr style="border-bottom:1px solid #eee"><td style="padding:8px 0"><strong>ISO-P102-R3</strong><br><small style="color:#666">Flange rating mismatch · ASME B16.5 §4.2</small></td><td style="color:#2563eb;text-align:right">Open PDF →</td></tr>
+          <tr style="border-bottom:1px solid #eee"><td style="padding:8px 0"><strong>PID-C4-204</strong><br><small style="color:#666">Missing LOTO tag · OSHA 1910.147</small></td><td style="color:#2563eb;text-align:right">Open PDF →</td></tr>
+          <tr style="border-bottom:1px solid #eee"><td style="padding:8px 0"><strong>GA-M7-R2</strong><br><small style="color:#666">Egress width &lt; code · IBC 1005.1</small></td><td style="color:#2563eb;text-align:right">Open PDF →</td></tr>
+          <tr style="border-bottom:1px solid #eee"><td style="padding:8px 0"><strong>ISO-P214-R1</strong><br><small style="color:#666">Weld joint spec mismatch · ASME B31.3</small></td><td style="color:#2563eb;text-align:right">Open PDF →</td></tr>
+          <tr><td style="padding:8px 0;color:#666">+20 more</td><td></td></tr>
+        </table>
+      </div>
+
+      <!-- Sidebar: Brief + Co-pilot + Risk -->
+      <div style="display:flex;flex-direction:column;gap:16px">
+
+        <div style="background:#fff;border:1px solid #ddd;padding:14px;border-radius:4px">
+          <span class="label" style="background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:10px">Daily brief · AI</span>
+          <p style="margin:8px 0 0;font-size:0.9em;line-height:1.4">Phase 2 is on schedule and 2.3% over budget. Tank install slip is the biggest schedule risk. Compliance failures are concentrated in instrumentation drawings — 9 of 24 share the same spec revision.</p>
+        </div>
+
+        <div style="background:#fff;border:1px solid #ddd;padding:14px;border-radius:4px">
+          <span class="label" style="background:#dcfce7;color:#166534;padding:2px 8px;border-radius:10px">Project co-pilot · Genie</span>
+          <input class="mock-input" placeholder="Ask about Blue Ridge Phase 2..." style="margin-top:8px;width:100%">
+          <p style="margin:8px 0 0;font-size:0.85em;color:#666">Try: "which failed drawings are blocking commissioning?"</p>
+        </div>
+
+        <div style="background:#fff;border:1px solid #ddd;padding:14px;border-radius:4px">
+          <span class="label" style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:10px">Risk forecast · ML</span>
+          <p style="margin:8px 0 0;font-size:0.9em;line-height:1.4">3 schedule risks predicted this quarter:<br>• Cryogenic weld inspection (72%)<br>• Heater permit (58%)<br>• Control valve delivery (41%)</p>
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+</div>
+
+<div style="margin-top:20px;padding:16px;background:#f5f3ef;border-left:3px solid #ff3621;border-radius:2px">
+  <strong>React to this:</strong>
+  <ul style="margin:8px 0 0;padding-left:20px">
+    <li>What belongs at the center that isn't here?</li>
+    <li>What should come off?</li>
+    <li>Is "AI at every step" captured, or is a step missing?</li>
+    <li>Right industry (LNG), or should we go nuclear / data center / power / infrastructure?</li>
+  </ul>
+</div>

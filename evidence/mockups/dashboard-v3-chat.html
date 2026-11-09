@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Dashboard v3 — Chat-first</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --slate-50: #f8fafc;  --slate-100: #f1f5f9; --slate-200: #e2e8f0;
+    --slate-300: #cbd5e1; --slate-400: #94a3b8; --slate-500: #64748b;
+    --slate-600: #475569; --slate-700: #334155; --slate-800: #1e293b;
+    --slate-900: #0f172a;
+    --emerald-50: #ecfdf5; --emerald-100: #d1fae5;
+    --emerald-500: #10b981; --emerald-600: #059669; --emerald-700: #047857;
+    --teal-600: #0d9488;
+    --amber-50: #fffbeb; --amber-200: #fde68a; --amber-700: #b45309;
+    --red-50: #fef2f2; --red-200: #fecaca; --red-500: #ef4444;
+    --red-600: #dc2626; --red-700: #b91c1c;
+    --blue-50: #eff6ff; --blue-100: #dbeafe; --blue-700: #1d4ed8;
+    --purple-50: #faf5ff; --purple-700: #7e22ce;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background: var(--slate-50); color: var(--slate-900);
+    -webkit-font-smoothing: antialiased;
+  }
+  .app { display: flex; height: 100vh; overflow: hidden; }
+
+  /* Sidebar */
+  .sidebar {
+    width: 256px;
+    background: linear-gradient(180deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+    border-right: 1px solid rgba(51, 65, 85, 0.5);
+    display: flex; flex-direction: column; flex-shrink: 0;
+  }
+  .sidebar-logo { display: flex; align-items: center; gap: 12px; padding: 0 16px; height: 64px; border-bottom: 1px solid rgba(51, 65, 85, 0.5); }
+  .logo-mark { width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #34d399, #0d9488); display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 12px; }
+  .logo-text h1 { color: white; font-size: 14px; margin: 0; font-weight: 700; }
+  .logo-text p { color: var(--slate-400); font-size: 10px; margin: 2px 0 0; font-weight: 500; }
+  .nav { flex: 1; padding: 16px 8px; display: flex; flex-direction: column; gap: 4px; }
+  .nav-item { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 8px; font-size: 14px; font-weight: 500; color: var(--slate-400); cursor: pointer; transition: all 0.2s; }
+  .nav-item:hover { color: #e2e8f0; background: rgba(51, 65, 85, 0.3); }
+  .nav-item.active { background: rgba(51, 65, 85, 0.6); color: white; }
+  .nav-item .icon { width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; }
+  .nav-item .badge { margin-left: auto; background: rgba(16, 185, 129, 0.2); color: #34d399; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 10px; }
+
+  /* Main */
+  .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .topbar { height: 64px; background: white; border-bottom: 1px solid var(--slate-200); display: flex; align-items: center; justify-content: space-between; padding: 0 24px; flex-shrink: 0; }
+  .breadcrumb { display: flex; gap: 8px; align-items: center; font-size: 14px; }
+  .crumb-light { color: var(--slate-400); } .crumb-sep { color: var(--slate-300); } .crumb-current { color: var(--slate-900); font-weight: 600; }
+  .topbar-right { display: flex; align-items: center; gap: 16px; }
+  .search-input { display: flex; align-items: center; gap: 8px; background: var(--slate-50); border: 1px solid var(--slate-200); border-radius: 8px; padding: 8px 12px; width: 260px; color: var(--slate-400); font-size: 14px; }
+  .facility-selector { display: flex; align-items: center; gap: 8px; background: var(--slate-50); border: 1px solid var(--slate-200); border-radius: 8px; padding: 8px 12px; font-size: 14px; color: var(--slate-700); cursor: pointer; }
+  .bell-btn { padding: 8px; border-radius: 8px; cursor: pointer; color: var(--slate-600); position: relative; }
+  .bell-badge { position: absolute; top: 2px; right: 2px; width: 16px; height: 16px; border-radius: 50%; background: var(--red-500); color: white; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+  .avatar { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #34d399, #0d9488); display: flex; align-items: center; justify-content: center; color: white; font-size: 11px; font-weight: 700; }
+
+  /* Content */
+  .content { flex: 1; overflow-y: auto; padding: 24px; }
+  .page-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
+  .page-title h1 { font-size: 24px; font-weight: 700; color: var(--slate-900); margin: 0; }
+  .page-title p { font-size: 14px; color: var(--slate-500); margin: 4px 0 0; }
+  .live-indicator { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--slate-400); }
+  .pulse { width: 8px; height: 8px; border-radius: 50%; background: var(--emerald-500); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1 } 50% { opacity: 0.4 } }
+
+  /* KPI row - compressed */
+  .kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+  .kpi-mini { background: white; border: 1px solid var(--slate-200); border-radius: 12px; padding: 12px 16px; display: flex; align-items: center; gap: 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
+  .kpi-icon { width: 36px; height: 36px; border-radius: 10px; background: var(--slate-50); display: flex; align-items: center; justify-content: center; color: var(--slate-400); flex-shrink: 0; }
+  .kpi-icon-good { background: var(--emerald-50); color: var(--emerald-600); }
+  .kpi-icon-warn { background: var(--amber-50); color: var(--amber-700); }
+  .kpi-icon-bad  { background: var(--red-50); color: var(--red-600); }
+  .kpi-text { flex: 1; min-width: 0; }
+  .kpi-label { font-size: 11px; color: var(--slate-500); font-weight: 500; text-transform: uppercase; letter-spacing: 0.04em; }
+  .kpi-value { font-size: 18px; font-weight: 700; color: var(--slate-900); margin: 2px 0 0; }
+  .kpi-sub { font-size: 11px; color: var(--slate-500); margin-top: 2px; }
+
+  /* Main grid: chat + rail */
+  .main-grid { display: grid; grid-template-columns: 1fr 320px; gap: 20px; height: calc(100vh - 64px - 24px*2 - 60px - 20px - 60px); min-height: 520px; }
+
+  /* Chat panel */
+  .chat-panel { background: white; border: 1px solid var(--slate-200); border-radius: 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.04); display: flex; flex-direction: column; overflow: hidden; }
+  .chat-head { padding: 16px 20px; border-bottom: 1px solid var(--slate-100); display: flex; align-items: center; justify-content: space-between; }
+  .chat-head-left { display: flex; align-items: center; gap: 10px; }
+  .chat-head-icon { width: 32px; height: 32px; border-radius: 10px; background: linear-gradient(135deg, #34d399, #0d9488); display: flex; align-items: center; justify-content: center; color: white; }
+  .chat-head h3 { margin: 0; font-size: 15px; font-weight: 600; }
+  .chat-head p { margin: 2px 0 0; font-size: 11px; color: var(--slate-500); }
+  .identity-chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; background: var(--slate-50); border: 1px solid var(--slate-200); font-size: 11px; color: var(--slate-600); }
+  .identity-chip .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--emerald-500); }
+
+  .chat-log { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 16px; background: var(--slate-50); }
+
+  .msg { max-width: 85%; }
+  .msg-assistant { align-self: flex-start; }
+  .msg-user { align-self: flex-end; }
+  .msg-bubble {
+    background: white; border: 1px solid var(--slate-200);
+    border-left: 3px solid var(--emerald-500);
+    border-radius: 4px 10px 10px 10px;
+    padding: 14px 16px; font-size: 14px; line-height: 1.55; color: var(--slate-800);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+  }
+  .msg-user .msg-bubble { background: var(--slate-900); color: white; border: none; border-radius: 10px 4px 10px 10px; }
+  .msg-meta { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 11px; color: var(--slate-500); }
+  .msg-meta-tag { background: var(--emerald-50); color: var(--emerald-700); padding: 2px 8px; border-radius: 10px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; font-size: 10px; }
+  .msg-user .msg-meta { justify-content: flex-end; }
+
+  .sources { margin-top: 12px; border-top: 1px solid var(--slate-100); padding-top: 10px; }
+  .sources-title { font-size: 11px; color: var(--slate-500); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; margin-bottom: 8px; }
+  .source-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; background: var(--slate-50); border: 1px solid var(--slate-100); border-radius: 6px; margin-bottom: 6px; font-size: 12px; }
+  .source-left { display: flex; align-items: center; gap: 8px; }
+  .source-ref { font-family: 'JetBrains Mono', monospace; font-weight: 600; font-size: 12px; color: var(--slate-800); }
+  .source-sub { color: var(--slate-500); font-size: 11px; }
+  .source-link { color: var(--emerald-600); font-weight: 500; font-size: 12px; }
+
+  .sql-card { margin-top: 12px; border: 1px solid var(--slate-200); border-radius: 8px; background: var(--slate-50); overflow: hidden; }
+  .sql-head { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; cursor: pointer; }
+  .sql-head-left { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--slate-600); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+  .sql-chip { background: var(--blue-50); color: var(--blue-700); padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 700; }
+  .sql-body { padding: 10px 12px; background: #0f172a; color: #cbd5e1; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; line-height: 1.5; overflow-x: auto; }
+  .sql-kw { color: #34d399; }
+  .sql-str { color: #fcd34d; }
+
+  .verify-note { margin-top: 10px; font-size: 11px; color: var(--slate-400); display: flex; align-items: center; gap: 6px; font-style: italic; }
+
+  .typing { display: inline-flex; gap: 4px; align-items: center; margin-left: 4px; }
+  .typing span { width: 5px; height: 5px; border-radius: 50%; background: var(--emerald-500); animation: typing 1.4s infinite ease-in-out; }
+  .typing span:nth-child(2) { animation-delay: 0.2s; } .typing span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes typing { 0%,80%,100% { opacity: 0.3; transform: scale(0.9); } 40% { opacity: 1; transform: scale(1); } }
+
+  .chat-input-wrap { border-top: 1px solid var(--slate-100); padding: 14px 20px; background: white; }
+  .chat-input {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--slate-50); border: 1.5px solid var(--slate-200);
+    border-radius: 12px; padding: 10px 14px;
+    transition: border-color 0.2s;
+  }
+  .chat-input:focus-within { border-color: var(--emerald-500); background: white; }
+  .chat-input input { flex: 1; border: none; outline: none; background: transparent; font-size: 14px; font-family: inherit; color: var(--slate-800); }
+  .send-btn { width: 32px; height: 32px; border-radius: 10px; background: linear-gradient(135deg, #10b981, #0d9488); border: none; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .chat-footer-row { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+  .quick-pill { padding: 6px 12px; border-radius: 999px; background: var(--slate-50); border: 1px solid var(--slate-200); font-size: 12px; color: var(--slate-700); cursor: pointer; font-family: inherit; }
+  .quick-pill:hover { background: var(--emerald-50); border-color: var(--emerald-200); color: var(--emerald-700); }
+
+  /* Right rail */
+  .rail { display: flex; flex-direction: column; gap: 16px; overflow-y: auto; }
+  .rail-card { background: white; border: 1px solid var(--slate-200); border-radius: 12px; padding: 16px; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
+  .rail-title { font-size: 11px; color: var(--slate-500); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; margin: 0 0 10px; }
+  .action-btn { display: block; width: 100%; text-align: left; padding: 10px 12px; border: 1px solid var(--slate-200); border-radius: 8px; background: white; font-size: 13px; color: var(--slate-800); cursor: pointer; margin-bottom: 8px; font-family: inherit; font-weight: 500; transition: all 0.15s; }
+  .action-btn:hover { border-color: var(--emerald-500); background: var(--emerald-50); color: var(--emerald-700); }
+  .action-btn .ab-sub { display: block; font-size: 11px; color: var(--slate-500); margin-top: 2px; font-weight: 400; }
+  .action-btn:hover .ab-sub { color: var(--emerald-600); }
+
+  .knowledge-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--slate-100); font-size: 12px; }
+  .knowledge-item:last-child { border-bottom: none; }
+  .ki-icon { width: 28px; height: 28px; border-radius: 8px; background: var(--slate-50); display: flex; align-items: center; justify-content: center; color: var(--slate-500); flex-shrink: 0; }
+  .ki-main { flex: 1; min-width: 0; }
+  .ki-title { color: var(--slate-800); font-weight: 500; font-size: 12px; }
+  .ki-sub { color: var(--slate-500); font-size: 11px; margin-top: 2px; font-family: 'JetBrains Mono', monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ki-count { color: var(--slate-400); font-size: 11px; }
+
+  .compliance-mini { display: flex; gap: 12px; margin-bottom: 10px; padding: 10px; background: var(--slate-50); border-radius: 8px; }
+  .compliance-mini .cm-stat { flex: 1; text-align: center; }
+  .cm-num { font-size: 20px; font-weight: 700; }
+  .cm-good { color: var(--emerald-600); } .cm-bad { color: var(--red-600); }
+  .cm-lbl { font-size: 10px; color: var(--slate-500); text-transform: uppercase; letter-spacing: 0.04em; margin-top: 2px; }
+
+  .ico { width: 20px; height: 20px; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+  .ico-sm { width: 14px; height: 14px; }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-mark">BR</div>
+      <div class="logo-text">
+        <h1>Blue Ridge LNG</h1>
+        <p>Project Intelligence</p>
+      </div>
+    </div>
+    <nav class="nav">
+      <div class="nav-item active">
+        <span class="icon"><svg class="ico" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4M8 16h8"/></svg></span>
+        <span>AI Co-Pilot</span>
+      </div>
+      <div class="nav-item">
+        <span class="icon"><svg class="ico" viewBox="0 0 24 24"><path d="M3 3h7v9H3zM14 3h7v5h-7zM14 12h7v9h-7zM3 16h7v5H3z"/></svg></span>
+        <span>Dashboards</span>
+      </div>
+      <div class="nav-item">
+        <span class="icon"><svg class="ico" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span>
+        <span>Doc Compliance</span>
+        <span class="badge">24</span>
+      </div>
+      <div class="nav-item">
+        <span class="icon"><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
+        <span>Schedule &amp; Risk</span>
+      </div>
+      <div class="nav-item">
+        <span class="icon"><svg class="ico" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></span>
+        <span>Cost &amp; Budget</span>
+      </div>
+      <div class="nav-item">
+        <span class="icon"><svg class="ico" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
+        <span>Safety &amp; Quality</span>
+        <span class="badge">3</span>
+      </div>
+    </nav>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main">
+
+    <!-- TOPBAR -->
+    <header class="topbar">
+      <div class="breadcrumb">
+        <span class="crumb-light">Project Intelligence</span>
+        <span class="crumb-sep">/</span>
+        <span class="crumb-current">AI Co-Pilot</span>
+      </div>
+      <div class="topbar-right">
+        <div class="search-input">
+          <svg class="ico ico-sm" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+          <span>Search drawings, specs, change orders…</span>
+        </div>
+        <div class="facility-selector">
+          <svg class="ico ico-sm" viewBox="0 0 24 24"><path d="M3 21h18M5 21V7l7-4 7 4v14"/></svg>
+          <span>Phase 2 — Terminal</span>
+          <svg class="ico ico-sm" viewBox="0 0 24 24" style="color:var(--slate-400)"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+        <div class="bell-btn">
+          <svg class="ico" viewBox="0 0 24 24"><path d="M18 8a6 6 0 00-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg>
+          <span class="bell-badge">3</span>
+        </div>
+        <div class="avatar">JH</div>
+      </div>
+    </header>
+
+    <!-- CONTENT -->
+    <main class="content">
+
+      <div class="page-header">
+        <div class="page-title">
+          <h1>Project Co-Pilot</h1>
+          <p>Blue Ridge LNG Terminal — Phase 2 · Ask anything, trigger analyses</p>
+        </div>
+        <div class="live-indicator">
+          <span class="pulse"></span>
+          Live — Last synced 2 min ago
+        </div>
+      </div>
+
+      <!-- Compressed KPI row - glanceable context -->
+      <div class="kpi-row">
+        <div class="kpi-mini">
+          <div class="kpi-icon kpi-icon-good"><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+          <div class="kpi-text"><div class="kpi-label">Schedule</div><div class="kpi-value">On track</div><div class="kpi-sub">6 of 11 milestones</div></div>
+        </div>
+        <div class="kpi-mini">
+          <div class="kpi-icon kpi-icon-warn"><svg class="ico" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div>
+          <div class="kpi-text"><div class="kpi-label">Budget (EAC)</div><div class="kpi-value">+2.3%</div><div class="kpi-sub">$4.8M over plan</div></div>
+        </div>
+        <div class="kpi-mini">
+          <div class="kpi-icon kpi-icon-good"><svg class="ico" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+          <div class="kpi-text"><div class="kpi-label">Safety</div><div class="kpi-value">0 TRIR</div><div class="kpi-sub">28 days clear</div></div>
+        </div>
+        <div class="kpi-mini">
+          <div class="kpi-icon kpi-icon-bad"><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
+          <div class="kpi-text"><div class="kpi-label">Open NCRs</div><div class="kpi-value">24</div><div class="kpi-sub">9 compliance · 15 workmanship</div></div>
+        </div>
+      </div>
+
+      <!-- Main grid: chat + rail -->
+      <div class="main-grid">
+
+        <!-- CHAT PANEL -->
+        <div class="chat-panel">
+          <div class="chat-head">
+            <div class="chat-head-left">
+              <div class="chat-head-icon">
+                <svg class="ico" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4M8 16h8"/></svg>
+              </div>
+              <div>
+                <h3>Project Co-Pilot</h3>
+                <p>Genie Agent · drawings volume + project data</p>
+              </div>
+            </div>
+            <div class="identity-chip">
+              <span class="dot"></span>
+              joseph.hobbs@databricks.com
+            </div>
+          </div>
+
+          <div class="chat-log">
+
+            <!-- Seeded assistant: Daily Brief -->
+            <div class="msg msg-assistant">
+              <div class="msg-meta"><span class="msg-meta-tag">Daily Brief</span><span>8:04 AM</span></div>
+              <div class="msg-bubble">
+                Good morning, Joseph. Here's where Phase 2 stands:
+                <br><br>
+                • <b>Schedule:</b> on track, but cryogenic tank install slipped 4 days — now the biggest downstream risk.<br>
+                • <b>Budget:</b> +2.3% EAC. Driver is materials inflation on change orders 112–118.<br>
+                • <b>Compliance:</b> 238 drawings auto-reviewed this week, 24 failed. 9 of 24 share the same instrumentation spec revision — likely one upstream fix.<br>
+                • <b>Risk:</b> cryogenic weld inspection has a 72% probability of delaying commissioning.
+                <br><br>
+                Want me to dig into any of these?
+                <div class="verify-note">
+                  <svg class="ico ico-sm" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                  AI-generated — verify before action
+                </div>
+              </div>
+            </div>
+
+            <!-- User turn -->
+            <div class="msg msg-user">
+              <div class="msg-meta"><span>8:06 AM</span></div>
+              <div class="msg-bubble">Which failed drawings are blocking commissioning?</div>
+            </div>
+
+            <!-- Assistant response w/ sources + SQL -->
+            <div class="msg msg-assistant">
+              <div class="msg-meta"><span class="msg-meta-tag">Genie Agent</span><span>8:06 AM</span><span class="typing" style="display:inline-flex"><span></span><span></span><span></span></span></div>
+              <div class="msg-bubble">
+                Three of the 24 failed drawings are on the commissioning critical path. All sit on the cryogenic tie-in, which is why the risk forecast is flagging it:
+                <br>
+
+                <div class="sources">
+                  <div class="sources-title">Drawings from Volume</div>
+                  <div class="source-row">
+                    <div class="source-left">
+                      <svg class="ico ico-sm" viewBox="0 0 24 24" style="color:var(--red-500)"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                      <div>
+                        <div class="source-ref">ISO-P102-R3</div>
+                        <div class="source-sub">Flange rating mismatch · ASME B16.5 §4.2 · p.3</div>
+                      </div>
+                    </div>
+                    <span class="source-link">Open PDF →</span>
+                  </div>
+                  <div class="source-row">
+                    <div class="source-left">
+                      <svg class="ico ico-sm" viewBox="0 0 24 24" style="color:var(--red-500)"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                      <div>
+                        <div class="source-ref">ISO-P214-R1</div>
+                        <div class="source-sub">Weld joint spec mismatch · ASME B31.3 §341 · p.2</div>
+                      </div>
+                    </div>
+                    <span class="source-link">Open PDF →</span>
+                  </div>
+                  <div class="source-row">
+                    <div class="source-left">
+                      <svg class="ico ico-sm" viewBox="0 0 24 24" style="color:var(--red-500)"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                      <div>
+                        <div class="source-ref">PID-C4-204</div>
+                        <div class="source-sub">Missing LOTO tag · OSHA 1910.147 · p.5</div>
+                      </div>
+                    </div>
+                    <span class="source-link">Open PDF →</span>
+                  </div>
+                </div>
+
+                <div class="sql-card">
+                  <div class="sql-head">
+                    <div class="sql-head-left">
+                      <span class="sql-chip">SQL</span> Generated query — click to view
+                    </div>
+                    <svg class="ico ico-sm" viewBox="0 0 24 24" style="color:var(--slate-400)"><polyline points="6 9 12 15 18 9"/></svg>
+                  </div>
+                  <div class="sql-body">
+<span class="sql-kw">SELECT</span> d.drawing_id, d.failure_reason, d.spec_citation, d.volume_path, d.page_num
+<span class="sql-kw">FROM</span> bluerridge.engineering.doc_compliance_failures d
+<span class="sql-kw">JOIN</span>  bluerridge.engineering.critical_path_items c
+  <span class="sql-kw">ON</span>  d.drawing_id = c.drawing_ref
+<span class="sql-kw">WHERE</span> c.milestone = <span class="sql-str">'commissioning'</span>
+  <span class="sql-kw">AND</span> d.status = <span class="sql-str">'FAIL'</span>
+<span class="sql-kw">ORDER BY</span> c.criticality <span class="sql-kw">DESC</span>;
+                  </div>
+                </div>
+
+                <div class="verify-note">
+                  <svg class="ico ico-sm" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                  AI-generated · query ran as your identity (OBO) · verify before action
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Chat input -->
+          <div class="chat-input-wrap">
+            <div class="chat-input">
+              <svg class="ico ico-sm" viewBox="0 0 24 24" style="color:var(--slate-400)"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>
+              <input type="text" placeholder="Ask Co-Pilot anything about Blue Ridge Phase 2…">
+              <button class="send-btn">
+                <svg class="ico ico-sm" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+              </button>
+            </div>
+            <div class="chat-footer-row">
+              <button class="quick-pill">📎 Attach drawing</button>
+              <button class="quick-pill">▸ Last query</button>
+              <button class="quick-pill">⌁ Streaming</button>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- RIGHT RAIL -->
+        <div class="rail">
+
+          <!-- Suggested actions -->
+          <div class="rail-card">
+            <div class="rail-title">Suggested Actions</div>
+            <button class="action-btn">
+              Analyze this week's failed drawings
+              <span class="ab-sub">24 failed · group by root cause</span>
+            </button>
+            <button class="action-btn">
+              Where am I at risk of slipping?
+              <span class="ab-sub">ML risk forecast · next 90 days</span>
+            </button>
+            <button class="action-btn">
+              Explain the budget variance
+              <span class="ab-sub">+2.3% EAC breakdown</span>
+            </button>
+            <button class="action-btn">
+              Summarize open NCRs by discipline
+              <span class="ab-sub">24 open · pipe, structural, instrument</span>
+            </button>
+          </div>
+
+          <!-- Compliance tile - jumping-off -->
+          <div class="rail-card">
+            <div class="rail-title">Document Compliance</div>
+            <div class="compliance-mini">
+              <div class="cm-stat"><div class="cm-num">238</div><div class="cm-lbl">reviewed</div></div>
+              <div class="cm-stat"><div class="cm-num cm-good">214</div><div class="cm-lbl">passed</div></div>
+              <div class="cm-stat"><div class="cm-num cm-bad">24</div><div class="cm-lbl">failed</div></div>
+            </div>
+            <button class="action-btn" style="margin-bottom:0">
+              Dig into failed drawings
+              <span class="ab-sub">Chat with the 24 flagged documents</span>
+            </button>
+          </div>
+
+          <!-- Project knowledge (sources) -->
+          <div class="rail-card">
+            <div class="rail-title">Project Knowledge</div>
+            <div class="knowledge-item">
+              <div class="ki-icon"><svg class="ico ico-sm" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+              <div class="ki-main">
+                <div class="ki-title">Drawings Volume</div>
+                <div class="ki-sub">/Volumes/bluerridge/drawings</div>
+              </div>
+              <div class="ki-count">1,247</div>
+            </div>
+            <div class="knowledge-item">
+              <div class="ki-icon"><svg class="ico ico-sm" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg></div>
+              <div class="ki-main">
+                <div class="ki-title">Project Schema</div>
+                <div class="ki-sub">bluerridge.engineering.*</div>
+              </div>
+              <div class="ki-count">18 tables</div>
+            </div>
+            <div class="knowledge-item">
+              <div class="ki-icon"><svg class="ico ico-sm" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/></svg></div>
+              <div class="ki-main">
+                <div class="ki-title">Vector Index</div>
+                <div class="ki-sub">spec_citations_vs</div>
+              </div>
+              <div class="ki-count">ASME, OSHA, IBC</div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+    </main>
+
+  </div>
+
+</div>
+
+</body>
+</html>
