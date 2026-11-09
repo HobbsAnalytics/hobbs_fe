@@ -1,6 +1,6 @@
 # Talk track: the Yoodli roleplay
 
-Presenter notes for showing the working app to a business persona (a project director or controls lead) and a technical persona (a data or platform architect). Every number here comes from a committed file, named in brackets the first time it appears, so any answer can be backed up on the spot. Speak in the PM's language first and the platform's second.
+Presenter notes for showing the working app to three audiences: a business persona (a project director or controls lead), the executive sponsor who funds a rollout (a Chief Project Officer or VP of Engineering, see (c2)), and a technical persona (a data or platform architect). Every number here comes from a committed file, named in brackets the first time it appears, so any answer can be backed up on the spot. Speak in the PM's language first, the sponsor's when the funding question comes up, and the platform's last.
 
 **Before you start.**
 - Open `https://bluerridge-pm-copilot-7474644652812129.aws.databricksapps.com` in your managed Chrome profile, already signed in, at 1440 px wide or more so the right rail shows.
@@ -60,8 +60,36 @@ If something fails live: the UI shows a plain error card instead of a stack trac
   - [[`evidence/sample_compliance_outputs/compliance_eval_summary.md`](../evidence/sample_compliance_outputs/compliance_eval_summary.md), "Drawing level"]
 - **Where it's already strong.** Exit widths (`IBC 1005.1`): 90% precision, 100% recall. Weld exam spec (`ASME B31.3 §341`): 100% precision, 88% recall. Pipe isometrics: 97% precision and recall. "Those you could nearly trust today."
 - **Where it isn't yet.** Lockout/tagout tags (`OSHA 1910.147`): 34% precision, 54% recall. About a fifth of all false alarms come from the parser misreading tags like *LOTO* as *ROTO*. "That's a parser fix, not a model fix, and it's first on the roadmap."
-- **What the hours are worth.** Don't quote a dollar figure: none is measured here. Ask instead: "How long does a discipline engineer spend checking one drawing against code? Multiply that by the 187 drawings this week that didn't need a second look." Their number is the business case.
+- **What the hours are worth.** Don't quote a *measured* dollar figure: none is measured here. Ask instead: "How long does a discipline engineer spend checking one drawing against code? Multiply that by the 187 drawings this week that didn't need a second look." Their number is the PM's business case. When the funding question comes up, switch to the sponsor's language in (c2).
 - **The rest of the PM's morning.** The same screen carries schedule, budget, safety and NCRs, so the brief replaces the morning spreadsheet round. The KPIs are computed from the source tables and asserted against the project story: 6 of 11 milestones, MS-281 4 days late, +2.3% / $4.8M, TRIR 0, 24 open NCRs [[`kpi_today.md`](../05_gold/outputs/kpi_today.md)].
+
+## (c2) Value story for the executive sponsor: the investment case
+
+This is for whoever funds a pilot and signs off a multi-project rollout: a Chief Project Officer, a VP of Engineering, a portfolio sponsor. Same results as (c), in their terms: rework avoided, risk exposure reduced, and the return on a few weeks of pilot. The full model, sources and break-even math are in [`EXECUTIVE_VALUE_CASE.md`](EXECUTIVE_VALUE_CASE.md). The customer deck carries it as slides 8–10 of [`deck/Bechtel_Databricks_PM_Copilot.pdf`](../deck/Bechtel_Databricks_PM_Copilot.pdf).
+
+- **Say first that the dollars are modeled.** "Every operational number I showed you was measured. Every dollar number I'm about to show you is a model built on public benchmarks, and the pilot replaces each input with your data."
+- **Rework avoided.**
+  - Direct rework runs about 5% of construction cost (CII), so about $50M per $1B.
+  - We assume only 30% of that is visible on drawings as a code or design error. The research figure for design-induced rework is over 70%, but it includes design changes no compliance check catches.
+  - We assume the Co-Pilot catches 20% of the visible share early. We do not use the prototype's 81% recall, because that is in-sample on synthetic data.
+  - Result: **about $3M per $1B**, with a range of $1M to $6M. On an illustrative $10B of construction a year, that is **$10M to $60M a year, with $30M as the base case**. Direct cost only; delay and claims are excluded.
+- **Risk exposure reduced.**
+  - Compliance: violations found at design review, not at inspection or in the field.
+  - Schedule: slip risk ranked by band 90 days ahead. McKinsey finds large projects typically finish 20% late. Say the forecast is a ranking signal, per (d).
+  - Safety: lockout/tagout and egress flagged before field work. Say lockout/tagout is the weakest rule today.
+- **The return on the pilot.**
+  - "Assume a pilot ceiling of $0.5M all-in, set high on purpose."
+  - On a $1B project, about $15M of rework is visible on drawings, so the pilot pays for itself at a **catch rate of about 3%**. The base case assumes 20%.
+  - "Pick a pilot project of $1B or more, or the effect is too small to measure."
+- **The decision.** It is a week-8 go/no-go, with criteria agreed with the sponsor at kickoff:
+  - the measured catch rate on a closed project's known NCRs against break-even;
+  - recall and false-alarm rate on real violations;
+  - review hours per drawing;
+  - PM adoption;
+  - run-rate cost per 1,000 drawings.
+- **If they push on the numbers:**
+  - "Which input would you change?" Then re-run the chain with their number, live. The formula is one line.
+  - "The $10B portfolio and the $0.5M are placeholders, not your figures or a quote."
 
 ## (d) Technical persona Q&A
 
@@ -175,6 +203,12 @@ Five things a sharp customer can find in the app or the repo. Each has an honest
 
 > "What you've seen is an end-to-end path: drawings land, get read and checked overnight, and a PM gets a grounded brief, a triaged queue, the evidence on the sheet and a governed way to ask questions, all deployed from one bundle.
 >
-> What I'd propose next is a four-week pilot on one closed project's drawings, with three measures agreed up front: precision and recall against your known NCRs, engineer hours per drawing before and after, and the false-alarm rate per rule. Week one, we index your code library and specs. Week two, we run the batch. Weeks three and four, your engineers work the queue and we tune the guardrails on their feedback. Can we pick the project and name the discipline lead today?"
+> What I'd propose next is a 6–8 week pilot on one project of $1B or more, the same plan as the deck. The measures are agreed up front:
+> - precision and recall against your known NCRs;
+> - engineer hours per drawing, before and after;
+> - the false-alarm rate per rule;
+> - rework caught against the break-even.
+>
+> In weeks 1–2, we index your code library and specs and load the drawing set. In weeks 3–5, we run the batch on a closed project's drawings and calibrate against its known NCRs with your SMEs. In weeks 6–8, your PMs and engineers work the queue on the live project. At week 8 your executive sponsor makes the go/no-go call on the portfolio. Can we pick the project, and name the discipline lead and the sponsor, today?"
 
 Leave-behind: [`evidence/00_READ_ME_FIRST.md`](../evidence/00_READ_ME_FIRST.md). Every claim above links to its proof there.

@@ -43,7 +43,9 @@ Always pass `--profile`. The final verification run is in [`evidence/deploy_tran
 | [`evidence/00_READ_ME_FIRST.md`](evidence/00_READ_ME_FIRST.md) | Graders: each box and its proof, plus honest limitations |
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | The system as built: data flow, identities, the Lakebase hot path, where governance sits |
 | [`docs/BUILD.md`](docs/BUILD.md) | Building and deploying, running a notebook as evidence, costs and teardown |
-| [`docs/TALK_TRACK.md`](docs/TALK_TRACK.md) | Presenter notes for the roleplay |
+| [`docs/TALK_TRACK.md`](docs/TALK_TRACK.md) | Presenter notes for the roleplay: the PM's value story, the executive sponsor's investment case, and technical Q&A |
+| [`docs/EXECUTIVE_VALUE_CASE.md`](docs/EXECUTIVE_VALUE_CASE.md) | The investment case for the executive sponsor: rework avoided at portfolio scale, risk exposure reduced, the pilot's break-even and a week-8 go/no-go. Dollar figures are modeled from cited benchmarks, not measured |
+| [`deck/`](deck/) | The customer deck (13-slide PDF) with speaker notes. Slides 3–7 are for the project manager; slides 8–10 are the investment case for the executive sponsor |
 | [`09_app/API.md`](09_app/API.md) | The app's endpoints and the chat event stream |
 | [Design spec](docs/superpowers/specs/2026-11-06-bluerridge-pm-copilot-design.md), [implementation plan](docs/superpowers/plans/2026-11-06-bluerridge-pm-copilot.md) | Why it is built this way |
 
@@ -64,7 +66,8 @@ Always pass `--profile`. The final verification run is in [`evidence/deploy_tran
 | `09_app/` | React + FastAPI Databricks App |
 | `scripts/` | Notebook-evidence tool, post-deploy grants |
 | `evidence/` | The grader tour, plus committed proof of every run |
-| `docs/` | Architecture, build guide, talk track, spec, plan |
+| `docs/` | Architecture, build guide, talk track, executive value case, spec, plan |
+| `deck/` | The customer deck (PDF) and its speaker notes |
 
 Each numbered folder keeps the results of its notebooks in an `outputs/` subfolder. HTML exports of every executed notebook are in `evidence/notebook_html_exports/`.
 
