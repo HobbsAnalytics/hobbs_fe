@@ -13,7 +13,7 @@ Read with `databricks apps logs bluerridge-pm-copilot --profile DEFAULT` after `
 2026-11-08T19:33:15Z [APP] INFO bluerridge.selftest: selftest warehouse current_user=02a6516a-0d8f-49e9-8965-56e89fa12ad4 drawing_register_visible=1200
 2026-11-08T19:33:15Z [APP] INFO bluerridge.selftest: selftest volume BRL-PIP-ISO-0004.pdf exists=True size=6150
 2026-11-08T19:33:16Z [APP] INFO bluerridge.selftest: selftest vector_search mode=vs hits=4
-INFO bluerridge.selftest: selftest done ok=True
+[line from an earlier boot; verbatim copy not retained] selftest done ok=True
 ```
 
 | Check | Result | Matches |

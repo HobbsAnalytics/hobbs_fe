@@ -87,16 +87,20 @@ def main():
     page, model = decode_model(a.export_json)
     nb = json.load(open(a.ipynb, encoding="utf-8"))
     cmds = model["commands"]
-    assert len(cmds) == len(nb["cells"]), f"cell count mismatch: run has {len(cmds)}, notebook has {len(nb['cells'])}"
+    if len(cmds) != len(nb["cells"]):
+        raise SystemExit(f"cell count mismatch: run has {len(cmds)}, notebook has {len(nb['cells'])}")
 
     count = 0
     for cell, cmd in zip(nb["cells"], cmds):
         src = "".join(cell["source"])
         if cell["cell_type"] == "markdown":
-            assert cmd["command"].startswith("%md"), f"cell {cell['id']}: expected a %md command"
+            if not cmd["command"].startswith("%md"):
+                raise SystemExit(f"cell {cell['id']}: expected a %md command")
             continue
-        assert cmd["command"].strip() == src.strip(), f"cell {cell['id']}: run source differs from notebook source"
-        assert cmd.get("state") == "finished" and not cmd.get("error"), f"cell {cell['id']} did not finish cleanly"
+        if cmd["command"].strip() != src.strip():
+            raise SystemExit(f"cell {cell['id']}: run source differs from notebook source")
+        if not (cmd.get("state") == "finished" and not cmd.get("error")):
+            raise SystemExit(f"cell {cell['id']} did not finish cleanly")
         count += 1
         cell["execution_count"] = count
         res = cmd.get("results") or {}

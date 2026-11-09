@@ -2,7 +2,7 @@
 
 Run on 2026-11-08 between 20:50 and 21:05 US Central (2026-11-09 02:50 to 03:05 UTC), from commit `19076c9` on `main`, as `joseph.hobbs@databricks.com`, CLI v1.20.0, profile `DEFAULT`. Every command and its outcome is below. No token was minted, passed or printed. Grant credentials are generated inside the grants script and never echoed. No AI job was run. `bluerridge-doc-intelligence` would re-bill about 1,370 parsed pages plus about 3,600 extract, classify and judge calls.
 
-**Why there was no redeploy.** The app's active deployment `01f1dbe7fb1c1b8a8ae3438d566edf44` was created at 2026-11-09T02:48:02Z, after HEAD `19076c9` was committed (02:47:16Z). No app code changed after that: `git diff HEAD` touches no file under `09_app/backend` (other than the `AUTH_NOTES.md` memo), `09_app/frontend/src`, `app.yaml`, `requirements.txt`, `resources/` or `databricks.yml`. A fresh local `npm run build` (step 7) produced the same asset hashes that the live app served in the signed-in session (`index-JMtDCmtL.js`, `index-Cq4R4OKp.css`, `DrawingPage-Biw1XFLZ.js`, `pdf.worker.min-GB3t0DcA.mjs`; see [`live_obo_chat.md`](../09_app/outputs/live_obo_chat.md)). So the deployed SPA is the HEAD build.
+**Why there was no redeploy.** The app's active deployment `01f1dbe7fb1c1b8a8ae3438d566edf44` was created at 2026-11-09T02:48:02Z, after HEAD `19076c9` was committed (02:47:16Z). No app code changed after that: `git diff HEAD` touches no file under `09_app/backend` (other than the `AUTH_NOTES.md` memo), `09_app/frontend/src`, `app.yaml`, `requirements.txt`, `resources/` or `databricks.yml`. A fresh local `npm run build` (step 7) produced the same asset hashes that the live app served in the signed-in session (`index-JMtDCmtL.js`, `index-Cq4R4OKp.css`, `DrawingPage-Biw1XFLZ.js`, `pdf.worker.min-GB3t0DcA.mjs`). The served-asset hashes were read from the app's access log during the signed-in session; those static-asset lines were dropped when [`live_obo_chat.md`](../09_app/outputs/live_obo_chat.md) was scrubbed, so only the local build output in step 7 is committed evidence of the hashes. (This claim is superseded by the redeploy appended at the end of this file.). So the deployed SPA is the HEAD build.
 
 **Deploy model.** CLI v1.20's top-level `scripts:` are named on-demand scripts, not pre-deploy or post-deploy hooks (confirmed in Task 1; see `docs/BUILD.md`, Gotchas). The deploy is therefore the documented sequence in [`docs/BUILD.md`](../docs/BUILD.md#deploy-order): `bundle deploy` for every bundle resource, then `bundle run pm_copilot_app`, then `scripts/post_deploy_grants.sh`. This transcript re-verifies the deployed state rather than redeploying it.
 
@@ -123,3 +123,25 @@ The `[HTTP]` access log records the same five requests with user agent `curl/8.7
 ## 8. Secret hygiene of this task's commits
 
 `git diff` of every file committed in Task 24 was grepped for `token`, `dapi`, `eyJ`, `Bearer` and `password`. The matches are prose only: words such as "the user's token", "no token was minted" and "`x-forwarded-access-token`". There is no credential value, no `dapi…` personal access token and no `eyJ…` JWT. Docs and evidence files are mode 644.
+
+## Addendum: redeploy after the final-review fix wave (2026-11-08, about 21:50 US Central; 2026-11-09 03:50 UTC)
+
+Reason: two UI wording fixes changed `09_app/frontend/src` (the REVIEW card label on the Compliance page, and the Findings count on the Drawing page, which now counts only FAIL/REVIEW rows). The earlier "no redeploy" statement above applies to the original check only. No token was minted, passed or printed. No job was run.
+
+- `npx vitest run`: 6 files, 45 tests passed. `npm run build`: built, and `check-no-fixtures` OK. New SPA assets: `index-CDoR3vb1.js`, `DrawingPage-B7HqUPmU.js` (the CSS hash `index-Cq4R4OKp.css` is unchanged). The asset hashes quoted in the section above are therefore from the earlier build.
+- `databricks bundle deploy -t demo --profile DEFAULT`: `Files: 32 uploaded, 3 deleted`, `Resources: 0 created, 0 changed, 0 deleted, 15 unchanged`.
+- `databricks bundle run pm_copilot_app -t demo --profile DEFAULT`: `App started successfully`.
+- `databricks apps get`: app `RUNNING`, compute `ACTIVE`, active deployment `01f1dbf08c3a1b9aaafa0fa90c72e4ba` `SUCCEEDED`, `user_api_scopes` `['dashboards.genie', 'sql']` intact.
+- Boot self-test from `databricks apps logs bluerridge-pm-copilot --profile DEFAULT` (verbatim):
+
+```
+2026-11-09T03:50:01Z [APP] INFO bluerridge.selftest: selftest lakebase kpi_daily_synced rows=90
+2026-11-09T03:50:01Z [APP] INFO bluerridge.selftest: selftest lakebase compliance_findings_synced rows=1379
+2026-11-09T03:50:03Z [APP] INFO bluerridge.selftest: selftest warehouse current_user=02a6516a-0d8f-49e9-8965-56e89fa12ad4 drawing_register_visible=1200
+2026-11-09T03:50:04Z [APP] INFO bluerridge.selftest: selftest route compliance_summary reviewed=238 failed=51
+2026-11-09T03:50:04Z [APP] INFO bluerridge.selftest: selftest route overdue late=6 due_today=1
+2026-11-09T03:50:16Z [APP] INFO bluerridge.selftest: selftest genie transport=mcp status=COMPLETED got_sql=True rows=1 headline=51
+2026-11-09T03:50:16Z [APP] INFO bluerridge.selftest: selftest done ok=True
+```
+
+The self-test runs as the app service principal, so `transport=mcp` here is the SP path only. The signed-in-user MCP 403 and the Conversation API fallback are unchanged and still documented in `09_app/outputs/live_obo_chat.md`. The signed-in UI was not re-checked after this redeploy.
