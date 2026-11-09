@@ -65,9 +65,13 @@ It does not use the `databricks-mcp` client library, which brings about 108 pack
 
   Nothing else falls back: 5xx, 429, a non-JSON body, other JSON-RPC codes, a connection dropped after the request went out, a read timeout, or any error on a poll call. In those cases Genie may already hold the message, so they end in the safe `error` event instead of risking a second ask.
 
+  "Never asks twice" rests on an assumption: that the server rejects a first call with one of the refusals listed above before it accepts the question. That is how HTTP 4xx and a failed connect normally behave, but the managed MCP server (Public Preview) does not document it to that level.
+
+  **Live (Task 24).** In the one signed-in OBO session, the MCP endpoint refused the user's first `query_space` call with HTTP 403. The fallback then answered through the Conversation API (`transport=conversation_api outcome=done got_sql=True rows=85`). The service principal's self-test call goes through MCP. Evidence: `outputs/live_obo_chat.md`.
+
   If MCP completes with SQL but without a `statement_response`, the rows are read for that same message through the Conversation API (`get_message` → `get_message_attachment_query_result`), and a warning with key names only is logged. Genie is not asked again.
 
-The live self-test answered through `transport=mcp`. The research and evidence are in `backend/AUTH_NOTES.md`, "Genie transport for the chat", and `outputs/chat_selftest.md`.
+The live startup self-test, which runs as the service principal, answered through `transport=mcp`. The research and evidence are in `backend/AUTH_NOTES.md`, "Genie transport for the chat", and `outputs/chat_selftest.md`.
 
 **Request log.** One line per chat: `chat email=… transport=… outcome=… got_sql=… rows=… elapsed_ms=…`. It never includes the question, the answer, rows or the token.
 

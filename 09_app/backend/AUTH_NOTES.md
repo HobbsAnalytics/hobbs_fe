@@ -133,6 +133,11 @@ Its scope `genie` is the one the app already has: the platform maps `dashboards.
   rejected an OBO token's scope with a 403 on the first call, the guarded fallback would answer through the
   Conversation API. The final `done` event and the `chat ... transport=` log line both report which transport
   answered.
+- **Live OBO result (Task 24).** That is what happened. In the user's signed-in session, `whoami` logged
+  `auth_mode=OBO`. The MCP endpoint answered the user's first `query_space` with HTTP 403, and the guarded fallback
+  answered through the Conversation API: `chat email=<user> transport=conversation_api outcome=done got_sql=True
+  rows=85`. So Genie-as-the-user is verified live. MCP is verified live only as the SP. Which scope or permission
+  the MCP endpoint wants from an OBO token was not diagnosed. Evidence: `09_app/outputs/live_obo_chat.md`.
 
 ## Service principal identity for SQL (row filter)
 
